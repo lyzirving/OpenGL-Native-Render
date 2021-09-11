@@ -322,6 +322,7 @@ void Render::render(JNIEnv *env) {
     LogUtil::logI(TAG, {"render: quit render-loop"});
     if (listener != nullptr) { notifyEnvRelease(env, listener); }
     release(env);
+    delete this;
 }
 
 void Render::release(JNIEnv *env) {
