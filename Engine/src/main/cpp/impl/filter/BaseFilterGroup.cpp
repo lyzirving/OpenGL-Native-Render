@@ -45,6 +45,7 @@ void BaseFilterGroup::destroy() {
         filter->destroy();
         iterator = mFilters->erase(iterator);
     }
+    mInitialized = false;
 }
 
 int BaseFilterGroup::filterSize() {

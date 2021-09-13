@@ -55,11 +55,6 @@ void MaskFilter::destroy() {
     }
 }
 
-void MaskFilter::init() {
-    BaseFilter::init();
-    LogUtil::logI(TAG, {"init: ", std::to_string(mInitialized)});
-}
-
 void MaskFilter::initFrameBuffer() {
     if (mFrameBufferId != 0) { glDeleteFramebuffers(1, &mFrameBufferId); }
     if (mTextureId != 0) { glDeleteTextures(1, &mTextureId); }

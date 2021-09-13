@@ -1,38 +1,38 @@
 //
-// Created by liuyuzhou on 2021/9/9.
+// Created by liuyuzhou on 2021/9/13.
 //
-#include "ContrastFilter.h"
-#include "LogUtil.h"
+#include <LogUtil.h>
+#include "SaturationFilter.h"
 
-#define TAG "ContrastFilter"
+#define TAG "SaturationFilter"
 
-void ContrastFilter::adjust(int progress) {
+void SaturationFilter::adjust(int progress) {
     if (progress < 0) {
         progress = 0;
     } else if (progress > 100) {
         progress = 100;
     }
-    if (progress >= 50) {
-        mContrast = ((float) (progress - 50)) / ((float) 50) + 1;
+    if (progress < 50) {
+        mSaturation = 1 - ((float)(50 - progress)) / 50;
     } else {
-        mContrast = (float) progress / (float) (50);
+        mSaturation = 1 + ((float)(progress - 50)) / 50;
     }
-    LogUtil::logI(TAG, {"adjust: progress = ", std::to_string(progress), ", contrast = ", std::to_string(mContrast)});
+    LogUtil::logI(TAG, {"adjust: progress = ", std::to_string(progress), ", saturation = ", std::to_string(mSaturation)});
 }
 
-void ContrastFilter::loadShader() {
+void SaturationFilter::initHandler() {
+    BaseFilter::initHandler();
+    mSaturationHandler = glGetUniformLocation(mProgram, "uSaturation");
+}
+
+void SaturationFilter::loadShader() {
     auto gUtil = GlUtil::self();
     if (mVertexShader == nullptr) { mVertexShader = gUtil->readAssets("shader/default_vertex_shader.glsl"); }
-    if (mTextureShader == nullptr) { mTextureShader = gUtil->readAssets("shader/contrast_shader.glsl"); }
+    if (mTextureShader == nullptr) { mTextureShader = gUtil->readAssets("shader/saturation_fragment_shader.glsl"); }
 }
 
-void ContrastFilter::initHandler() {
-    BaseFilter::initHandler();
-    mContrastHandler = glGetUniformLocation(mProgram, "uContrast");
-}
-
-GLint ContrastFilter::onDraw(GLint inputTextureId) {
-    LogUtil::logI(TAG, {"onDraw: ", std::to_string(mContrast)});
+GLint SaturationFilter::onDraw(GLint inputTextureId) {
+    LogUtil::logI(TAG, {"onDraw: ", std::to_string(mSaturation)});
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glUseProgram(mProgram);
 
@@ -44,11 +44,11 @@ GLint ContrastFilter::onDraw(GLint inputTextureId) {
     glVertexAttribPointer(mTextureCoordinateHandler, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),nullptr);
     glEnableVertexAttribArray(mTextureCoordinateHandler);
 
-    glUniform1f(mContrastHandler, mContrast);
-
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, inputTextureId);
     glUniform1i(mTextureSamplerHandler, 0);
+
+    glUniform1f(mSaturationHandler, mSaturation);
 
     glDrawArrays(GL_TRIANGLES, 0, BaseFilter::DEFAULT_VERTEX_COUNT);
 

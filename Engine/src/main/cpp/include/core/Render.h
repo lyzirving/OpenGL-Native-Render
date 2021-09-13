@@ -31,6 +31,7 @@ public:
 
     bool addBeautyFilter(const char* filterType);
     void adjustFilterProgress(const char* filterType, int progress);
+    void clearBeautyFilter();
     void drawFrame();
     void deleteFilters();
     void enqueueMessage(EventType what);

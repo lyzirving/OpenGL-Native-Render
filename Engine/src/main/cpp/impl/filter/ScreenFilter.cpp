@@ -15,11 +15,6 @@ void ScreenFilter::flip(bool horizontal, bool vertical) {
     MatrixUtil::flip(mMatrix, horizontal, vertical);
 }
 
-void ScreenFilter::init() {
-    BaseFilter::init();
-    LogUtil::logI(TAG, {"init: ", std::to_string(mInitialized)});
-}
-
 void ScreenFilter::initHandler() {
     BaseFilter::initHandler();
     mTransHandler = glGetUniformLocation(mProgram, "uMatrix");

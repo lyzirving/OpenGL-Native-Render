@@ -107,6 +107,11 @@ static void nEnvOnResume(JNIEnv *env, jclass clazz, jlong ptr, jobject surface) 
     pRender->enqueueMessage(EventType::EVENT_RESUME);
 }
 
+static void nEnvClearBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<Render *>(ptr);
+    pRender->clearBeautyFilter();
+}
+
 static JNINativeMethod sJniMethods[] = {
         {
                 "nCreate",           "()J",
@@ -151,6 +156,10 @@ static JNINativeMethod sJniMethods[] = {
         {
                 "nOnResume", "(JLandroid/view/Surface;)V",
                 (void *) nEnvOnResume
+        },
+        {
+                "nClearBeautyFilter", "(J)V",
+                (void *) nEnvClearBeautyFilter
         }
 };
 
@@ -167,7 +176,7 @@ bool Render::addBeautyFilter(const char *filterType) {
         if (filter != nullptr) {
             mBeautyFilterGroup->addFilter(filterType, filter);
             mBeautyFilterGroup->setOutputSize(mWidth, mHeight);
-            task = std::shared_ptr<FilterInitTask>(new FilterInitTask);
+            task = std::make_shared<FilterInitTask>();
             task->setObj(mBeautyFilterGroup);
             mWorkQueue->enqueue(task);
         } else {
@@ -189,6 +198,14 @@ void Render::adjustFilterProgress(const char *filterType, int progress) {
         std::shared_ptr<BaseFilter> filter = mBeautyFilterGroup->getFilter(filterType);
         filter->adjust(progress);
         optDone = true;
+    }
+}
+
+void Render::clearBeautyFilter() {
+    if (mBeautyFilterGroup != nullptr) {
+        std::shared_ptr<FilterDestroyTask> task = std::make_shared<FilterDestroyTask>();
+        task->setObj(mBeautyFilterGroup);
+        mWorkQueue->enqueue(task);
     }
 }
 
@@ -354,7 +371,7 @@ void Render::setResource(JNIEnv *env, jobject bitmap) {
     mBackgroundFilter->setOutputSize(mWidth, mHeight);
     mBackgroundFilter->setBitmap(env, bitmap);
     if (!mBackgroundFilter->initialized()) {
-        std::shared_ptr<FilterInitTask> task = std::shared_ptr<FilterInitTask>(new FilterInitTask);
+        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mBackgroundFilter);
         mWorkQueue->enqueue(task);
     }
@@ -363,20 +380,20 @@ void Render::setResource(JNIEnv *env, jobject bitmap) {
     mMaskFilter->setSourceSize(mBackgroundFilter->getBitmapWidth(), mBackgroundFilter->getBitmapHeight());
     mMaskFilter->buildMask();
     if (!mMaskFilter->initialized()) {
-        std::shared_ptr<FilterInitTask> task = std::shared_ptr<FilterInitTask>(new FilterInitTask);
+        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mMaskFilter);
         mWorkQueue->enqueue(task);
     }
     if (mScreenFilter == nullptr) { mScreenFilter = new ScreenFilter; }
     mScreenFilter->setOutputSize(mWidth, mHeight);
     if (!mScreenFilter->initialized()) {
-        std::shared_ptr<FilterInitTask> task = std::shared_ptr<FilterInitTask>(new FilterInitTask);
+        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mScreenFilter);
         mWorkQueue->enqueue(task);
     }
     if (mBeautyFilterGroup != nullptr) {
         mBeautyFilterGroup->setOutputSize(mWidth, mHeight);
-        std::shared_ptr<FilterInitTask> task = std::shared_ptr<FilterInitTask>(new FilterInitTask);
+        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mBeautyFilterGroup);
         mWorkQueue->enqueue(task);
     }

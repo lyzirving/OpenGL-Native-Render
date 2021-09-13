@@ -11,7 +11,6 @@ public:
 
     void buildMask();
     void destroy() override;
-    void init() override;
     void initHandler() override;
     void initTexture() override;
     void initFrameBuffer() override;

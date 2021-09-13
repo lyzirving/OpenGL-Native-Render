@@ -11,7 +11,6 @@ public:
     ScreenFilter();
 
     void flip(bool horizontal, bool vertical);
-    void init() override;
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;

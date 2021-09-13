@@ -11,4 +11,11 @@ void WorkTask::run() {}
 void FilterInitTask::run() {
     auto* filter = static_cast<BaseFilter *>(mObj);
     filter->init();
+    mObj = nullptr;
+}
+
+void FilterDestroyTask::run() {
+    auto* filter = static_cast<BaseFilter *>(mObj);
+    filter->destroy();
+    mObj = nullptr;
 }

@@ -22,4 +22,10 @@ public:
 private:
 };
 
+class FilterDestroyTask : public WorkTask {
+public:
+    virtual void run() override;
+private:
+};
+
 #endif //ENGINE_WORKTASK_H

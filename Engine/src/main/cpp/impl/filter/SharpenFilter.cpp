@@ -21,11 +21,6 @@ void SharpenFilter::adjust(int progress) {
     LogUtil::logI(TAG, {"adjust: progress = ", std::to_string(progress), ", sharpness = ", std::to_string(mSharpness)});
 }
 
-void SharpenFilter::init() {
-    BaseFilter::init();
-    LogUtil::logI(TAG, {"init: ", std::to_string(mInitialized)});
-}
-
 void SharpenFilter::initHandler() {
     BaseFilter::initHandler();
     mImgWidthHandler = glGetUniformLocation(mProgram, "uImgWidthFactor");
@@ -40,7 +35,7 @@ void SharpenFilter::loadShader() {
 }
 
 GLint SharpenFilter::onDraw(GLint inputTextureId) {
-    LogUtil::logI(TAG, {"onDraw"});
+    LogUtil::logI(TAG, {"onDraw: ", std::to_string(mSharpness)});
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glUseProgram(mProgram);
 

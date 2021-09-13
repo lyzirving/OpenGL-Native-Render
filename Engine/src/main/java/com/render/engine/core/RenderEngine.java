@@ -36,6 +36,15 @@ public class RenderEngine {
         }
     }
 
+    public void clearBeautyFilter() {
+        if (!isInitialized()) {
+            LogUtil.e(TAG, "clearBeautyFilter: invalid state");
+            return;
+        }
+        mFilters.clear();
+        nClearBeautyFilter(mNativePtr);
+    }
+
     public boolean isInitialized() {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "isInitialized: invalid native pointer");
@@ -96,8 +105,8 @@ public class RenderEngine {
     }
 
     public void release() {
-        if (mNativePtr == INVALID_PTR) {
-            LogUtil.e(TAG, "release: invalid native pointer");
+        if (!isInitialized()) {
+            LogUtil.e(TAG, "release: invalid state");
             return;
         }
         nRelease(mNativePtr);
@@ -157,6 +166,7 @@ public class RenderEngine {
     private static native long nCreate();
     private static native boolean nAddBeautyFilter(long ptr, String filterType);
     private static native void nAdjustProgress(long ptr, String filterType, int progress);
+    private static native void nClearBeautyFilter(long ptr);
     private static native boolean nIsEnvInitialized(long ptr);
     private static native void nOnPause(long ptr);
     private static native void nOnResume(long ptr, Surface surface);
