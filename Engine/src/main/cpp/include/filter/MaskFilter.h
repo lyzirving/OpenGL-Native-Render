@@ -8,7 +8,7 @@
 
 class MaskFilter : public BaseFilter {
 public:
-    ~MaskFilter();
+
     void buildMask();
     void destroy() override;
     void init() override;

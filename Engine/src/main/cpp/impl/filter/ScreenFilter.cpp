@@ -11,10 +11,6 @@ ScreenFilter::ScreenFilter() {
     mMatrix = new GLfloat[16];
 }
 
-ScreenFilter::~ScreenFilter() {
-    LogUtil::logI(TAG, {"deconstruct"});
-}
-
 void ScreenFilter::flip(bool horizontal, bool vertical) {
     MatrixUtil::flip(mMatrix, horizontal, vertical);
 }

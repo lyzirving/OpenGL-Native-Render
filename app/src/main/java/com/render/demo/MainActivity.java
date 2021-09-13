@@ -14,6 +14,7 @@ import com.render.engine.core.EngineEnv;
 import com.render.engine.core.RenderAdapter;
 import com.render.engine.core.RenderEngine;
 import com.render.engine.core.filter.ContrastFilter;
+import com.render.engine.core.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
 
 /**
@@ -27,9 +28,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private RenderAdapter mRenderAdapter;
 
     private View mAdjustBeautyRoot;
-    private SeekBar mContrastSeekBar;
+    private SeekBar mContrastSeekBar, mSharpenSeekBar;
 
     private ContrastFilter mContrastFilter;
+    private SharpenFilter mSharpenFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +82,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         switch (seekBar.getId()) {
             case R.id.seek_bar_contrast: {
                 mContrastFilter.adjustProgress(seekBar.getProgress());
+                mRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_sharpen: {
+                mSharpenFilter.adjustProgress(seekBar.getProgress());
                 mRender.requestRender();
                 break;
             }
@@ -154,7 +161,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!show) {
             if (mContrastFilter == null || !mContrastFilter.filterValid()) {
                 mContrastFilter = new ContrastFilter();
+                mSharpenFilter = new SharpenFilter();
                 mRender.addBeautyFilter(mContrastFilter);
+                mRender.addBeautyFilter(mSharpenFilter);
                 mRender.requestRender();
             }
         }
@@ -168,8 +177,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         mContrastSeekBar = findViewById(R.id.seek_bar_contrast);
+        mSharpenSeekBar = findViewById(R.id.seek_bar_sharpen);
 
         mContrastSeekBar.setOnSeekBarChangeListener(this);
+        mSharpenSeekBar.setOnSeekBarChangeListener(this);
         findViewById(R.id.tab_beauty).setOnClickListener(this);
     }
 
@@ -180,6 +191,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private void initDefaultVal() {
         if (mContrastSeekBar != null) { mContrastSeekBar.setProgress(50); }
+        if (mSharpenSeekBar != null) { mSharpenSeekBar.setProgress(50); }
     }
 
     private void showTab(View view, boolean show) {

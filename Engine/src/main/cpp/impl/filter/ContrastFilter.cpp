@@ -6,10 +6,6 @@
 
 #define TAG "ContrastFilter"
 
-ContrastFilter::~ContrastFilter() {
-    LogUtil::logI(TAG, {"deconstruct"});
-}
-
 void ContrastFilter::adjust(int progress) {
     if (progress < 0) {
         progress = 0;

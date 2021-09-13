@@ -13,7 +13,6 @@
 class ContrastFilter : public BaseFilter {
 public:
 
-    ~ContrastFilter();
     void adjust(int progress) override;
     void init() override;
     void loadShader() override;

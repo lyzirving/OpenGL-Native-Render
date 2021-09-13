@@ -6,10 +6,6 @@
 
 #define TAG "MaskFilter"
 
-MaskFilter::~MaskFilter() {
-    LogUtil::logI(TAG, {"deconstruct"});
-}
-
 void MaskFilter::buildMask() {
     if (mMaskPixel != nullptr) { delete[] mMaskPixel; }
     //format is RGBA_8888

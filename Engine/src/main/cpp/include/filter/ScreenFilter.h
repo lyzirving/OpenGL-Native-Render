@@ -9,7 +9,6 @@
 class ScreenFilter : public BaseFilter {
 public:
     ScreenFilter();
-    ~ScreenFilter();
 
     void flip(bool horizontal, bool vertical);
     void init() override;
