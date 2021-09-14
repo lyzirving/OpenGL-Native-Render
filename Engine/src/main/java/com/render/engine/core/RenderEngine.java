@@ -145,15 +145,21 @@ public class RenderEngine {
 
     public abstract static class BaseFilter {
         protected long mRenderEnvPtr;
-        @FilterConst.FilterType
-        protected String mType;
 
-        public final void adjustProgress(int progress) {
+        public final void adjust(int progress) {
             if (!nIsEnvInitialized(mRenderEnvPtr)) {
-                LogUtil.i("BaseFilter", "adjustProgress: env is not initialized");
+                LogUtil.i("BaseFilter", "adjust: env is not initialized");
                 return;
             }
-            nAdjustProgress(mRenderEnvPtr, getType(), progress);
+            nAdjust(mRenderEnvPtr, getType(), progress);
+        }
+
+        public final void adjustProp(@FilterConst.FilterProp String propName, int progress) {
+            if (!nIsEnvInitialized(mRenderEnvPtr)) {
+                LogUtil.i("BaseFilter", "adjustFilterProp: env is not initialized");
+                return;
+            }
+            nAdjustProp(mRenderEnvPtr, getType(), propName, progress);
         }
 
         public final boolean filterValid() { return mRenderEnvPtr != INVALID_PTR; }
@@ -165,7 +171,8 @@ public class RenderEngine {
 
     private static native long nCreate();
     private static native boolean nAddBeautyFilter(long ptr, String filterType);
-    private static native void nAdjustProgress(long ptr, String filterType, int progress);
+    private static native void nAdjust(long ptr, String filterType, int progress);
+    private static native void nAdjustProp(long ptr, String filterType, String filterProp, int progress);
     private static native void nClearBeautyFilter(long ptr);
     private static native boolean nIsEnvInitialized(long ptr);
     private static native void nOnPause(long ptr);

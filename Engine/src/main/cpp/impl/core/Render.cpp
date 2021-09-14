@@ -5,6 +5,7 @@
 #include "JniUtil.h"
 #include "LogUtil.h"
 #include "FilterFactory.h"
+#include "HighlightShadowFilter.h"
 
 #include <map>
 #include <pthread.h>
@@ -88,11 +89,20 @@ static jboolean nEnvAddBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr, jstrin
     return res;
 }
 
-static void nEnvAddFilterProgress(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jint progress) {
+static void nEnvAdjust(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jint progress) {
     auto *pRender = reinterpret_cast<Render *>(ptr);
     const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
-    pRender->adjustFilterProgress(type, progress);
+    pRender->adjust(type, progress);
     env->ReleaseStringUTFChars(filterType, type);
+}
+
+static void nEnvAdjustProp(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jstring filterProp, jint progress) {
+    auto *pRender = reinterpret_cast<Render *>(ptr);
+    const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
+    const char* prop = env->GetStringUTFChars(filterProp, JNI_FALSE);
+    pRender->adjustProp(type, prop, progress);
+    env->ReleaseStringUTFChars(filterType, type);
+    env->ReleaseStringUTFChars(filterProp, prop);
 }
 
 static void nEnvOnPause(JNIEnv *env, jclass clazz, jlong ptr) {
@@ -146,8 +156,12 @@ static JNINativeMethod sJniMethods[] = {
                 (void *) nEnvAddBeautyFilter
         },
         {
-                "nAdjustProgress", "(JLjava/lang/String;I)V",
-                (void *) nEnvAddFilterProgress
+                "nAdjust", "(JLjava/lang/String;I)V",
+                (void *) nEnvAdjust
+        },
+        {
+                "nAdjustProp", "(JLjava/lang/String;Ljava/lang/String;I)V",
+                (void *) nEnvAdjustProp
         },
         {
                 "nOnPause", "(J)V",
@@ -192,12 +206,38 @@ bool Render::addBeautyFilter(const char *filterType) {
     return false;
 }
 
-void Render::adjustFilterProgress(const char *filterType, int progress) {
+void Render::adjust(const char *filterType, int progress) {
     bool optDone = false;
     if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
         std::shared_ptr<BaseFilter> filter = mBeautyFilterGroup->getFilter(filterType);
         filter->adjust(progress);
         optDone = true;
+    }
+}
+
+void Render::adjustProp(const char *filterType, const char *prop, int progress) {
+    if (filterType == nullptr || std::strlen(filterType) == 0) {
+        LogUtil::logI(TAG, {"adjustProp: filter type is invalid"});
+        return;
+    }
+    if (prop == nullptr || std::strlen(prop) == 0) {
+        LogUtil::logI(TAG, {"adjustProp: filter prop is invalid"});
+        return;
+    }
+    if (std::strcmp(EngineUtil::FILTER_HIGHLIGHT_SHADOW, filterType) == 0) {
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
+            std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
+            //do not delete filter pointer here, it should be kept alive in map;
+            BaseFilter* baseFilter = tmp.get();
+            auto* target = dynamic_cast<HighlightShadowFilter *>(baseFilter);
+            if (std::strcmp(EngineUtil::FILTER_PROP_HIGHLIGHT, prop) == 0) {
+                target->adjustHighlight(progress);
+            } else if (std::strcmp(EngineUtil::FILTER_PROP_SHADOW, prop) == 0) {
+                target->adjustShadow(progress);
+            }
+        }
+    } else {
+        LogUtil::logI(TAG, {"adjustProp: unknown filter ", filterType});
     }
 }
 

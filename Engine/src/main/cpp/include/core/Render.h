@@ -30,7 +30,8 @@ public:
     ~Render();
 
     bool addBeautyFilter(const char* filterType);
-    void adjustFilterProgress(const char* filterType, int progress);
+    void adjust(const char* filterType, int progress);
+    void adjustProp(const char* filterType, const char* prop, int progress);
     void clearBeautyFilter();
     void drawFrame();
     void deleteFilters();

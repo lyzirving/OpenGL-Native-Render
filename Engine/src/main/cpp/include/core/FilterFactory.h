@@ -5,6 +5,7 @@
 #define ENGINE_FILTERFACTORY_H
 
 #include "BaseFilter.h"
+#include "Static.h"
 #include "string"
 
 class FilterFactory {

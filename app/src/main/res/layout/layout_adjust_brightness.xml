@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout
-    android:id="@+id/layout_adjust_beauty_root"
+    android:id="@+id/layout_adjust_brightness_root"
     xmlns:tools="http://schemas.android.com/tools"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_adjust_panel"
-    android:paddingBottom="@dimen/border_margin"
     android:paddingTop="@dimen/border_margin"
+    android:paddingBottom="@dimen/border_margin"
     android:visibility="gone">
 
     <RelativeLayout
-        android:id="@+id/rl_contrast"
+        android:id="@+id/rl_exposure"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
@@ -21,7 +21,7 @@
         android:layout_marginEnd="@dimen/border_margin">
 
         <TextView
-            android:id="@+id/tv_contrast"
+            android:id="@+id/tv_exposure"
             android:layout_width="@dimen/adjust_text_width"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
@@ -29,14 +29,14 @@
             android:textColor="#000000"
             android:gravity="center"
             android:textSize="@dimen/bottom_icon_text_size"
-            android:text="@string/tip_contrast"
+            android:text="@string/tip_exposure"
             tools:ignore="SmallSp" />
 
         <SeekBar
-            android:id="@+id/seek_bar_contrast"
+            android:id="@+id/seek_bar_exposure"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@+id/tv_contrast"
+            android:layout_toEndOf="@+id/tv_exposure"
             android:layout_centerVertical="true"
             android:max="100"
             android:maxHeight="@dimen/seek_bar_max_height" />
@@ -44,16 +44,16 @@
     </RelativeLayout>
 
     <RelativeLayout
-        android:id="@+id/rl_sharpen"
+        android:id="@+id/rl_increase_shadow"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="@+id/rl_contrast"
-        app:layout_constraintEnd_toEndOf="@id/rl_contrast"
-        app:layout_constraintTop_toBottomOf="@+id/rl_contrast"
+        app:layout_constraintStart_toStartOf="@+id/rl_exposure"
+        app:layout_constraintEnd_toEndOf="@+id/rl_exposure"
+        app:layout_constraintTop_toBottomOf="@+id/rl_exposure"
         android:layout_marginTop="@dimen/internal_margin">
 
         <TextView
-            android:id="@+id/tv_sharpen"
+            android:id="@+id/tv_increase_shadow"
             android:layout_width="@dimen/adjust_text_width"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
@@ -61,14 +61,14 @@
             android:textColor="#000000"
             android:gravity="center"
             android:textSize="@dimen/bottom_icon_text_size"
-            android:text="@string/tip_sharpen"
+            android:text="@string/tip_inc_shadow"
             tools:ignore="SmallSp" />
 
         <SeekBar
-            android:id="@+id/seek_bar_sharpen"
+            android:id="@+id/seek_bar_inc_shadow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@+id/tv_sharpen"
+            android:layout_toEndOf="@+id/tv_increase_shadow"
             android:layout_centerVertical="true"
             android:max="100"
             android:maxHeight="@dimen/seek_bar_max_height" />
@@ -76,16 +76,16 @@
     </RelativeLayout>
 
     <RelativeLayout
-        android:id="@+id/rl_saturation"
+        android:id="@+id/rl_decrease_highlight"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="@+id/rl_contrast"
-        app:layout_constraintEnd_toEndOf="@id/rl_contrast"
-        app:layout_constraintTop_toBottomOf="@+id/rl_sharpen"
+        app:layout_constraintStart_toStartOf="@+id/rl_exposure"
+        app:layout_constraintEnd_toEndOf="@+id/rl_exposure"
+        app:layout_constraintTop_toBottomOf="@+id/rl_increase_shadow"
         android:layout_marginTop="@dimen/internal_margin">
 
         <TextView
-            android:id="@+id/tv_saturation"
+            android:id="@+id/tv_dec_highlight"
             android:layout_width="@dimen/adjust_text_width"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
@@ -93,14 +93,14 @@
             android:textColor="#000000"
             android:gravity="center"
             android:textSize="@dimen/bottom_icon_text_size"
-            android:text="@string/tip_saturation"
+            android:text="@string/tip_dec_highlight"
             tools:ignore="SmallSp" />
 
         <SeekBar
-            android:id="@+id/seek_bar_saturation"
+            android:id="@+id/seek_bar_dec_highlight"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@+id/tv_saturation"
+            android:layout_toEndOf="@+id/tv_dec_highlight"
             android:layout_centerVertical="true"
             android:max="100"
             android:maxHeight="@dimen/seek_bar_max_height" />

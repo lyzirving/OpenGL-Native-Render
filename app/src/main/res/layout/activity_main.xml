@@ -35,6 +35,13 @@
         android:layout_marginStart="4dp"
         android:layout_marginEnd="4dp" />
 
+    <include layout="@layout/layout_adjust_brightness"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/hor_guide_dot_80"
+        android:layout_marginStart="4dp"
+        android:layout_marginEnd="4dp" />
+
     <include layout="@layout/layout_bottom_tab" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

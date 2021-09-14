@@ -10,6 +10,15 @@
 #include "BitmapUtil.h"
 
 namespace EngineUtil {
+    static const char* FILTER_CONTRAST = "CONTRAST";
+    static const char* FILTER_SHARPEN = "SHARPEN";
+    static const char* FILTER_SATURATION = "SATURATION";
+    static const char* FILTER_EXPOSURE = "EXPOSURE";
+    static const char* FILTER_HIGHLIGHT_SHADOW = "HIGHLIGHT_SHADOW";
+
+    static const char* FILTER_PROP_HIGHLIGHT = "HIGHLIGHT";
+    static const char* FILTER_PROP_SHADOW = "SHADOW";
+
     static BitmapUtil *gBitmapUtl = nullptr;
     static GlUtil *gGlUtil = nullptr;
 
