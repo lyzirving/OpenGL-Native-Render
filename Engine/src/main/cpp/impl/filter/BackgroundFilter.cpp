@@ -7,10 +7,6 @@
 
 #define TAG "BackgroundFilter"
 
-BackgroundFilter::~BackgroundFilter() {
-    LogUtil::logI(TAG, {"deconstruct"});
-}
-
 void BackgroundFilter::destroy() {
     if (mFrameBufferTextureId != 0) {
         glDeleteTextures(1, &mFrameBufferTextureId);

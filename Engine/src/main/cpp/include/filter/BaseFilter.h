@@ -16,6 +16,7 @@ public:
 
     virtual void adjust(int progress);
     virtual void destroy();
+    virtual const char* getType();
     virtual void init();
     virtual void initHandler();
     virtual void initBuffer();
@@ -24,6 +25,7 @@ public:
 
     virtual void loadShader();
     virtual GLint onDraw(GLint inputTextureId);
+    virtual GLint onDraw(GLint inputFrameBufferId, GLint inputTextureId);
     virtual void onPause();
     virtual void onResume();
     virtual void preInit();
@@ -33,6 +35,7 @@ public:
     virtual bool initialized();
 
 protected:
+    char* mFilterType = nullptr;
     bool mInitialized{false};
     GLuint mProgram{0};
     const char* mVertexShader = nullptr;

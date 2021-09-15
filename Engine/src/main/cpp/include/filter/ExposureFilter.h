@@ -17,7 +17,6 @@ public:
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
-
 private:
     int mExposureHandler{0};
     float mExposure{0};

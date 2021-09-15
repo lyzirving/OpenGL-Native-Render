@@ -9,6 +9,11 @@
 
 ScreenFilter::ScreenFilter() {
     mMatrix = new GLfloat[16];
+    MatrixUtil::setIdentityM(mMatrix, 0);
+}
+
+ScreenFilter::~ScreenFilter() {
+    delete[] mMatrix;
 }
 
 void ScreenFilter::flip(bool horizontal, bool vertical) {
@@ -18,7 +23,6 @@ void ScreenFilter::flip(bool horizontal, bool vertical) {
 void ScreenFilter::initHandler() {
     BaseFilter::initHandler();
     mTransHandler = glGetUniformLocation(mProgram, "uMatrix");
-    MatrixUtil::setIdentityM(mMatrix, 0);
 }
 
 void ScreenFilter::loadShader() {

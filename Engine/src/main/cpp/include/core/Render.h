@@ -29,7 +29,7 @@ public:
     Render();
     ~Render();
 
-    bool addBeautyFilter(const char* filterType);
+    bool addBeautyFilter(const char* filterType, bool buildInitTask);
     void adjust(const char* filterType, int progress);
     void adjustProp(const char* filterType, const char* prop, int progress);
     void clearBeautyFilter();

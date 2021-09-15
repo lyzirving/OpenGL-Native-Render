@@ -8,8 +8,6 @@
 
 class BackgroundFilter : public BaseFilter {
 public:
-    ~BackgroundFilter();
-
     void destroy() override;
     int getBitmapWidth();
     int getBitmapHeight();

@@ -25,11 +25,15 @@ public class RenderEngine {
     public RenderEngine() { mNativePtr = nCreate(); }
 
     public void addBeautyFilter(BaseFilter filter) {
+        addBeautyFilter(filter, true);
+    }
+
+    public void addBeautyFilter(BaseFilter filter, boolean buildInitTask) {
         if (!isInitialized()) {
             LogUtil.e(TAG, "addBeautyFilter: invalid state, type = " + filter.getType());
             return;
         }
-        if (nAddBeautyFilter(mNativePtr, filter.getType())) {
+        if (nAddBeautyFilter(mNativePtr, filter.getType(), buildInitTask)) {
             filter.setRenderEnvPtr(mNativePtr);
             //add or update
             mFilters.put(filter.getType(), filter);
@@ -144,7 +148,7 @@ public class RenderEngine {
     }
 
     public abstract static class BaseFilter {
-        protected long mRenderEnvPtr;
+        protected long mRenderEnvPtr = INVALID_PTR;
 
         public final void adjust(int progress) {
             if (!nIsEnvInitialized(mRenderEnvPtr)) {
@@ -170,7 +174,7 @@ public class RenderEngine {
     }
 
     private static native long nCreate();
-    private static native boolean nAddBeautyFilter(long ptr, String filterType);
+    private static native boolean nAddBeautyFilter(long ptr, String filterType, boolean buildInitTask);
     private static native void nAdjust(long ptr, String filterType, int progress);
     private static native void nAdjustProp(long ptr, String filterType, String filterProp, int progress);
     private static native void nClearBeautyFilter(long ptr);

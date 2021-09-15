@@ -16,6 +16,7 @@ import com.render.engine.core.RenderEngine;
 import com.render.engine.core.filter.ContrastFilter;
 import com.render.engine.core.filter.ExposureFilter;
 import com.render.engine.core.filter.FilterConst;
+import com.render.engine.core.filter.GaussianFilter;
 import com.render.engine.core.filter.HighlightShadowFilter;
 import com.render.engine.core.filter.SaturationFilter;
 import com.render.engine.core.filter.SharpenFilter;
@@ -31,15 +32,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private RenderEngine mRender;
     private RenderAdapter mRenderAdapter;
 
-    private View mAdjustBeautyRoot, mAdjustBrightnessRoot;
+    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot;
     private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
     private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
+    private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
 
     private ContrastFilter mContrastFilter;
     private SharpenFilter mSharpenFilter;
     private SaturationFilter mSaturationFilter;
     private ExposureFilter mExposureFilter;
     private HighlightShadowFilter mHighlightShadowFilter;
+    private GaussianFilter mGaussianFilter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +78,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             case R.id.tab_brightness: {
                 handleClickBrightness();
+                break;
+            }
+            case R.id.tab_blur: {
+                handleClickBlur();
                 break;
             }
             case R.id.tab_clear: {
@@ -126,6 +133,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 mRender.requestRender();
                 break;
             }
+            case R.id.seek_bar_hor_blur: {
+                mGaussianFilter.adjustProp(FilterConst.HOR_GAUSSIAN, seekBar.getProgress());
+                mRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_ver_blur: {
+                mGaussianFilter.adjustProp(FilterConst.VER_GAUSSIAN, seekBar.getProgress());
+                mRender.requestRender();
+                break;
+            }
             default: {
                 break;
             }
@@ -161,7 +178,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private boolean anyTabShow() {
-        return mAdjustBeautyRoot.getVisibility() == View.VISIBLE || mAdjustBrightnessRoot.getVisibility() == View.VISIBLE;
+        return mAdjustBeautyRoot.getVisibility() == View.VISIBLE || mAdjustBrightnessRoot.getVisibility() == View.VISIBLE
+                || mAdjustBlurRoot.getVisibility() == View.VISIBLE;
     }
 
     private RenderAdapter getRenderAdapter() {
@@ -186,6 +204,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void hideAllTab() {
         mAdjustBeautyRoot.setVisibility(View.GONE);
         mAdjustBrightnessRoot.setVisibility(View.GONE);
+        mAdjustBlurRoot.setVisibility(View.GONE);
     }
 
     private void handleClickBeauty() {
@@ -199,9 +218,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             mContrastFilter = new ContrastFilter();
             mSharpenFilter = new SharpenFilter();
             mSaturationFilter = new SaturationFilter();
-            mRender.addBeautyFilter(mContrastFilter);
-            mRender.addBeautyFilter(mSharpenFilter);
-            mRender.addBeautyFilter(mSaturationFilter);
+            mRender.addBeautyFilter(mContrastFilter, false);
+            mRender.addBeautyFilter(mSharpenFilter, false);
+            mRender.addBeautyFilter(mSaturationFilter, true);
             mRender.requestRender();
         }
     }
@@ -216,8 +235,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!show && (mExposureFilter == null || !mExposureFilter.filterValid())) {
             mExposureFilter = new ExposureFilter();
             mHighlightShadowFilter = new HighlightShadowFilter();
-            mRender.addBeautyFilter(mExposureFilter);
-            mRender.addBeautyFilter(mHighlightShadowFilter);
+            mRender.addBeautyFilter(mExposureFilter, false);
+            mRender.addBeautyFilter(mHighlightShadowFilter, true);
+            mRender.requestRender();
+        }
+    }
+
+    private void handleClickBlur() {
+        if (anyTabShow()) {
+            hideAllTab();
+            return;
+        }
+        boolean show = mAdjustBlurRoot.getVisibility() == View.VISIBLE;
+        showTab(mAdjustBlurRoot, !show);
+        if (!show && (mGaussianFilter == null || !mGaussianFilter.filterValid())) {
+            mGaussianFilter = new GaussianFilter();
+            mRender.addBeautyFilter(mGaussianFilter, true);
             mRender.requestRender();
         }
     }
@@ -234,6 +267,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         //brightness related
         mExposureFilter = null;
         mHighlightShadowFilter = null;
+
+        mGaussianFilter = null;
 
         mRender.clearBeautyFilter();
 
@@ -256,14 +291,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         mIncShadowSeekBar = findViewById(R.id.seek_bar_inc_shadow);
         mDecHighlightSeekBar = findViewById(R.id.seek_bar_dec_highlight);
 
+        mAdjustBlurRoot = findViewById(R.id.layout_adjust_blur_root);
+        mHorBlurSeekBar = findViewById(R.id.seek_bar_hor_blur);
+        mVerBlurSeekBar = findViewById(R.id.seek_bar_ver_blur);
+
         mContrastSeekBar.setOnSeekBarChangeListener(this);
         mSharpenSeekBar.setOnSeekBarChangeListener(this);
         mSaturationSeekBar.setOnSeekBarChangeListener(this);
         mExposureSeekBar.setOnSeekBarChangeListener(this);
         mIncShadowSeekBar.setOnSeekBarChangeListener(this);
         mDecHighlightSeekBar.setOnSeekBarChangeListener(this);
+        mHorBlurSeekBar.setOnSeekBarChangeListener(this);
+        mVerBlurSeekBar.setOnSeekBarChangeListener(this);
         findViewById(R.id.tab_beauty).setOnClickListener(this);
         findViewById(R.id.tab_brightness).setOnClickListener(this);
+        findViewById(R.id.tab_blur).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
     }
 
@@ -279,6 +321,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (mExposureSeekBar != null) { mExposureSeekBar.setProgress(0); }
         if (mIncShadowSeekBar != null) { mIncShadowSeekBar.setProgress(0); }
         if (mDecHighlightSeekBar != null) { mDecHighlightSeekBar.setProgress(0); }
+        if (mHorBlurSeekBar != null) { mHorBlurSeekBar.setProgress(0); }
+        if (mVerBlurSeekBar != null) { mVerBlurSeekBar.setProgress(0); }
     }
 
     private void showTab(View view, boolean show) {

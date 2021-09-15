@@ -6,6 +6,7 @@
 #include "LogUtil.h"
 #include "FilterFactory.h"
 #include "HighlightShadowFilter.h"
+#include "GaussianFilter.h"
 
 #include <map>
 #include <pthread.h>
@@ -81,10 +82,10 @@ static void nEnvSurfaceChange(JNIEnv *env, jclass clazz, jlong ptr, jint width, 
     pRender->enqueueMessage(EventType::EVENT_SURFACE_CHANGE);
 }
 
-static jboolean nEnvAddBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType) {
+static jboolean nEnvAddBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jboolean buildInitTask) {
     auto *pRender = reinterpret_cast<Render *>(ptr);
     const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
-    bool res = pRender->addBeautyFilter(type);
+    bool res = pRender->addBeautyFilter(type, buildInitTask);
     env->ReleaseStringUTFChars(filterType, type);
     return res;
 }
@@ -152,7 +153,7 @@ static JNINativeMethod sJniMethods[] = {
                 (void *) nEnvSurfaceChange
         },
         {
-                "nAddBeautyFilter", "(JLjava/lang/String;)Z",
+                "nAddBeautyFilter", "(JLjava/lang/String;Z)Z",
                 (void *) nEnvAddBeautyFilter
         },
         {
@@ -177,7 +178,7 @@ static JNINativeMethod sJniMethods[] = {
         }
 };
 
-bool Render::addBeautyFilter(const char *filterType) {
+bool Render::addBeautyFilter(const char *filterType, bool buildInitTask) {
     std::shared_ptr<BaseFilter> filter;
     std::shared_ptr<FilterInitTask> task;
     if (filterType == nullptr || std::strlen(filterType) == 0) {
@@ -190,9 +191,11 @@ bool Render::addBeautyFilter(const char *filterType) {
         if (filter != nullptr) {
             mBeautyFilterGroup->addFilter(filterType, filter);
             mBeautyFilterGroup->setOutputSize(mWidth, mHeight);
-            task = std::make_shared<FilterInitTask>();
-            task->setObj(mBeautyFilterGroup);
-            mWorkQueue->enqueue(task);
+            if (buildInitTask) {
+                task = std::make_shared<FilterInitTask>();
+                task->setObj(mBeautyFilterGroup);
+                mWorkQueue->enqueue(task);
+            }
         } else {
             LogUtil::logI(TAG, {"addBeautyFilter: factory could not create filter ", filterType});
             goto fail;
@@ -234,6 +237,18 @@ void Render::adjustProp(const char *filterType, const char *prop, int progress) 
                 target->adjustHighlight(progress);
             } else if (std::strcmp(EngineUtil::FILTER_PROP_SHADOW, prop) == 0) {
                 target->adjustShadow(progress);
+            }
+        }
+    } else if (std::strcmp(EngineUtil::FILTER_GAUSSIAN, filterType) == 0) {
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
+            std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
+            //do not delete filter pointer here, it should be kept alive in map;
+            BaseFilter* baseFilter = tmp.get();
+            auto* target = dynamic_cast<GaussianFilter *>(baseFilter);
+            if (std::strcmp(EngineUtil::FILTER_PROP_HOR_GAUSSIAN, prop) == 0) {
+                target->adjustHorBlur(progress);
+            } else if (std::strcmp(EngineUtil::FILTER_PROP_VER_GAUSSIAN, prop) == 0) {
+                target->adjustVerBlur(progress);
             }
         }
     } else {
@@ -332,6 +347,7 @@ void Render::render(JNIEnv *env) {
                 LogUtil::logI(TAG, {"render: handle message surface change"});
                 mStatus = RenderStatus::STATUS_RUN;
                 glViewport(0, 0, mWidth, mHeight);
+                enqueueMessage(EventType::EVENT_DRAW);
                 break;
             }
             case EventType::EVENT_PAUSE: {

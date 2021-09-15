@@ -11,5 +11,9 @@
     <string name="tip_inc_shadow">调亮阴影</string>
     <string name="tip_dec_highlight">调暗高光</string>
 
+    <string name="tip_blur">模糊</string>
+    <string name="tip_hor_blur">水平模糊</string>
+    <string name="tip_ver_blur">垂直模糊</string>
+
     <string name="tip_clear">还原</string>
 </resources>

@@ -16,6 +16,7 @@ public:
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+
 private:
     int mSaturationHandler{0};
     float mSaturation{1};

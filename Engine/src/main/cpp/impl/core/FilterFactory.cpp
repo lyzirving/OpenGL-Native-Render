@@ -9,12 +9,12 @@
 #include "SaturationFilter.h"
 #include "ExposureFilter.h"
 #include "HighlightShadowFilter.h"
+#include "GaussianFilter.h"
 
 #define TAG "FilterFactory"
 
 std::shared_ptr<BaseFilter> FilterFactory::makeFilter(const std::string &filterType) {
     if (filterType == EngineUtil::FILTER_CONTRAST) {
-        LogUtil::logI(TAG, {"makeFilter: contrast"});
         return std::make_shared<ContrastFilter>();
     } else if (filterType == EngineUtil::FILTER_SHARPEN) {
         return std::make_shared<SharpenFilter>();
@@ -24,8 +24,10 @@ std::shared_ptr<BaseFilter> FilterFactory::makeFilter(const std::string &filterT
         return std::make_shared<ExposureFilter>();
     } else if (filterType == EngineUtil::FILTER_HIGHLIGHT_SHADOW) {
         return std::make_shared<HighlightShadowFilter>();
+    } else if (filterType == EngineUtil::FILTER_GAUSSIAN) {
+        return std::make_shared<GaussianFilter>();
     } else {
-        LogUtil::logI(TAG, {"makeFilter: none"});
+        LogUtil::logI(TAG, {"makeFilter: none filter found for ", filterType});
         return nullptr;
     }
 }

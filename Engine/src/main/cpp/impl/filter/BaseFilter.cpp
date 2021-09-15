@@ -2,13 +2,16 @@
 // Created by liuyuzhou on 2021/9/2.
 //
 #include "BaseFilter.h"
+#include "Static.h"
 #include "LogUtil.h"
 
 #define TAG "BaseFilter"
 
 BaseFilter::BaseFilter() = default;
 
-BaseFilter::~BaseFilter() = default;
+BaseFilter::~BaseFilter() {
+    delete[] mFilterType;
+}
 
 void BaseFilter::adjust(int progress) {}
 
@@ -38,6 +41,10 @@ void BaseFilter::destroy() {
         mProgram = 0;
     }
     mInitialized = false;
+}
+
+const char * BaseFilter::getType() {
+    return mFilterType;
 }
 
 void BaseFilter::init() {
@@ -147,6 +154,8 @@ GLint BaseFilter::onDraw(GLint inputTextureId) {
 
     return inputTextureId;
 }
+
+GLint BaseFilter::onDraw(GLint inputFrameBufferId, GLint inputTextureId) {}
 
 void BaseFilter::onPause() { mInitialized = false; }
 

@@ -6,7 +6,6 @@
 
 #define TAG "SharpenFilter"
 
-
 void SharpenFilter::adjust(int progress) {
     if (progress < 0) {
         progress = 0;

@@ -18,6 +18,7 @@ public:
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
     void setOutputSize(GLint width, GLint height) override;
+
 private:
     int mImgWidthHandler{0};
     int mImgHeightHandler{0};

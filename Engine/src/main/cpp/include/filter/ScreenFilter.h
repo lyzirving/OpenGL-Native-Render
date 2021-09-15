@@ -8,12 +8,14 @@
 
 class ScreenFilter : public BaseFilter {
 public:
-    ScreenFilter();
 
+    ScreenFilter();
+    ~ScreenFilter();
     void flip(bool horizontal, bool vertical);
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+
 private:
     int mTransHandler{0};
 };
