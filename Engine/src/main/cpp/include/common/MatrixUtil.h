@@ -13,6 +13,7 @@ public:
     static void scaleM(GLfloat* matrix, int offset, float x, float y, float z);
     static void setIdentityM(GLfloat* matrix, int offset);
 private:
+    static void logM(GLfloat* src);
     static void move(GLfloat* src, GLfloat* dst, int size = 16);
     static void multiply(GLfloat* rm, GLfloat* lhs, GLfloat* rhs);
     static void setRotate(GLfloat* rm, GLfloat degree, GLfloat x, GLfloat y, GLfloat z);

@@ -176,18 +176,15 @@ void CameraRender::buildCameraTransMatrix() {
         mCamMatrix = new GLfloat[16];
         MatrixUtil::setIdentityM(mCamMatrix, 0);
         if (mMetadata->frontType == CameraMetaData::LENS_FACING_FRONT) {
-            MatrixUtil::rotate(mCamMatrix, 270, 0, 0, 1);
-        } else if (mMetadata->frontType == CameraMetaData::LENS_FACING_BACK) {
-            //MatrixUtil::flip(mCamMatrix, true, false);
             MatrixUtil::rotate(mCamMatrix, 90, 0, 0, 1);
+        } else if (mMetadata->frontType == CameraMetaData::LENS_FACING_BACK) {
+            MatrixUtil::rotate(mCamMatrix, 270, 0, 0, 1);
         }
         float previewRatio = ((float)(mMetadata->previewWidth)) / ((float)(mMetadata->previewHeight));
         float viewRatio = ((float)(mWidth)) / ((float)(mHeight));
         if (previewRatio > viewRatio) {
-            LogUtil::logI(TAG, {"buildCameraTransMatrix 1"});
             MatrixUtil::scaleM(mCamMatrix, 0, viewRatio / previewRatio, 1, 1);
         }  else if (previewRatio < viewRatio) {
-            LogUtil::logI(TAG, {"buildCameraTransMatrix 2"});
             MatrixUtil::scaleM(mCamMatrix, 0, 1, viewRatio / previewRatio,1);
         }
     }

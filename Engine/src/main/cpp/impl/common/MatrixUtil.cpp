@@ -15,6 +15,14 @@ void MatrixUtil::flip(GLfloat *matrix, bool horizontalFlip, bool verticalFlip) {
     }
 }
 
+void MatrixUtil::logM(GLfloat *src) {
+    LogUtil::logI("Matrix", {"input matrix:\n",
+                             std::to_string(src[0]), " ", std::to_string(src[1]), " ", std::to_string(src[2]), " ", std::to_string(src[3]), "\n",
+                             std::to_string(src[4]), " ", std::to_string(src[5]), " ", std::to_string(src[6]), " ", std::to_string(src[7]), "\n",
+                             std::to_string(src[9]), " ", std::to_string(src[9]), " ", std::to_string(src[10]), " ", std::to_string(src[11]), "\n",
+                             std::to_string(src[12]), " ", std::to_string(src[13]), " ", std::to_string(src[14]), " ", std::to_string(src[15]), "\n"});
+}
+
 void MatrixUtil::move(GLfloat *src, GLfloat *dst, int size) {
     for (int i = 0; i < size; ++i) { dst[i] = src[i]; }
 }
@@ -45,31 +53,11 @@ void MatrixUtil::rotate(GLfloat *matrix, GLfloat degree, GLfloat x, GLfloat y, G
         gTempM = new GLfloat[16];
         MatrixUtil::setIdentityM(gTempM, 0);
     }
-    LogUtil::logI("Matrix", {"input matrix\n", std::to_string(matrix[0]), " ", std::to_string(matrix[1]), " ", std::to_string(matrix[2]), " ", std::to_string(matrix[3]), "\n",
-                             std::to_string(matrix[4]), " ", std::to_string(matrix[5]), " ", std::to_string(matrix[6]), " ", std::to_string(matrix[7]), "\n",
-                             std::to_string(matrix[9]), " ", std::to_string(matrix[9]), " ", std::to_string(matrix[10]), " ", std::to_string(matrix[11]), "\n",
-                             std::to_string(matrix[12]), " ", std::to_string(matrix[13]), " ", std::to_string(matrix[14]), " ", std::to_string(matrix[15]), "\n"});
     setRotate(gTempM, degree, x, y, z);
-    LogUtil::logI("Matrix", {"rotate matrix \n", std::to_string(gTempM[0]), " ", std::to_string(gTempM[1]), " ", std::to_string(gTempM[2]), " ", std::to_string(gTempM[3]), "\n",
-                             std::to_string(gTempM[4]), " ", std::to_string(gTempM[5]), " ", std::to_string(gTempM[6]), " ", std::to_string(gTempM[7]), "\n",
-                             std::to_string(gTempM[9]), " ", std::to_string(gTempM[9]), " ", std::to_string(gTempM[10]), " ", std::to_string(gTempM[11]), "\n",
-                             std::to_string(gTempM[12]), " ", std::to_string(gTempM[13]), " ", std::to_string(gTempM[14]), " ", std::to_string(gTempM[15]), "\n"});
     auto* result = new GLfloat[16];
     multiply(result, matrix, gTempM);
-    LogUtil::logI("Matrix", {"multiply\n", std::to_string(result[0]), " ", std::to_string(result[1]), " ", std::to_string(result[2]), " ", std::to_string(result[3]), "\n",
-                             std::to_string(result[4]), " ", std::to_string(result[5]), " ", std::to_string(result[6]), " ", std::to_string(result[7]), "\n",
-                             std::to_string(result[9]), " ", std::to_string(result[9]), " ", std::to_string(result[10]), " ", std::to_string(result[11]), "\n",
-                             std::to_string(result[12]), " ", std::to_string(result[13]), " ", std::to_string(result[14]), " ", std::to_string(result[15]), "\n"});
-    move(matrix, result);
-    LogUtil::logI("Matrix", {"result\n", std::to_string(matrix[0]), " ", std::to_string(matrix[1]), " ", std::to_string(matrix[2]), " ", std::to_string(matrix[3]), "\n",
-                             std::to_string(matrix[4]), " ", std::to_string(matrix[5]), " ", std::to_string(matrix[6]), " ", std::to_string(matrix[7]), "\n",
-                             std::to_string(matrix[9]), " ", std::to_string(matrix[9]), " ", std::to_string(matrix[10]), " ", std::to_string(matrix[11]), "\n",
-                             std::to_string(matrix[12]), " ", std::to_string(matrix[13]), " ", std::to_string(matrix[14]), " ", std::to_string(matrix[15]), "\n"});
+    move(result, matrix);
     delete[] result;
-    LogUtil::logI("Matrix", {std::to_string(matrix[0]), " ", std::to_string(matrix[1]), " ", std::to_string(matrix[2]), " ", std::to_string(matrix[3]), "\n",
-                             std::to_string(matrix[4]), " ", std::to_string(matrix[5]), " ", std::to_string(matrix[6]), " ", std::to_string(matrix[7]), "\n",
-                             std::to_string(matrix[9]), " ", std::to_string(matrix[9]), " ", std::to_string(matrix[10]), " ", std::to_string(matrix[11]), "\n",
-                             std::to_string(matrix[12]), " ", std::to_string(matrix[13]), " ", std::to_string(matrix[14]), " ", std::to_string(matrix[15]), "\n"});
 }
 
 void MatrixUtil::scaleM(GLfloat *matrix, int offset, float x, float y, float z) {
