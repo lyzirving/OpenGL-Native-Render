@@ -6,8 +6,6 @@
 #include <pthread.h>
 #include <queue>
 
-#include "LogUtil.h"
-
 enum class EventType : int8_t {
     EVENT_IDLE = 0,
     EVENT_DRAW = 1,

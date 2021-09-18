@@ -9,9 +9,13 @@
 class MatrixUtil {
 public:
     static void flip(GLfloat* matrix, bool horizontalFlip, bool verticalFlip);
+    static void rotate(GLfloat* matrix, GLfloat degree, GLfloat x, GLfloat y, GLfloat z);
     static void scaleM(GLfloat* matrix, int offset, float x, float y, float z);
     static void setIdentityM(GLfloat* matrix, int offset);
 private:
+    static void move(GLfloat* src, GLfloat* dst, int size = 16);
+    static void multiply(GLfloat* rm, GLfloat* lhs, GLfloat* rhs);
+    static void setRotate(GLfloat* rm, GLfloat degree, GLfloat x, GLfloat y, GLfloat z);
 };
 
 #endif //ENGINE_MATRIXUTIL_H

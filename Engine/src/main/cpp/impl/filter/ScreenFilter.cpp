@@ -34,7 +34,6 @@ void ScreenFilter::loadShader() {
 GLint ScreenFilter::onDraw(GLint inputTextureId) {
     //0 is screen frame buffer id
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glUseProgram(mProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[0]);

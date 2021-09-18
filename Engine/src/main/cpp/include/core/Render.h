@@ -14,14 +14,6 @@
 #include "ScreenFilter.h"
 #include "MaskFilter.h"
 
-enum class RenderStatus : uint8_t {
-    STATUS_IDLE = 0,
-    STATUS_PREPARE = 1,
-    STATUS_RUN = 2,
-    STATUS_PAUSE = 3,
-    STATUS_DESTROY = 4
-};
-
 class Render {
 public:
     static bool registerSelf(JNIEnv *env);
@@ -41,6 +33,7 @@ public:
     void notifyEnvRelease(JNIEnv* env, jobject listener);
     void render(JNIEnv* env);
     void release(JNIEnv* env);
+    void runBeforeDraw();
     void setResource(JNIEnv* env, jobject bitmap);
     void setSize(GLint width, GLint height);
     void setNativeWindow(ANativeWindow* window);

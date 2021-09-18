@@ -26,6 +26,7 @@ namespace EngineUtil {
 
     static BitmapUtil *gBitmapUtl = nullptr;
     static GlUtil *gGlUtil = nullptr;
+    static JavaVM *gJvm = nullptr;
 
     static pthread_mutex_t gMutex;
 

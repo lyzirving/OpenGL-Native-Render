@@ -6,6 +6,7 @@
 #include "LogUtil.h"
 #include "GlUtil.h"
 #include "Render.h"
+#include "CameraRender.h"
 #include "Static.h"
 
 #define TAG "Engine-lib"
@@ -18,6 +19,7 @@ JNIEXPORT int JNICALL JNI_OnLoad(JavaVM *vm,void *reserved) {
     }
     EngineUtil::init();
     if (!Render::registerSelf(env)) { return JNI_ERR; }
+    if (!CameraRender::registerSelf(env)) { return JNI_ERR; }
     if (!GlUtil::registerSelf(env)) { return JNI_ERR; }
     return JNI_VERSION_1_6;
 }

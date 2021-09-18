@@ -2,4 +2,5 @@
     package="com.render.engine">
 
     /
+    <uses-permission android:name="android.permission.CAMERA" />
 </manifest>

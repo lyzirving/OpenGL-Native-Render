@@ -25,7 +25,6 @@ EventMessage EventQueue::dequeueMessage() {
 
 void EventQueue::enqueueMessage(EventMessage *message) {
     pthread_mutex_lock(&mMutex);
-    LogUtil::logI(TAG, {"enqueueMessage: what = ", std::to_string((int8_t)(message->what))});
     mMessageQueue->push(*message);
     pthread_cond_signal(&mCond);
     pthread_mutex_unlock(&mMutex);

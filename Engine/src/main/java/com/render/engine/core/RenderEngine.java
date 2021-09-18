@@ -14,7 +14,7 @@ import com.render.engine.util.LogUtil;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class RenderEngine {
+public class RenderEngine implements IRenderEngine {
     private static final String TAG = "RenderEngine";
     private static final long INVALID_PTR = -1;
     private int mSurfaceWidth, mSurfaceHeight;
@@ -49,6 +49,7 @@ public class RenderEngine {
         nClearBeautyFilter(mNativePtr);
     }
 
+    @Override
     public boolean isInitialized() {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "isInitialized: invalid native pointer");
@@ -59,6 +60,27 @@ public class RenderEngine {
         return res;
     }
 
+    @Override
+    public void onPause() {
+        if (!isInitialized()) {
+            LogUtil.i(TAG, "onPause: invalid state");
+            return;
+        }
+        LogUtil.i(TAG, "onPause");
+        nOnPause(mNativePtr);
+    }
+
+    @Override
+    public void onResume(Surface surface) {
+        if (!isInitialized()) {
+            LogUtil.i(TAG, "onResume: invalid state");
+            return;
+        }
+        LogUtil.i(TAG, "onResume");
+        nOnResume(mNativePtr, surface);
+    }
+
+    @Override
     public void onSurfaceCreate(Surface surface, RenderAdapter adapter) {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "onSurfaceCreate: invalid native pointer");
@@ -79,6 +101,7 @@ public class RenderEngine {
         nSurfaceCreate(mNativePtr, surface, adapter);
     }
 
+    @Override
     public void onSurfaceChange(int width, int height) {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "onSurfaceChange: invalid native pointer");
@@ -90,24 +113,16 @@ public class RenderEngine {
         nSurfaceChange(mNativePtr, width, height);
     }
 
-    public void onPause() {
-        if (!isInitialized()) {
-            LogUtil.i(TAG, "onPause: invalid state");
+    @Override
+    public void requestRender() {
+        if (mNativePtr == INVALID_PTR) {
+            LogUtil.e(TAG, "requestRender: invalid native pointer");
             return;
         }
-        LogUtil.i(TAG, "onPause");
-        nOnPause(mNativePtr);
+        nRequestRender(mNativePtr);
     }
 
-    public void onResume(Surface surface) {
-        if (!isInitialized()) {
-            LogUtil.i(TAG, "onResume: invalid state");
-            return;
-        }
-        LogUtil.i(TAG, "onResume");
-        nOnResume(mNativePtr, surface);
-    }
-
+    @Override
     public void release() {
         if (!isInitialized()) {
             LogUtil.e(TAG, "release: invalid state");
@@ -121,14 +136,6 @@ public class RenderEngine {
             }
             mFilters.clear();
         }
-    }
-
-    public void requestRender() {
-        if (mNativePtr == INVALID_PTR) {
-            LogUtil.e(TAG, "requestRender: invalid native pointer");
-            return;
-        }
-        nRequestRender(mNativePtr);
     }
 
     public void setResource(Context ctx, @DrawableRes int id) {

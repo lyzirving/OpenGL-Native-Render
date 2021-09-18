@@ -8,6 +8,15 @@
 
 void JniUtil::detachThread(JavaVM *vm) { vm->DetachCurrentThread(); }
 
+jobject JniUtil::find(std::map<std::string, jobject> *pMap, const std::string &key) {
+    auto iterator = pMap->find(key);
+    if (iterator == pMap->end()) {
+        return nullptr;
+    } else {
+        return iterator->second;
+    }
+}
+
 jobject JniUtil::findListener(std::map<jlong, jobject> *pMap, jlong key) {
     auto iterator = pMap->find(key);
     if (iterator == pMap->end()) {

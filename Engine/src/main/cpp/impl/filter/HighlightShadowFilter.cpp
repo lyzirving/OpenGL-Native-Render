@@ -39,7 +39,6 @@ void HighlightShadowFilter::loadShader() {
 }
 
 GLint HighlightShadowFilter::onDraw(GLint inputTextureId) {
-    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     glUseProgram(mProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[0]);

@@ -14,7 +14,6 @@
 #define TAG "Render"
 #define JAVA_CLASS "com/render/engine/core/RenderEngine"
 
-static JavaVM *sGlobJvm = nullptr;
 static std::map<jlong, jobject> sGlobalAdapters;
 static const int RENDER_NO_TEXTURE = 0;
 
@@ -29,17 +28,17 @@ Render::~Render() = default;
 void *renderLoop(void *args) {
     auto *pRender = static_cast<Render *>(args);
     JNIEnv *env = nullptr;
-    if (!JniUtil::threadAttachJvm(sGlobJvm, &env)) {
+    if (!JniUtil::threadAttachJvm(EngineUtil::gJvm, &env)) {
         LogUtil::logI(TAG, {"renderLoop: failed to attach thread to jvm"});
         return nullptr;
     }
     pRender->render(env);
-    JniUtil::detachThread(sGlobJvm);
+    JniUtil::detachThread(EngineUtil::gJvm);
     return nullptr;
 }
 
 static jlong nConstruct(JNIEnv *env, jclass clazz) {
-    if (sGlobJvm == nullptr) { env->GetJavaVM(&sGlobJvm); }
+    if (EngineUtil::gJvm == nullptr) { env->GetJavaVM(&EngineUtil::gJvm); }
     return reinterpret_cast<jlong>(new Render);
 }
 
@@ -266,10 +265,6 @@ void Render::clearBeautyFilter() {
 
 void Render::drawFrame() {
     LogUtil::logI(TAG, {"drawFrame"});
-    while (!mWorkQueue->empty()) {
-        std::shared_ptr<WorkTask> task = std::make_shared<WorkTask>();
-        if (mWorkQueue->dequeue(task)) { task->run(); }
-    }
     if (mBackgroundFilter != nullptr) {
         //background filter has content texture on its own, so you don't need to pass texture to it;
         int drawCount = 0;
@@ -375,6 +370,7 @@ void Render::render(JNIEnv *env) {
             case EventType::EVENT_DRAW: {
                 LogUtil::logI(TAG, {"render: handle message draw"});
                 mStatus = RenderStatus::STATUS_RUN;
+                runBeforeDraw();
                 drawFrame();
                 break;
             }
@@ -402,10 +398,11 @@ void Render::release(JNIEnv *env) {
     jobject adapter = JniUtil::removeListener(&sGlobalAdapters, reinterpret_cast<jlong>(this));
     if (adapter != nullptr) { env->DeleteGlobalRef(adapter); }
     if (mEglCore != nullptr) { mEglCore->release(); }
-    if (mEvtQueue != nullptr) { delete mEvtQueue; }
-    if (mWorkQueue != nullptr) { delete mWorkQueue; }
+    delete mEvtQueue;
+    delete mWorkQueue;
     mEglCore = nullptr;
     mEvtQueue = nullptr;
+    mWorkQueue = nullptr;
 }
 
 bool Render::registerSelf(JNIEnv *env) {
@@ -420,6 +417,15 @@ bool Render::registerSelf(JNIEnv *env) {
         return false;
     }
     return true;
+}
+
+void Render::runBeforeDraw() {
+    while (!mWorkQueue->empty()) {
+        std::shared_ptr<WorkTask> task = std::make_shared<WorkTask>();
+        if (mWorkQueue->dequeue(task)) { task->run(); }
+    }
+    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 }
 
 void Render::setResource(JNIEnv *env, jobject bitmap) {

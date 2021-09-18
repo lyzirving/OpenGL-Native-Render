@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">RenderDemo</string>
+    <string name="tip_still_image">渲染静止图像</string>
+    <string name="tip_camera_preview">相机预览</string>
 
     <string name="tip_beauty">美化</string>
     <string name="tip_contrast">对比度</string>

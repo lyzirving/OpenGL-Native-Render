@@ -6,11 +6,21 @@
 
 #include <jni.h>
 #include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
 #include <EGL/egl.h>
+#include <android/surface_texture.h>
 #include <android/native_window_jni.h>
 #include <android/asset_manager.h>
 #include <android/asset_manager_jni.h>
 #include <map>
+
+enum class RenderStatus : uint8_t {
+    STATUS_IDLE = 0,
+    STATUS_PREPARE = 1,
+    STATUS_RUN = 2,
+    STATUS_PAUSE = 3,
+    STATUS_DESTROY = 4
+};
 
 class GlUtil {
 public:
