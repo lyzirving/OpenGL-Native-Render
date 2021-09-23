@@ -194,6 +194,7 @@ void CameraRender::buildCameraTransMatrix() {
         mCamMatrix = new GLfloat[16];
         MatrixUtil::setIdentityM(mCamMatrix, 0);
         if (mMetadata->frontType == CameraMetaData::LENS_FACING_FRONT) {
+            MatrixUtil::flip(mCamMatrix, true, false);
             MatrixUtil::rotate(mCamMatrix, 90, 0, 0, 1);
         } else if (mMetadata->frontType == CameraMetaData::LENS_FACING_BACK) {
             MatrixUtil::rotate(mCamMatrix, 270, 0, 0, 1);
