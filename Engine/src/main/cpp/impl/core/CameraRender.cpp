@@ -193,10 +193,10 @@ void CameraRender::buildCameraTransMatrix() {
     if (mMetadata != nullptr && mCamMatrix == nullptr) {
         mCamMatrix = new GLfloat[16];
         MatrixUtil::setIdentityM(mCamMatrix, 0);
-        if (mMetadata->frontType == CameraMetaData::LENS_FACING_FRONT) {
+        if (mMetadata->frontType == EngineUtil::CameraMetaData::LENS_FACING_FRONT) {
             MatrixUtil::flip(mCamMatrix, true, false);
             MatrixUtil::rotate(mCamMatrix, 90, 0, 0, 1);
-        } else if (mMetadata->frontType == CameraMetaData::LENS_FACING_BACK) {
+        } else if (mMetadata->frontType == EngineUtil::CameraMetaData::LENS_FACING_BACK) {
             MatrixUtil::rotate(mCamMatrix, 270, 0, 0, 1);
         }
         float previewRatio = ((float)(mMetadata->previewWidth)) / ((float)(mMetadata->previewHeight));
@@ -381,6 +381,7 @@ void CameraRender::runBeforeDraw() {
         mOesFilter = new OesFilter;
         mOesFilter->setPreviewSize(mPreviewWidth, mPreviewHeight);
         mOesFilter->setOutputSize(mWidth, mHeight);
+        mOesFilter->setCameraFaceFront(mMetadata->frontType);
         mOesFilter->init();
     }
     buildCameraTransMatrix();
@@ -421,7 +422,7 @@ void CameraRender::setCameraMetadata(JNIEnv *env, jobject data) {
         method = env->GetMethodID(static_cast<jclass>(javaClazz), "getFrontType", "()I");
         int frontType = env->CallIntMethod(data, method);
         LogUtil::logI(TAG, {"setCameraMetadata: preview (", std::to_string(previewWidth), ",", std::to_string(previewHeight), "), front type = ", std::to_string(frontType)});
-        mMetadata = new CameraMetaData;
+        mMetadata = new EngineUtil::CameraMetaData;
         mMetadata->previewWidth = previewWidth;
         mMetadata->previewHeight = previewHeight;
         mMetadata->frontType = frontType;

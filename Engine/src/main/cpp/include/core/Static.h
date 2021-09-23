@@ -30,6 +30,18 @@ namespace EngineUtil {
 
     static pthread_mutex_t gMutex;
 
+    class CameraMetaData {
+    public:
+        static const int LENS_FACING_FRONT = 0;
+        static const int LENS_FACING_BACK = 1;
+        static const int LENS_FACING_EXTERNAL = 2;
+
+        int previewWidth{0};
+        int previewHeight{0};
+        int frontType{LENS_FACING_BACK};
+    private:
+    };
+
     static void destroy() {
         pthread_mutex_destroy(&gMutex);
     }

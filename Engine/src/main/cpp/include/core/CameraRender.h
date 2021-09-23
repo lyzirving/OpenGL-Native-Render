@@ -4,24 +4,12 @@
 #ifndef ENGINE_CAMERARENDER_H
 #define ENGINE_CAMERARENDER_H
 
-#include "GlUtil.h"
+#include "Static.h"
 #include "RenderEglBase.h"
 #include "EventQueue.h"
 #include "WorkQueue.h"
 #include "ScreenFilter.h"
 #include "OesFilter.h"
-
-class CameraMetaData {
-public:
-    static const int LENS_FACING_FRONT = 0;
-    static const int LENS_FACING_BACK = 1;
-    static const int LENS_FACING_EXTERNAL = 2;
-
-    int previewWidth{0};
-    int previewHeight{0};
-    int frontType{LENS_FACING_BACK};
-private:
-};
 
 class CameraRender {
 public:
@@ -59,7 +47,7 @@ private:
     RenderStatus mStatus = RenderStatus::STATUS_IDLE;
     jobject mSurfaceTexture{nullptr};
 
-    CameraMetaData* mMetadata{nullptr};
+    EngineUtil::CameraMetaData* mMetadata{nullptr};
     ScreenFilter* mScreenFilter{nullptr};
     OesFilter* mOesFilter{nullptr};
     GLfloat *mCamMatrix{nullptr};

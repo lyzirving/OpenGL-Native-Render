@@ -18,6 +18,9 @@ import com.render.engine.core.CameraRenderEngine;
 import com.render.engine.core.RenderAdapter;
 import com.render.engine.util.LogUtil;
 
+/**
+ * @author lyzirving
+ */
 public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback {
     private static final String TAG = "CameraActivity";
 
@@ -78,7 +81,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     protected void onPause() {
         super.onPause();
         LogUtil.i(TAG, "onPause");
-        new Thread(() -> { CameraHelper.get().closeCamera(); }).start();
+        CameraHelper.get().closeCamera();
         if (mCameraRender != null) { mCameraRender.onPause(); }
     }
 

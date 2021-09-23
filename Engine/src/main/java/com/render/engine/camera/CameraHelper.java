@@ -32,8 +32,10 @@ import java.util.List;
 
 public class CameraHelper {
     private static final String TAG = "CameraHelper";
+    private static final long CLOSE_CAMERA_WAIT_TIME = 1500;
 
     private volatile static CameraHelper sInstance;
+    private final Object mLock = new Object();
     private String mCameraId;
     private int mFrontType;
     private Size mPreviewSize, mLargestOutputSize;
@@ -69,6 +71,7 @@ public class CameraHelper {
         public void onClosed(@NonNull CameraDevice camera) {
             super.onClosed(camera);
             LogUtil.i(TAG, "onClosed");
+            notifyLock();
         }
     };
 
@@ -127,6 +130,24 @@ public class CameraHelper {
             releaseOesTexture();
         } catch (Exception e) {
             LogUtil.e(TAG, "closeCamera: exception happens, " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            mCamera = null;
+            mCaptureSession = null;
+        }
+    }
+
+    public void closeCameraAndWait() {
+        try {
+            LogUtil.i(TAG, "closeCameraAndWait");
+            synchronized (mLock) {
+                if (null != mCaptureSession) { mCaptureSession.close(); }
+                if (null != mCamera) { mCamera.close(); }
+                releaseOesTexture();
+                mLock.wait(CLOSE_CAMERA_WAIT_TIME);
+            }
+        } catch (Exception e) {
+            LogUtil.e(TAG, "closeCameraAndWait: exception happens, " + e.getMessage());
             e.printStackTrace();
         } finally {
             mCamera = null;
@@ -338,6 +359,17 @@ public class CameraHelper {
             default: {
                 LogUtil.i(TAG, "needSwapDimension: default");
                 return false;
+            }
+        }
+    }
+
+    private void notifyLock() {
+        synchronized (mLock) {
+            try {
+                LogUtil.i(TAG, "notifyLock: acquire lock and notify");
+                mLock.notifyAll();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }

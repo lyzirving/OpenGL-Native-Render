@@ -31,26 +31,34 @@ void OesFilter::destroy() {
 }
 
 void OesFilter::initBuffer() {
-    if (mVertex != nullptr) { delete[] mVertex; }
-    if (mTextureCoordinate != nullptr) { delete[] mTextureCoordinate; }
-    float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
-    float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
-    float heightVal = widthVal * previewRatio;
-    LogUtil::logI(TAG, {"initBuffer: preview ratio = ", std::to_string(previewRatio), ", width val = ", std::to_string(widthVal), ", height val = ", std::to_string(heightVal)});
-    mVertex = new GLfloat[DEFAULT_VERTEX_COUNT * 3]{
-            //right - top
-            widthVal, heightVal, 0,
-            //left - bottom
-            -widthVal, -heightVal, 0,
-            //left - top
-            -widthVal, heightVal, 0,
-            //right - top
-            widthVal, heightVal, 0,
-            //right - bottom
-            widthVal, -heightVal, 0,
-            //left - bottom
-            -widthVal, -heightVal, 0
-    };
+    if (mVertex != nullptr) {
+        delete[] mVertex;
+        mVertex = nullptr;
+    }
+    if (mTextureCoordinate != nullptr) {
+        delete[] mTextureCoordinate;
+        mTextureCoordinate = nullptr;
+    }
+    if (mCameraFace == EngineUtil::CameraMetaData::LENS_FACING_BACK) {
+        float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
+        float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
+        float heightVal = widthVal * previewRatio;
+        LogUtil::logI(TAG, {"initBuffer: preview ratio = ", std::to_string(previewRatio), ", width val = ", std::to_string(widthVal), ", height val = ", std::to_string(heightVal)});
+        mVertex = new GLfloat[DEFAULT_VERTEX_COUNT * 3]{
+                //right - top
+                widthVal, heightVal, 0,
+                //left - bottom
+                -widthVal, -heightVal, 0,
+                //left - top
+                -widthVal, heightVal, 0,
+                //right - top
+                widthVal, heightVal, 0,
+                //right - bottom
+                widthVal, -heightVal, 0,
+                //left - bottom
+                -widthVal, -heightVal, 0
+        };
+    }
     BaseFilter::initBuffer();
 }
 
@@ -125,6 +133,10 @@ GLint OesFilter::onDraw(GLint oesInputTexture) {
     MatrixUtil::setIdentityM(mMatrix, 0);
 
     return mTextureId;
+}
+
+void OesFilter::setCameraFaceFront(int faceFront) {
+    mCameraFace = faceFront;
 }
 
 void OesFilter::setPreviewSize(GLint width, GLint height) {
