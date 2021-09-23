@@ -33,6 +33,11 @@ void *cameraRenderLoop(void *args) {
     return nullptr;
 }
 
+static void nEnvBuildTexture(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<CameraRender *>(ptr);
+    pRender->enqueueMessage(EventType::EVENT_BUILD_OES_TEXTURE);
+}
+
 static jlong nConstruct(JNIEnv *env, jclass clazz) {
     if (EngineUtil::gJvm == nullptr) { env->GetJavaVM(&EngineUtil::gJvm); }
     return reinterpret_cast<jlong>(new CameraRender);
@@ -41,6 +46,11 @@ static jlong nConstruct(JNIEnv *env, jclass clazz) {
 static jboolean nEnvInitialized(JNIEnv *env, jclass clazz, jlong ptr) {
     auto *pRender = reinterpret_cast<CameraRender *>(ptr);
     return pRender->initialized();
+}
+
+static void nEnvPreviewChange(JNIEnv *env, jclass clazz, jlong ptr, jint previewWidth, jint previewHeight) {
+    auto *pRender = reinterpret_cast<CameraRender *>(ptr);
+    pRender->setPreview(previewWidth, previewHeight);
 }
 
 static void nEnvSurfaceCreate(JNIEnv *env, jclass clazz, jlong ptr, jobject surface, jobject adapter) {
@@ -96,12 +106,20 @@ static void nEnvSetCamMetadata(JNIEnv *env, jclass clazz, jlong ptr, jobject dat
 
 static JNINativeMethod sJniMethods[] = {
         {
+                "nBuildTexture",           "(J)V",
+                (void *) nEnvBuildTexture
+        },
+        {
                 "nCreate",           "()J",
                 (void *) nConstruct
         },
         {
                 "nInitialized", "(J)Z",
                 (void *) nEnvInitialized
+        },
+        {
+                "nPreviewChange", "(JII)V",
+                (void *) nEnvPreviewChange
         },
         {
                 "nSurfaceCreate", "(JLandroid/view/Surface;Lcom/render/engine/core/RenderAdapter;)V",
@@ -160,6 +178,7 @@ bool CameraRender::registerSelf(JNIEnv *env) {
 }
 
 void CameraRender::buildOesTexture() {
+    if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glGenTextures(1, &mOesTexture);
     glBindTexture(GL_TEXTURE_EXTERNAL_OES, mOesTexture);
@@ -172,7 +191,6 @@ void CameraRender::buildOesTexture() {
 
 void CameraRender::buildCameraTransMatrix() {
     if (mMetadata != nullptr && mCamMatrix == nullptr) {
-        LogUtil::logI(TAG, {"buildCameraTransMatrix"});
         mCamMatrix = new GLfloat[16];
         MatrixUtil::setIdentityM(mCamMatrix, 0);
         if (mMetadata->frontType == CameraMetaData::LENS_FACING_FRONT) {
@@ -182,16 +200,17 @@ void CameraRender::buildCameraTransMatrix() {
         }
         float previewRatio = ((float)(mMetadata->previewWidth)) / ((float)(mMetadata->previewHeight));
         float viewRatio = ((float)(mWidth)) / ((float)(mHeight));
+        LogUtil::logI(TAG, {"buildCameraTransMatrix: preview = ", std::to_string(previewRatio), ", view = ", std::to_string(viewRatio)});
         if (previewRatio > viewRatio) {
             MatrixUtil::scaleM(mCamMatrix, 0, viewRatio / previewRatio, 1, 1);
         }  else if (previewRatio < viewRatio) {
-            MatrixUtil::scaleM(mCamMatrix, 0, 1, viewRatio / previewRatio,1);
+            MatrixUtil::scaleM(mCamMatrix, 0, 1, previewRatio / viewRatio,1);
         }
     }
 }
 
 void CameraRender::drawFrame() {
-    if (mOesFilter != nullptr && mOesTexture != 0 && mMetadata != nullptr) {
+    if (mOesFilter != nullptr && mOesFilter->initialized() && mOesTexture != 0 && mMetadata != nullptr) {
         int drawCount = 0;
         mOesFilter->applyMatrix(mCamMatrix, 16);
         int lastTexture = mOesFilter->onDraw(mOesTexture);
@@ -213,10 +232,16 @@ bool CameraRender::initialized() {
     return mStatus >= RenderStatus::STATUS_PREPARE && mStatus <= RenderStatus::STATUS_PAUSE;
 }
 
+void CameraRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oesTexture) {
+    jclass listenerClass = env->GetObjectClass(listener);
+    jmethodID methodId = env->GetMethodID(listenerClass, "onRenderOesTextureCreate", "(I)V");
+    env->CallVoidMethod(listener, methodId, oesTexture);
+}
+
 void CameraRender::notifyEnvPrepare(JNIEnv *env, jobject listener) {
     jclass listenerClass = env->GetObjectClass(listener);
-    jmethodID methodId = env->GetMethodID(listenerClass, "onRenderEnvPrepare", "(I)V");
-    env->CallVoidMethod(listener, methodId, mOesTexture);
+    jmethodID methodId = env->GetMethodID(listenerClass, "onRenderEnvPrepare", "()V");
+    env->CallVoidMethod(listener, methodId);
 }
 
 void CameraRender::notifyEnvRelease(JNIEnv *env, jobject listener) {
@@ -228,7 +253,6 @@ void CameraRender::notifyEnvRelease(JNIEnv *env, jobject listener) {
 void CameraRender::render(JNIEnv *env) {
     jobject listener = JniUtil::findListener(&gAdapters, reinterpret_cast<jlong>(this));
     if (!mEglCore->initEglEnv()) { goto quit; }
-    buildOesTexture();
     mStatus = RenderStatus::STATUS_PREPARE;
     if (listener != nullptr) { notifyEnvPrepare(env, listener); }
     for (;;) {
@@ -238,7 +262,9 @@ void CameraRender::render(JNIEnv *env) {
                 LogUtil::logI(TAG, {"render: handle message surface change"});
                 mStatus = RenderStatus::STATUS_RUN;
                 glViewport(0, 0, mWidth, mHeight);
-                enqueueMessage(EventType::EVENT_DRAW);
+                if (!mEglCore->swapBuffer()) {
+                    LogUtil::logI(TAG, {"render: surface change, failed to swap buffer"});
+                }
                 break;
             }
             case EventType::EVENT_PAUSE: {
@@ -246,6 +272,8 @@ void CameraRender::render(JNIEnv *env) {
                 mStatus = RenderStatus::STATUS_PAUSE;
                 releaseBeforeEnvDestroy(env);
                 if (mEglCore != nullptr) { mEglCore->release(); }
+                mEvtQueue->clear();
+                mWorkQueue->clear();
                 break;
             }
             case EventType::EVENT_RESUME: {
@@ -253,7 +281,6 @@ void CameraRender::render(JNIEnv *env) {
                 mStatus = RenderStatus::STATUS_RUN;
                 if (mEglCore != nullptr) {
                     if (mEglCore->initEglEnv()) {
-                        buildOesTexture();
                         notifyEnvPrepare(env, listener);
                     } else {
                         goto quit;
@@ -262,16 +289,27 @@ void CameraRender::render(JNIEnv *env) {
                 break;
             }
             case EventType::EVENT_DRAW: {
-                LogUtil::logI(TAG, {"render: handle message draw"});
-                mStatus = RenderStatus::STATUS_RUN;
-                updateTexImg(env);
-                runBeforeDraw();
-                drawFrame();
+                if (mEglCore != nullptr && mEglCore->valid()) {
+                    mStatus = RenderStatus::STATUS_RUN;
+                    updateTexImg(env);
+                    runBeforeDraw();
+                    drawFrame();
+                } else {
+                    LogUtil::logI(TAG, {"render: handle message draw, env is not valid"});
+                }
+                break;
+            }
+            case EventType::EVENT_BUILD_OES_TEXTURE: {
+                LogUtil::logI(TAG, {"render: handle message build oes texture"});
+                buildOesTexture();
+                notifyEnvOesTextureCreate(env, listener, mOesTexture);
                 break;
             }
             case EventType::EVENT_QUIT: {
                 LogUtil::logI(TAG, {"render: handle message quit"});
                 releaseBeforeEnvDestroy(env);
+                mEvtQueue->clear();
+                mWorkQueue->clear();
                 mStatus = RenderStatus::STATUS_DESTROY;
                 goto quit;
             }
@@ -332,18 +370,26 @@ void CameraRender::runBeforeDraw() {
         if (mWorkQueue->dequeue(task)) { task->run(); }
     }
     if (mScreenFilter == nullptr) {
+        LogUtil::logI(TAG, {"runBeforeDraw: screen filter init"});
         mScreenFilter = new ScreenFilter;
         mScreenFilter->setOutputSize(mWidth, mHeight);
         mScreenFilter->init();
     }
     if (mOesFilter == nullptr) {
+        LogUtil::logI(TAG, {"runBeforeDraw: oes filter init"});
         mOesFilter = new OesFilter;
+        mOesFilter->setPreviewSize(mPreviewWidth, mPreviewHeight);
         mOesFilter->setOutputSize(mWidth, mHeight);
         mOesFilter->init();
     }
     buildCameraTransMatrix();
-    glClearColor(1.0, 1.0, 1.0, 1.0);
+    glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+}
+
+void CameraRender::setPreview(GLint previewWidth, GLint previewHeight) {
+    mPreviewWidth = previewWidth;
+    mPreviewHeight = previewHeight;
 }
 
 void CameraRender::setSize(GLint width, GLint height) {

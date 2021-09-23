@@ -11,13 +11,13 @@ public interface IRenderListener {
     void onRenderEnvPrepare();
 
     /**
-     * called when the render env is prepared
-     * @param textureId texture created by render env
-     */
-    void onRenderEnvPrepare(int textureId);
-
-    /**
      * called when the render env is released
      */
     void onRenderEnvRelease();
+
+    /**
+     * called when the render oes texture is created
+     * @param oesTexture textureId
+     */
+    void onRenderOesTextureCreate(int oesTexture);
 }

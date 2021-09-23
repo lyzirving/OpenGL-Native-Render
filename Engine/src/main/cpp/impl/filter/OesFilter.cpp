@@ -3,6 +3,9 @@
 //
 #include "OesFilter.h"
 #include "MatrixUtil.h"
+#include "LogUtil.h"
+
+#define TAG "OesFilter"
 
 OesFilter::OesFilter() {
     mMatrix = new GLfloat[16];
@@ -14,7 +17,7 @@ OesFilter::~OesFilter() {
 }
 
 void OesFilter::applyMatrix(const GLfloat *src, int size) {
-    if (mMatrix == nullptr) { mMatrix = new GLfloat[16]; }
+    if (mMatrix == nullptr) { mMatrix = new GLfloat[size]; }
     for (int i = 0; i < size; ++i) { mMatrix[i] = src[i]; }
 }
 
@@ -25,6 +28,30 @@ void OesFilter::destroy() {
         delete[] mOesFrameBuffer;
         mOesFrameBuffer = nullptr;
     }
+}
+
+void OesFilter::initBuffer() {
+    if (mVertex != nullptr) { delete[] mVertex; }
+    if (mTextureCoordinate != nullptr) { delete[] mTextureCoordinate; }
+    float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
+    float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
+    float heightVal = widthVal * previewRatio;
+    LogUtil::logI(TAG, {"initBuffer: preview ratio = ", std::to_string(previewRatio), ", width val = ", std::to_string(widthVal), ", height val = ", std::to_string(heightVal)});
+    mVertex = new GLfloat[DEFAULT_VERTEX_COUNT * 3]{
+            //right - top
+            widthVal, heightVal, 0,
+            //left - bottom
+            -widthVal, -heightVal, 0,
+            //left - top
+            -widthVal, heightVal, 0,
+            //right - top
+            widthVal, heightVal, 0,
+            //right - bottom
+            widthVal, -heightVal, 0,
+            //left - bottom
+            -widthVal, -heightVal, 0
+    };
+    BaseFilter::initBuffer();
 }
 
 void OesFilter::initHandler() {
@@ -71,14 +98,13 @@ void OesFilter::loadShader() {
     if (mTextureShader == nullptr) { mTextureShader = gUtil->readAssets("shader/oes_fragment_shader.glsl"); }
 }
 
-GLint OesFilter::onDraw(GLint inputTextureId) {
+GLint OesFilter::onDraw(GLint oesInputTexture) {
     glBindFramebuffer(GL_FRAMEBUFFER, mOesFrameBuffer[0]);
     glUseProgram(mProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[0]);
     glVertexAttribPointer(mVertexPosHandler, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), nullptr);
     glEnableVertexAttribArray(mVertexPosHandler);
-
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[1]);
     glVertexAttribPointer(mTextureCoordinateHandler, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat),nullptr);
     glEnableVertexAttribArray(mTextureCoordinateHandler);
@@ -86,7 +112,7 @@ GLint OesFilter::onDraw(GLint inputTextureId) {
     glUniformMatrix4fv(mTransHandler, 1, false, mMatrix);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, inputTextureId);
+    glBindTexture(GL_TEXTURE_EXTERNAL_OES, oesInputTexture);
     glUniform1i(mOesSamplerHandler, 0);
 
     glDrawArrays(GL_TRIANGLES, 0, BaseFilter::DEFAULT_VERTEX_COUNT);
@@ -99,5 +125,10 @@ GLint OesFilter::onDraw(GLint inputTextureId) {
     MatrixUtil::setIdentityM(mMatrix, 0);
 
     return mTextureId;
+}
+
+void OesFilter::setPreviewSize(GLint width, GLint height) {
+    mPreviewWidth = width;
+    mPreviewHeight = height;
 }
 

@@ -9,8 +9,8 @@ class RenderListener implements IRenderListener {
     public void onRenderEnvPrepare() {}
 
     @Override
-    public void onRenderEnvPrepare(int textureId) {}
+    public void onRenderEnvRelease() {}
 
     @Override
-    public void onRenderEnvRelease() {}
+    public void onRenderOesTextureCreate(int oesTexture) {}
 }

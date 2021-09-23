@@ -33,12 +33,14 @@ public:
     void drawFrame();
     void enqueueMessage(EventType what);
     bool initialized();
+    void notifyEnvOesTextureCreate(JNIEnv* env, jobject listener, int oesTexture);
     void notifyEnvPrepare(JNIEnv* env, jobject listener);
     void notifyEnvRelease(JNIEnv* env, jobject listener);
     void render(JNIEnv* env);
     void release(JNIEnv* env);
     void releaseBeforeEnvDestroy(JNIEnv* env);
     void runBeforeDraw();
+    void setPreview(GLint width, GLint height);
     void setSize(GLint width, GLint height);
     void setNativeWindow(ANativeWindow* window);
     void setSurfaceTexture(JNIEnv* env, jobject surfaceTexture);
@@ -51,6 +53,8 @@ private:
     WorkQueue* mWorkQueue;
     GLint mWidth{0};
     GLint mHeight{0};
+    GLint mPreviewWidth{0};
+    GLint mPreviewHeight{0};
     GLuint mOesTexture{0};
     RenderStatus mStatus = RenderStatus::STATUS_IDLE;
     jobject mSurfaceTexture{nullptr};

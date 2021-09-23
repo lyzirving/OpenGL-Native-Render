@@ -13,16 +13,20 @@ public:
     ~OesFilter();
     void applyMatrix(const GLfloat* src, int size);
     void destroy() override;
+    void initBuffer() override;
     void initFrameBuffer() override;
     void initHandler() override;
     void initTexture() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+    void setPreviewSize(GLint width, GLint height);
 
 private:
     int mTransHandler{0};
     int mOesSamplerHandler{0};
     GLuint* mOesFrameBuffer = nullptr;
+    GLint mPreviewWidth{0};
+    GLint mPreviewHeight{0};
 };
 
 #endif //ENGINE_OESFILTER_H

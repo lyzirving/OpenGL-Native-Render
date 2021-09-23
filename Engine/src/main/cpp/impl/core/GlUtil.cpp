@@ -63,7 +63,7 @@ GLuint GlUtil::loadShader(GLenum shaderType, const char *source) {
             }
         }
     } else {
-        LogUtil::logI(TAG, {"loadShader: failed to create shader, type = ", std::to_string(shaderType)});
+        LogUtil::logI(TAG, {"loadShader: failed to create shader, type = ", std::to_string(shaderType), ", source = ", source});
     }
     return shader;
 }

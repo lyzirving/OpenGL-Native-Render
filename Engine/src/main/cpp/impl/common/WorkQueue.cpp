@@ -5,7 +5,9 @@
 
 void WorkQueue::clear() {
     pthread_mutex_lock(&mMutex);
-    while (!mQueue->empty()) mQueue->pop();
+    while (!mQueue->empty()) { mQueue->pop(); }
+    delete mQueue;
+    mQueue = new std::queue<std::shared_ptr<WorkTask>>;
     pthread_mutex_unlock(&mMutex);
 }
 

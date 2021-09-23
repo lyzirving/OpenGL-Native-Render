@@ -18,6 +18,8 @@ public:
     void release();
     void setNativeWindow(ANativeWindow* window);
     bool swapBuffer();
+    bool valid();
+
 private:
     ANativeWindow* mNativeWindow = nullptr;
     EGLConfig mEglConfig = nullptr;

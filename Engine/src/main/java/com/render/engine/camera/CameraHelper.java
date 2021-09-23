@@ -32,20 +32,11 @@ import java.util.List;
 
 public class CameraHelper {
     private static final String TAG = "CameraHelper";
-    /**
-     * Max preview width that is guaranteed by Camera2 API
-     */
-    private static final int MAX_PREVIEW_WIDTH_CAMERA_2 = 1920;
-
-    /**
-     * Max preview height that is guaranteed by Camera2 API
-     */
-    private static final int MAX_PREVIEW_HEIGHT_CAMERA2 = 1080;
 
     private volatile static CameraHelper sInstance;
     private String mCameraId;
     private int mFrontType;
-    private Size mPreviewSize;
+    private Size mPreviewSize, mLargestOutputSize;
 
     private SurfaceTexture mOesTexture;
     private CaptureRequest.Builder mPreviewRequestBuilder;
@@ -65,22 +56,19 @@ public class CameraHelper {
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
             LogUtil.e(TAG, "onDisconnected");
-            camera.close();
-            mCamera = null;
+            closeCamera();
         }
 
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
             LogUtil.e(TAG, "onError: code = " + error);
-            camera.close();
-            mCamera = null;
+            closeCamera();
         }
 
         @Override
         public void onClosed(@NonNull CameraDevice camera) {
             super.onClosed(camera);
             LogUtil.i(TAG, "onClosed");
-            mCamera = null;
         }
     };
 
@@ -102,14 +90,17 @@ public class CameraHelper {
                 //the preview data will continuously send data to SurfaceTexture
                 //the onFrameAvailable callback will be called
                 mCaptureSession.setRepeatingRequest(previewRequest, mCaptureCallback, mCameraHandler);
-            } catch (CameraAccessException e) {
+            } catch (Exception e) {
+                LogUtil.i(TAG, "onConfigured: exception = " + e.getMessage());
                 e.printStackTrace();
+                closeCamera();
             }
         }
 
         @Override
         public void onConfigureFailed(@NonNull CameraCaptureSession session) {
             LogUtil.e(TAG, "onConfigureFailed");
+            closeCamera();
         }
     };
 
@@ -133,29 +124,19 @@ public class CameraHelper {
             LogUtil.i(TAG, "closeCamera");
             if (null != mCaptureSession) { mCaptureSession.close(); }
             if (null != mCamera) { mCamera.close(); }
-            stopCameraThread();
+            releaseOesTexture();
         } catch (Exception e) {
             LogUtil.e(TAG, "closeCamera: exception happens, " + e.getMessage());
             e.printStackTrace();
         } finally {
-            if (mOesTexture != null) {
-                mOesTexture.setOnFrameAvailableListener(null);
-                mOesTexture.release();
-            }
-            mOesTexture = null;
-            mCaptureSession = null;
             mCamera = null;
-            mCameraId = null;
+            mCaptureSession = null;
         }
     }
 
     public Size getPreviewSize() { return mPreviewSize; }
 
     public int getFrontType() { return mFrontType; }
-
-    public boolean isPrepared() {
-        return mCameraThread != null;
-    }
 
     @SuppressLint("MissingPermission")
     public void open(Context ctx) {
@@ -171,9 +152,6 @@ public class CameraHelper {
         }
     }
 
-    public void prepare(Context ctx) {
-        prepare(ctx, MAX_PREVIEW_WIDTH_CAMERA_2, MAX_PREVIEW_HEIGHT_CAMERA2);
-    }
 
     public void prepare(Context ctx, int surfaceWidth, int surfaceHeight) {
         prepare(ctx, surfaceWidth, surfaceHeight, CameraMetadata.LENS_FACING_BACK);
@@ -182,15 +160,44 @@ public class CameraHelper {
     public void prepare(Context ctx, int surfaceWidth, int surfaceHeight, int cameraFaceInt) {
         mFrontType = cameraFaceInt;
         CameraManager manager = (CameraManager) ctx.getSystemService(Context.CAMERA_SERVICE);
+        Display display = ctx.getDisplay();
+
         CameraCharacteristics character = getCameraAttr(manager, cameraFaceInt);
         if (character == null) { throw new RuntimeException("no support camera face " + cameraFaceInt); }
+
         StreamConfigurationMap map = character.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
         if (map == null) { throw new RuntimeException("no configuration map for camera face " + cameraFaceInt); }
+
         Size largestOutputSizeJpeg = Collections.max(Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)), new CompareSizesByArea());
-        mPreviewSize = getPreviewSize(ctx, character, map, surfaceWidth, surfaceHeight, largestOutputSizeJpeg, cameraFaceInt);
+
+        //phone's natural rotation is vertical-stand, i-pad's natural direction is horizontal-stand
+        //display rotation is the rotation from device's natural stand
+        int displayRotation = display.getRotation();
+        Integer sensorOrientation = character.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        if (sensorOrientation == null) { sensorOrientation = cameraFaceInt == CameraMetadata.LENS_FACING_FRONT ? 270 : 0; }
+        boolean swapDimension = needSwapDimension(displayRotation, sensorOrientation);
+        LogUtil.i(TAG, "prepare: display rotation = " + displayRotation + ", sensor rotation = " + sensorOrientation + ", need swap dimension = " + swapDimension);
+
+        Size previewSize = getPreviewSize(display, map, swapDimension, surfaceWidth, surfaceHeight, largestOutputSizeJpeg);
+        if (swapDimension) {
+            mPreviewSize = new Size(previewSize.getHeight(), previewSize.getWidth());
+            mLargestOutputSize = new Size(largestOutputSizeJpeg.getHeight(), largestOutputSizeJpeg.getWidth());
+        } else {
+            mPreviewSize = previewSize;
+            mLargestOutputSize = largestOutputSizeJpeg;
+        }
         startCameraThread();
-        LogUtil.i(TAG, "prepare: largest jpeg image size = (" + largestOutputSizeJpeg.getWidth() + ", " + largestOutputSizeJpeg.getHeight() + ")"
+        LogUtil.i(TAG, "prepare: largest jpeg output size = (" + mLargestOutputSize.getWidth() + ", " + mLargestOutputSize.getHeight() + ")"
                 + ", preview size = (" + mPreviewSize.getWidth() + ", " + mPreviewSize.getHeight() + ")");
+    }
+
+    public void release() {
+        LogUtil.i(TAG, "release");
+        closeCamera();
+        stopCameraThread();
+        mCaptureSession = null;
+        mCamera = null;
+        mCameraId = null;
     }
 
     public void setOesTexture(SurfaceTexture surfaceTexture) {
@@ -214,6 +221,7 @@ public class CameraHelper {
         } catch (Exception e) {
             LogUtil.d(TAG, "createCameraPreviewSession: exception happens, " + e.getMessage());
             e.printStackTrace();
+            closeCamera();
         }
     }
 
@@ -269,7 +277,7 @@ public class CameraHelper {
         } else if (notBigEnough.size() > 0) {
             return Collections.max(notBigEnough, new CompareSizesByArea());
         } else {
-            LogUtil.e(TAG, "Couldn't find any suitable preview size");
+            LogUtil.e(TAG, "chooseOptimalSize: couldn't find any suitable preview size");
             return choices[0];
         }
     }
@@ -294,49 +302,27 @@ public class CameraHelper {
         return null;
     }
 
-    private Size getPreviewSize(Context ctx, CameraCharacteristics character, StreamConfigurationMap map,
-                                int viewWidth, int viewHeight, Size largestJpegOutputSize, int cameraFaceInt) {
-        Display display = ctx.getDisplay();
+    private Size getPreviewSize(Display display, StreamConfigurationMap map, boolean swapDimension,
+                                int viewWidth, int viewHeight, Size largestJpegOutputSize) {
         Point windowSize = new Point();
-        //the value will differ from screen orientation
-        //if it's portrait, width < height; otherwise, width > height
         display.getSize(windowSize);
-        int maxPreviewWidth = windowSize.y;
-        int maxPreviewHeight = windowSize.x;
-        if (maxPreviewWidth > MAX_PREVIEW_WIDTH_CAMERA_2) { maxPreviewWidth = MAX_PREVIEW_WIDTH_CAMERA_2; }
-        if (maxPreviewHeight > MAX_PREVIEW_HEIGHT_CAMERA2) { maxPreviewHeight = MAX_PREVIEW_HEIGHT_CAMERA2; }
-        LogUtil.i(TAG, "getPreviewSize: screen width = " + maxPreviewWidth + ", screen height = " + maxPreviewHeight);
-        //phone's natural rotation is vertical-stand, the display rotation is usually 0
-        //i-pad's natural direction is horizontal-stand
-        //display rotation is the rotation from device's natural stand
-        int displayRotation = display.getRotation();
-        LogUtil.i(TAG, "getPreviewSize: display rotation = " + displayRotation);
-        Integer sensorOrientation = character.get(CameraCharacteristics.SENSOR_ORIENTATION);
-        if (sensorOrientation == null) {
-            sensorOrientation = cameraFaceInt == CameraMetadata.LENS_FACING_FRONT ? 270 : 0;
-        }
-        LogUtil.i(TAG, "getPreviewSize: sensor rotation = " + sensorOrientation);
-        boolean swapDimension = needSwapDimension(displayRotation, sensorOrientation);
+        int maxPreviewWidth = windowSize.x;
+        int maxPreviewHeight = windowSize.y;
         int rotatedPreviewWidth = viewWidth;
         int rotatedPreviewHeight = viewHeight;
         if (swapDimension) {
             rotatedPreviewWidth = viewHeight;
             rotatedPreviewHeight = viewWidth;
-            maxPreviewWidth = windowSize.x;
-            maxPreviewHeight = windowSize.y;
-            if (maxPreviewWidth > MAX_PREVIEW_HEIGHT_CAMERA2) { maxPreviewWidth = MAX_PREVIEW_HEIGHT_CAMERA2; }
-            if (maxPreviewHeight > MAX_PREVIEW_WIDTH_CAMERA_2) { maxPreviewHeight = MAX_PREVIEW_WIDTH_CAMERA_2; }
+            maxPreviewWidth = windowSize.y;
+            maxPreviewHeight = windowSize.x;
         }
         LogUtil.i(TAG, "getPreviewSize: need swap dimension = " + swapDimension
                 + ", rotated preview size = (" + rotatedPreviewWidth + "," + rotatedPreviewHeight + ")"
-                + ", rotated max view size = (" + maxPreviewWidth + "," + maxPreviewHeight + ")");
-        Size result = chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+                + ", rotated max view size = (" + maxPreviewWidth + "," + maxPreviewHeight + ")"
+                + ", largest out put size = (" + largestJpegOutputSize.getWidth() + "," + largestJpegOutputSize.getHeight() + ")");
+        return chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedPreviewWidth, rotatedPreviewHeight, maxPreviewWidth,
                 maxPreviewHeight, largestJpegOutputSize);
-        if (swapDimension) {
-            result = new Size(result.getHeight(), result.getWidth());
-        }
-        return result;
     }
 
     private boolean needSwapDimension(int displayRotation, int sensorOrientation) {
@@ -350,10 +336,18 @@ public class CameraHelper {
                 return sensorOrientation == 0 || sensorOrientation == 180;
             }
             default: {
-                LogUtil.d(TAG, "needSwapDimension: default");
+                LogUtil.i(TAG, "needSwapDimension: default");
                 return false;
             }
         }
+    }
+
+    private synchronized void releaseOesTexture() {
+        if (mOesTexture != null) {
+            if (!mOesTexture.isReleased()) { mOesTexture.release(); }
+            mOesTexture.setOnFrameAvailableListener(null);
+        }
+        mOesTexture = null;
     }
 
     private void startCameraThread() {
@@ -363,8 +357,8 @@ public class CameraHelper {
     }
 
     private void stopCameraThread() {
-        mCameraThread.quitSafely();
         try {
+            mCameraThread.quitSafely();
             mCameraThread.join();
             mCameraThread = null;
             mCameraHandler = null;

@@ -118,3 +118,6 @@ bool RenderEglBase::swapBuffer() {
     return eglSwapBuffers(mEglDisplay, mEglSurface) != EGL_FALSE;
 }
 
+bool RenderEglBase::valid() {
+    return mEglContext != EGL_NO_CONTEXT;
+}

@@ -90,11 +90,17 @@ void BaseFilter::initBuffer() {
     }
     if (mTextureCoordinate == nullptr) {
         mTextureCoordinate = new GLfloat[DEFAULT_VERTEX_COUNT * 2]{
+                //right - top
                 1, 0,
+                //left - bottom
                 0, 1,
+                //left - top
                 0, 0,
+                //right - top
                 1, 0,
+                //right - bottom
                 1, 1,
+                //left - bottom
                 0, 1,
         };
     }

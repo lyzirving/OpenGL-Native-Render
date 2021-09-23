@@ -15,10 +15,17 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
     private static final long INVALID_PTR = -1;
 
     private long mNativePtr;
-    private int mSurfaceWidth, mSurfaceHeight;
 
     public CameraRenderEngine() {
         mNativePtr = nCreate();
+    }
+
+    public void buildTexture() {
+        if (mNativePtr == INVALID_PTR) {
+            LogUtil.e(TAG, "buildTexture: invalid native pointer");
+            return;
+        }
+        nBuildTexture(mNativePtr);
     }
 
     @Override
@@ -51,6 +58,16 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
     }
 
     @Override
+    public void onPreviewChange(int previewWidth, int previewHeight) {
+        if (mNativePtr == INVALID_PTR) {
+            LogUtil.e(TAG, "onPreviewChange: invalid native pointer");
+            return;
+        }
+        //does not need to check whether the render is initialized
+        nPreviewChange(mNativePtr, previewWidth, previewHeight);
+    }
+
+    @Override
     public void onSurfaceCreate(Surface surface, RenderAdapter adapter) {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "onSurfaceCreate: invalid native pointer");
@@ -77,8 +94,6 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
             LogUtil.e(TAG, "onSurfaceChange: invalid native pointer");
             return;
         }
-        mSurfaceWidth = width;
-        mSurfaceHeight = height;
         //does not need to check whether the render is initialized
         nSurfaceChange(mNativePtr, width, height);
     }
@@ -128,6 +143,7 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
         nSetRenderCamMetadata(mNativePtr, data);
     }
 
+    private static native void nBuildTexture(long ptr);
     private static native long nCreate();
     private static native boolean nInitialized(long ptr);
     private static native void nOnPause(long ptr);
@@ -135,6 +151,7 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
     private static native void nRequestRender(long ptr);
     private static native void nRelease(long ptr);
     private static native void nSetSurfaceTexture(long ptr, SurfaceTexture surfaceTexture);
+    private static native void nPreviewChange(long ptr, int previewWidth, int previewHeight);
     private static native void nSurfaceCreate(long ptr, Surface surface, RenderAdapter adapter);
     private static native void nSurfaceChange(long ptr, int width, int height);
     private static native void nSetRenderCamMetadata(long ptr, RenderCamMetadata data);
