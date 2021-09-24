@@ -1,19 +1,32 @@
-package com.render.engine.core.filter;
+package com.render.engine.core;
 
 import android.graphics.SurfaceTexture;
 import android.view.Surface;
 
-import com.render.engine.core.IRenderEngine;
-import com.render.engine.core.RenderAdapter;
+import com.render.engine.filter.BaseFilter;
+
+import java.util.LinkedHashMap;
+
 
 public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAvailableListener {
     protected static final long INVALID_PTR = -1;
     protected long mNativePtr = INVALID_PTR;
+    protected LinkedHashMap<String, BaseFilter> mBeautyFilter = new LinkedHashMap<>();
 
     @Override
-    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        requestRender();
-    }
+    public void addBeautyFilter(BaseFilter filter, boolean commit) {}
+
+    @Override
+    public void adjust(String filterType, int progress) {}
+
+    @Override
+    public void adjustProperty(String filterType, String property, int progress) {}
+
+    @Override
+    public void clearBeautyFilter() {}
+
+    @Override
+    public void onFrameAvailable(SurfaceTexture surfaceTexture) { requestRender(); }
 
     @Override
     public boolean isInitialized() {

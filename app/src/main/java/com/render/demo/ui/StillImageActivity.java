@@ -14,7 +14,7 @@ import com.render.engine.core.RenderAdapter;
 import com.render.engine.core.RenderEngine;
 import com.render.engine.core.filter.ContrastFilter;
 import com.render.engine.core.filter.ExposureFilter;
-import com.render.engine.core.filter.FilterConst;
+import com.render.engine.filter.FilterConst;
 import com.render.engine.core.filter.GaussianFilter;
 import com.render.engine.core.filter.HighlightShadowFilter;
 import com.render.engine.core.filter.SaturationFilter;

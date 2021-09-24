@@ -1,4 +1,4 @@
-package com.render.engine.core.filter;
+package com.render.engine.filter;
 
 import androidx.annotation.StringDef;
 

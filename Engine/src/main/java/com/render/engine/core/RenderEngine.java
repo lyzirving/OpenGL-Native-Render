@@ -7,7 +7,7 @@ import android.view.Surface;
 
 import androidx.annotation.DrawableRes;
 
-import com.render.engine.core.filter.FilterConst;
+import com.render.engine.filter.FilterConst;
 import com.render.engine.util.BitmapUtil;
 import com.render.engine.util.LogUtil;
 
@@ -23,6 +23,9 @@ public class RenderEngine implements IRenderEngine {
     private LinkedHashMap<String, BaseFilter> mFilters = new LinkedHashMap<>();
 
     public RenderEngine() { mNativePtr = nCreate(); }
+
+    @Override
+    public void addBeautyFilter(com.render.engine.filter.BaseFilter filter, boolean initRightNow) {}
 
     public void addBeautyFilter(BaseFilter filter) {
         addBeautyFilter(filter, true);
@@ -40,6 +43,7 @@ public class RenderEngine implements IRenderEngine {
         }
     }
 
+    @Override
     public void clearBeautyFilter() {
         if (!isInitialized()) {
             LogUtil.e(TAG, "clearBeautyFilter: invalid state");
@@ -156,6 +160,12 @@ public class RenderEngine implements IRenderEngine {
             target.recycle();
         }
     }
+
+    @Override
+    public void adjust(String filterType, int progress) {}
+
+    @Override
+    public void adjustProperty(String filterType, String property, int progress) {}
 
     public abstract static class BaseFilter {
         protected long mRenderEnvPtr = INVALID_PTR;

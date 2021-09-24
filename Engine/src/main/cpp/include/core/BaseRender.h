@@ -12,13 +12,15 @@
 #include "RenderEglBase.h"
 
 #include "ScreenFilter.h"
+#include "BaseFilterGroup.h"
 
 class BaseRender {
 public:
     BaseRender();
     ~BaseRender();
 
-    virtual bool addBeautyFilter(const char* filterType, bool buildInitTask) = 0;
+    virtual bool addBeautyFilter(const char* filterType, bool commit) = 0;
+    virtual void adjust(const char* filterType, int progress) = 0;
     virtual void clearBeautyFilter() = 0;
     virtual void drawFrame() = 0;
     virtual void release(JNIEnv* env);
@@ -57,5 +59,6 @@ protected:
     GLint mSurfaceHeight{0};
 
     ScreenFilter* mScreenFilter{nullptr};
+    BaseFilterGroup* mBeautyFilterGroup{nullptr};
 };
 #endif //ENGINE_BASERENDER_H

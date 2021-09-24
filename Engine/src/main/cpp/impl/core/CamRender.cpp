@@ -5,13 +5,14 @@
 #include <GLES2/gl2ext.h>
 
 #include "CamRender.h"
+#include "FilterFactory.h"
 #include "LogUtil.h"
 #include "JniUtil.h"
 #include "MatrixUtil.h"
 
 #define TAG "CamRender"
 
-#define JAVA_CLASS_CAM_RENDER "com/render/engine/core/CamRenderEngine"
+#define JAVA_CLASS_CAM_RENDER "com/render/engine/camera/CamRenderEngine"
 #define JAVA_CLASS_RENDER_CAM_META_DATA "com/render/engine/camera/RenderCamMetadata"
 #define JAVA_CLASS_SURFACE_TEXTURE "android/graphics/SurfaceTexture"
 
@@ -27,9 +28,29 @@ void *envRenderLoop(void *args) {
     return nullptr;
 }
 
+static jboolean nEnvAddBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jboolean commit) {
+    auto *pRender = reinterpret_cast<CamRender *>(ptr);
+    const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
+    bool res = pRender->addBeautyFilter(type, commit);
+    env->ReleaseStringUTFChars(filterType, type);
+    return res;
+}
+
+static void nEnvAdjust(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jint progress) {
+    auto *pRender = reinterpret_cast<CamRender *>(ptr);
+    const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
+    pRender->adjust(type, progress);
+    env->ReleaseStringUTFChars(filterType, type);
+}
+
 static void nEnvBuildTexture(JNIEnv *env, jclass clazz, jlong ptr) {
     auto *pRender = reinterpret_cast<CamRender *>(ptr);
     pRender->enqueueMessage(EventType::EVENT_BUILD_OES_TEXTURE);
+}
+
+static void nEnvClearBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<CamRender *>(ptr);
+    pRender->clearBeautyFilter();
 }
 
 static jlong nEnvCreate(JNIEnv *env, jclass clazz) {
@@ -98,8 +119,20 @@ static void nEnvSetSurfaceTexture(JNIEnv *env, jclass clazz, jlong ptr, jobject 
 
 static JNINativeMethod sJniMethods[] = {
         {
+                "nAddBeautyFilter", "(JLjava/lang/String;Z)Z",
+                (void *) nEnvAddBeautyFilter
+        },
+        {
+                "nAdjust", "(JLjava/lang/String;I)V",
+                (void *) nEnvAdjust
+        },
+        {
                 "nBuildTexture",           "(J)V",
                 (void *) nEnvBuildTexture
+        },
+        {
+                "nClearBeautyFilter", "(J)V",
+                (void *) nEnvClearBeautyFilter
         },
         {
                 "nCreate",           "()J",
@@ -170,7 +203,42 @@ bool CamRender::registerSelf(JNIEnv *env) {
     return true;
 }
 
-bool CamRender::addBeautyFilter(const char *filterType, bool buildInitTask) {
+void CamRender::adjust(const char *filterType, int progress) {
+    if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
+        std::shared_ptr<BaseFilter> filter = mBeautyFilterGroup->getFilter(filterType);
+        filter->adjust(progress);
+    }
+}
+
+bool CamRender::addBeautyFilter(const char *filterType, bool commit) {
+    std::shared_ptr<BaseFilter> filter;
+    std::shared_ptr<FilterInitTask> task;
+    if (filterType == nullptr || std::strlen(filterType) == 0) {
+        LogUtil::logI(TAG, {"addBeautyFilter: filter type is empty"});
+        goto fail;
+    }
+    if (mBeautyFilterGroup == nullptr) { mBeautyFilterGroup = new BaseFilterGroup; }
+    if (!mBeautyFilterGroup->containsFilter(filterType)) {
+        filter = FilterFactory::makeFilter(filterType);
+        if (filter != nullptr) {
+            LogUtil::logI(TAG, {"addBeautyFilter: ", filterType});
+            mBeautyFilterGroup->addFilter(filterType, filter);
+            mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+            if (commit) {
+                task = std::make_shared<FilterInitTask>();
+                task->setObj(mBeautyFilterGroup);
+                mWorkQueue->enqueue(task);
+            }
+        } else {
+            LogUtil::logI(TAG, {"addBeautyFilter: factory could not create filter ", filterType});
+            goto fail;
+        }
+    } else {
+        LogUtil::logI(TAG, {"addBeautyFilter: already contains filter ", filterType});
+        goto fail;
+    }
+    return true;
+    fail:
     return false;
 }
 
@@ -207,7 +275,13 @@ void CamRender::buildCameraTransMatrix() {
     }
 }
 
-void CamRender::clearBeautyFilter() {}
+void CamRender::clearBeautyFilter() {
+    if (mBeautyFilterGroup != nullptr) {
+        std::shared_ptr<FilterDestroyTask> task = std::make_shared<FilterDestroyTask>();
+        task->setObj(mBeautyFilterGroup);
+        mWorkQueue->enqueue(task);
+    }
+}
 
 void CamRender::drawFrame() {
     if (mOesFilter != nullptr && mOesFilter->initialized() && mOesTexture != 0 && mCamMetaData != nullptr) {
@@ -215,6 +289,10 @@ void CamRender::drawFrame() {
         mOesFilter->applyMatrix(mCamMatrix, 16);
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
+        if (mBeautyFilterGroup != nullptr) {
+            lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
+            drawCount += mBeautyFilterGroup->filterSize();
+        }
         bool isOdd = (drawCount % 2) != 0;
         mScreenFilter->flip(false, isOdd);
         mScreenFilter->onDraw(lastTexture);
@@ -233,6 +311,12 @@ void CamRender::destroy(JNIEnv* env) {
         delete mOesFilter;
     }
     mOesFilter = nullptr;
+
+    if (mBeautyFilterGroup != nullptr) {
+        mBeautyFilterGroup->destroy();
+        delete mBeautyFilterGroup;
+    }
+    mBeautyFilterGroup = nullptr;
 
     if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     mOesTexture = 0;
@@ -291,11 +375,15 @@ void CamRender::handlePostDraw(JNIEnv *env) {
 
 void CamRender::handleRenderEnvPause(JNIEnv *env) {
     LogUtil::logI(TAG, {"handleRenderEnvPause"});
-    destroy(env);
+    pause(env);
 }
 
 void CamRender::handleRenderEnvResume(JNIEnv *env) {
-    //no implementation
+    //resume the beauty filters if need
+    if (mBeautyFilterGroup != nullptr) {
+        mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        mBeautyFilterGroup->init();
+    }
 }
 
 void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
@@ -313,6 +401,38 @@ void CamRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oes
         jmethodID methodId = env->GetMethodID(listenerClass, "onRenderOesTextureCreate", "(I)V");
         env->CallVoidMethod(listener, methodId, oesTexture);
     }
+}
+
+void CamRender::pause(JNIEnv* env) {
+    if (mBeautyFilterGroup != nullptr) {
+        //should not destroy filter group when env is paused
+        //because we should memorise the inner data, and resume
+        mBeautyFilterGroup->onPause();
+    }
+
+    if (mScreenFilter != nullptr) {
+        mScreenFilter->destroy();
+        delete mScreenFilter;
+    }
+    mScreenFilter = nullptr;
+
+    if (mOesFilter != nullptr) {
+        mOesFilter->destroy();
+        delete mOesFilter;
+    }
+    mOesFilter = nullptr;
+
+    if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
+    mOesTexture = 0;
+
+    if (mSurfaceTexture != nullptr) { env->DeleteGlobalRef(mSurfaceTexture); }
+    mSurfaceTexture = nullptr;
+
+    delete mCamMetaData;
+    mCamMetaData = nullptr;
+
+    delete[] mCamMatrix;
+    mCamMatrix = nullptr;
 }
 
 void CamRender::release(JNIEnv *env) {

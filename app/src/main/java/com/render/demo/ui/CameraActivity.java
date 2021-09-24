@@ -9,26 +9,24 @@ import android.util.Size;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.SeekBar;
 
 import androidx.annotation.NonNull;
 
 import com.render.demo.R;
 import com.render.engine.camera.CameraHelper;
 import com.render.engine.camera.RenderCamMetadata;
-import com.render.engine.core.CamRenderEngine;
+import com.render.engine.camera.CamRenderEngine;
 import com.render.engine.core.RenderAdapter;
-import com.render.engine.core.filter.ContrastFilter;
-import com.render.engine.core.filter.ExposureFilter;
-import com.render.engine.core.filter.GaussianFilter;
-import com.render.engine.core.filter.HighlightShadowFilter;
-import com.render.engine.core.filter.SaturationFilter;
-import com.render.engine.core.filter.SharpenFilter;
+import com.render.engine.filter.ContrastFilter;
+import com.render.engine.filter.SaturationFilter;
+import com.render.engine.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
 
 /**
  * @author lyzirving
  */
-public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback, View.OnClickListener {
+public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback, View.OnClickListener, SeekBar.OnSeekBarChangeListener {
     private static final String TAG = "CameraActivity";
 
     private SurfaceView mSurface;
@@ -37,13 +35,11 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private int mSurfaceWidth, mSurfaceHeight;
 
     private View mAdjustBeautyRoot;
+    private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
 
     private ContrastFilter mContrastFilter;
-    private SharpenFilter mSharpenFilter;
     private SaturationFilter mSaturationFilter;
-    private ExposureFilter mExposureFilter;
-    private HighlightShadowFilter mHighlightShadowFilter;
-    private GaussianFilter mGaussianFilter;
+    private SharpenFilter mSharpenFilter;
 
     private static final int MSG_RENDER_PREPARE = 1;
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 2;
@@ -77,13 +73,24 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mSurface.getHolder().addCallback(this);
 
         findViewById(R.id.tab_switch_camera).setOnClickListener(this);
+        findViewById(R.id.tab_clear).setOnClickListener(this);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         findViewById(R.id.tab_beauty).setOnClickListener(this);
+
+        mContrastSeekBar = findViewById(R.id.seek_bar_contrast);
+        mSharpenSeekBar = findViewById(R.id.seek_bar_sharpen);
+        mSaturationSeekBar = findViewById(R.id.seek_bar_saturation);
+
+        mContrastSeekBar.setOnSeekBarChangeListener(this);
+        mSharpenSeekBar.setOnSeekBarChangeListener(this);
+        mSaturationSeekBar.setOnSeekBarChangeListener(this);
     }
 
     @Override
-    protected void initData() {}
+    protected void initData() {
+        initDefaultVal();
+    }
 
     @Override
     protected void release() {
@@ -122,6 +129,40 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
             case R.id.tab_beauty: {
                 handleClickBeauty();
+                break;
+            }
+            case R.id.tab_clear: {
+                handleClickClear();
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
+
+    @Override
+    public void onStartTrackingTouch(SeekBar seekBar) {}
+
+    @Override
+    public void onStopTrackingTouch(SeekBar seekBar) {
+        switch (seekBar.getId()) {
+            case R.id.seek_bar_contrast: {
+                mContrastFilter.adjust(seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_sharpen: {
+                mSharpenFilter.adjust(seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_saturation: {
+                mSaturationFilter.adjust(seekBar.getProgress());
+                mCameraRender.requestRender();
                 break;
             }
             default: {
@@ -217,12 +258,29 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         }
         boolean show = mAdjustBeautyRoot.getVisibility() == View.VISIBLE;
         showTab(mAdjustBeautyRoot, !show);
-        /*if (!show && (mContrastFilter == null || !mContrastFilter.filterValid())) {
+        if (!show && mContrastFilter == null) {
             mContrastFilter = new ContrastFilter();
             mSharpenFilter = new SharpenFilter();
             mSaturationFilter = new SaturationFilter();
+            mCameraRender.addBeautyFilter(mContrastFilter, false);
+            mCameraRender.addBeautyFilter(mSaturationFilter, false);
+            mCameraRender.addBeautyFilter(mSharpenFilter, true);
             mCameraRender.requestRender();
-        }*/
+        }
+    }
+
+    private void handleClickClear() {
+        if (anyTabShow()) {
+            hideAllTab();
+        }
+        initDefaultVal();
+        //beauty filter related
+        mContrastFilter = null;
+        mSharpenFilter = null;
+        mSaturationFilter = null;
+
+        mCameraRender.clearBeautyFilter();
+        mCameraRender.requestRender();
     }
 
     private void handleOesTextureCreate(int oesTexture) {
@@ -235,6 +293,12 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mCameraRender.setRenderCamMetadata(data);
         CameraHelper.get().setOnFrameAvailableListener(mCameraRender);
         CameraHelper.get().open(getApplicationContext());
+    }
+
+    private void initDefaultVal() {
+        if (mContrastSeekBar != null) { mContrastSeekBar.setProgress(50); }
+        if (mSharpenSeekBar != null) { mSharpenSeekBar.setProgress(50); }
+        if (mSaturationSeekBar != null) { mSaturationSeekBar.setProgress(50); }
     }
 
     private void showTab(View view, boolean show) {

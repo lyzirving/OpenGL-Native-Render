@@ -1,5 +1,4 @@
-package com.render.engine.core;
-
+package com.render.engine.camera;
 
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraMetadata;
@@ -7,9 +6,12 @@ import android.view.Surface;
 
 import androidx.annotation.NonNull;
 
-import com.render.engine.camera.RenderCamMetadata;
-import com.render.engine.core.filter.BaseRenderEngine;
+import com.render.engine.core.BaseRenderEngine;
+import com.render.engine.core.RenderAdapter;
+import com.render.engine.filter.BaseFilter;
 import com.render.engine.util.LogUtil;
+
+import java.util.Map;
 
 public class CamRenderEngine extends BaseRenderEngine {
     private static final String TAG = "CamRenderEngine";
@@ -18,12 +20,45 @@ public class CamRenderEngine extends BaseRenderEngine {
         mNativePtr = nCreate();
     }
 
+    @Override
+    public void addBeautyFilter(@NonNull BaseFilter filter, boolean commit) {
+        if (!isInitialized()) { throw new RuntimeException(TAG + "addBeautyFilter: env is not initialized, filter = " + filter.getType()); }
+        if (nAddBeautyFilter(mNativePtr, filter.getType(), commit)) {
+            filter.setRenderEngine(this);
+            mBeautyFilter.put(filter.getType(), filter);
+        }
+    }
+
+    @Override
+    public void adjust(@NonNull String filterType, int progress) {
+        if (!isInitialized()) {
+            LogUtil.i(TAG, "adjust: env is not initialized");
+            return;
+        }
+        nAdjust(mNativePtr, filterType, progress);
+    }
+
     public void buildTexture() {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "buildTexture: invalid native pointer");
             return;
         }
         nBuildTexture(mNativePtr);
+    }
+
+    @Override
+    public void clearBeautyFilter() {
+        if (!isInitialized()) {
+            LogUtil.e(TAG, "clearBeautyFilter: invalid state");
+            return;
+        }
+        if (!mBeautyFilter.isEmpty()) {
+            for (Map.Entry<String, BaseFilter> tmp : mBeautyFilter.entrySet()) {
+                tmp.getValue().release();
+            }
+            mBeautyFilter.clear();
+        }
+        nClearBeautyFilter(mNativePtr);
     }
 
     @Override
@@ -136,7 +171,10 @@ public class CamRenderEngine extends BaseRenderEngine {
         nSetSurfaceTexture(mNativePtr, surfaceTexture);
     }
 
+    private static native boolean nAddBeautyFilter(long ptr, String filterType, boolean commit);
+    private static native void nAdjust(long ptr, String filterType, int progress);
     private static native void nBuildTexture(long ptr);
+    private static native void nClearBeautyFilter(long ptr);
     private static native long nCreate();
     private static native boolean nInitialized(long ptr);
     private static native void nOnPause(long ptr);

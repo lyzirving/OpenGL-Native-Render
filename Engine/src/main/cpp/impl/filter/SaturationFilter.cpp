@@ -32,7 +32,6 @@ void SaturationFilter::loadShader() {
 }
 
 GLint SaturationFilter::onDraw(GLint inputTextureId) {
-    LogUtil::logI(TAG, {"onDraw: ", std::to_string(mSaturation)});
     glUseProgram(mProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[0]);

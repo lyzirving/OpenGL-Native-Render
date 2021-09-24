@@ -34,7 +34,6 @@ void SharpenFilter::loadShader() {
 }
 
 GLint SharpenFilter::onDraw(GLint inputTextureId) {
-    LogUtil::logI(TAG, {"onDraw: ", std::to_string(mSharpness)});
     glUseProgram(mProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[0]);

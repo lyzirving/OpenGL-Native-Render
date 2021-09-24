@@ -32,7 +32,6 @@ void ContrastFilter::initHandler() {
 }
 
 GLint ContrastFilter::onDraw(GLint inputTextureId) {
-    LogUtil::logI(TAG, {"onDraw: ", std::to_string(mContrast)});
     glUseProgram(mProgram);
 
     glBindBuffer(GL_ARRAY_BUFFER, mBufferId[0]);

@@ -12,7 +12,8 @@ public:
 
     static bool registerSelf(JNIEnv *env);
 
-    bool addBeautyFilter(const char *filterType, bool buildInitTask) override;
+    void adjust(const char *filterType, int progress) override;
+    bool addBeautyFilter(const char *filterType, bool commit) override;
     void clearBeautyFilter() override;
     void drawFrame() override;
     void release(JNIEnv *env) override;
@@ -32,8 +33,9 @@ protected:
 
     void buildOesTexture();
     void buildCameraTransMatrix();
-    void notifyEnvOesTextureCreate(JNIEnv* env, jobject listener, int oesTexture);
     void destroy(JNIEnv* env);
+    void notifyEnvOesTextureCreate(JNIEnv* env, jobject listener, int oesTexture);
+    void pause(JNIEnv* env);
     void updateTexImg(JNIEnv* env);
 
 private:
