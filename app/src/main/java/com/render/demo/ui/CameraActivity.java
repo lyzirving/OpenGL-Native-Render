@@ -8,6 +8,7 @@ import android.os.Message;
 import android.util.Size;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 
@@ -21,12 +22,13 @@ import com.render.engine.util.LogUtil;
 /**
  * @author lyzirving
  */
-public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback {
+public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback, View.OnClickListener {
     private static final String TAG = "CameraActivity";
 
-    private SurfaceView mSurfaceView;
+    private SurfaceView mSurface;
     private CameraRenderEngine mCameraRender;
     private RenderAdapter mRenderAdapter;
+    private int mSurfaceWidth, mSurfaceHeight;
 
     private static final int MSG_RENDER_PREPARE = 1;
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 2;
@@ -54,10 +56,12 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
     @Override
     protected void initView() {
-        mSurfaceView = findViewById(R.id.camera_view);
-        mSurfaceView.setZOrderOnTop(false);
-        mSurfaceView.getHolder().setFormat(PixelFormat.TRANSPARENT);
-        mSurfaceView.getHolder().addCallback(this);
+        mSurface = findViewById(R.id.camera_view);
+        mSurface.setZOrderOnTop(false);
+        mSurface.getHolder().setFormat(PixelFormat.TRANSPARENT);
+        mSurface.getHolder().addCallback(this);
+
+        findViewById(R.id.iv_switch_camera).setOnClickListener(this);
     }
 
     @Override
@@ -69,6 +73,19 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         CameraHelper.get().release();
         if (mCameraRender != null) { mCameraRender.release(); }
         mCameraRender = null;
+    }
+
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.iv_switch_camera: {
+                handleClickSwitchCamera();
+                break;
+            }
+            default: {
+                break;
+            }
+        }
     }
 
     @Override
@@ -105,6 +122,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     @Override
     public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
         LogUtil.i(TAG, "surfaceChanged: width = " + width + ", height = " + height);
+        mSurfaceWidth = width;
+        mSurfaceHeight = height;
         if (mCameraRender != null) {
             CameraHelper.get().prepare(getApplicationContext(), width, height);
             Size previewSize = CameraHelper.get().getPreviewSize();
@@ -144,6 +163,21 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             };
         }
         return mRenderAdapter;
+    }
+
+    private void handleClickSwitchCamera() {
+        if (CameraHelper.get().isCameraOpen()) {
+            mCameraRender.onPause();
+            CameraHelper.get().closeCameraAndWait();
+            CameraHelper.get().switchFrontType();
+            mCameraRender.onResume(mSurface.getHolder().getSurface());
+            CameraHelper.get().prepare(getApplicationContext(), mSurfaceWidth, mSurfaceHeight);
+            Size previewSize = CameraHelper.get().getPreviewSize();
+            //the method must be called by order onPreviewChange() -> onSurfaceChange() -> buildTexture()
+            mCameraRender.onPreviewChange(previewSize.getWidth(), previewSize.getHeight());
+            mCameraRender.onSurfaceChange(mSurfaceWidth, mSurfaceHeight);
+            mCameraRender.buildTexture();
+        }
     }
 
     private void handleOesTextureCreate(int oesTexture) {

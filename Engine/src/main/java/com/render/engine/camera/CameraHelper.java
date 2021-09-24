@@ -5,7 +5,6 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Point;
 import android.graphics.SurfaceTexture;
-import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
@@ -37,7 +36,8 @@ public class CameraHelper {
     private volatile static CameraHelper sInstance;
     private final Object mLock = new Object();
     private String mCameraId;
-    private int mFrontType;
+    //default is back side camera face
+    private int mFrontType = CameraMetadata.LENS_FACING_BACK;
     private Size mPreviewSize, mLargestOutputSize;
 
     private SurfaceTexture mOesTexture;
@@ -155,6 +155,8 @@ public class CameraHelper {
         }
     }
 
+    public boolean isCameraOpen() { return mCamera != null; }
+
     public Size getPreviewSize() { return mPreviewSize; }
 
     public int getFrontType() { return mFrontType; }
@@ -175,11 +177,10 @@ public class CameraHelper {
 
 
     public void prepare(Context ctx, int surfaceWidth, int surfaceHeight) {
-        prepare(ctx, surfaceWidth, surfaceHeight, CameraMetadata.LENS_FACING_BACK);
+        prepare(ctx, surfaceWidth, surfaceHeight, mFrontType);
     }
 
     public void prepare(Context ctx, int surfaceWidth, int surfaceHeight, int cameraFaceInt) {
-        mFrontType = cameraFaceInt;
         CameraManager manager = (CameraManager) ctx.getSystemService(Context.CAMERA_SERVICE);
         Display display = ctx.getDisplay();
 
@@ -231,6 +232,14 @@ public class CameraHelper {
         mOesTexture.setOnFrameAvailableListener(listener, mCameraHandler);
     }
 
+    public void switchFrontType() {
+        if (mFrontType == CameraMetadata.LENS_FACING_BACK) {
+            mFrontType = CameraMetadata.LENS_FACING_FRONT;
+        } else if (mFrontType == CameraMetadata.LENS_FACING_FRONT) {
+            mFrontType = CameraMetadata.LENS_FACING_BACK;
+        }
+    }
+
     private void createCameraPreviewSession() {
         try {
             mOesTexture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
@@ -265,14 +274,14 @@ public class CameraHelper {
     private static Size chooseOptimalSize(Size[] choices, int textureViewWidth,
                                           int textureViewHeight, int maxWidth, int maxHeight, Size aspectRatio) {
 
-        if (choices != null) {
+        /*if (choices != null) {
             StringBuilder sb = new StringBuilder();
             for (int i = 0; i < choices.length; i++) {
                 sb.append("index: ").append(i).append("(").append(choices[i].getWidth()).append(",")
                         .append(choices[i].getHeight()).append(")").append("\n");
             }
             LogUtil.i(TAG, "chooseOptimalSize: \n" + sb.toString());
-        }
+        }*/
         // Collect the supported resolutions that are at least as big as the preview Surface
         List<Size> bigEnough = new ArrayList<>();
         // Collect the supported resolutions that are smaller than the preview Surface
@@ -298,7 +307,7 @@ public class CameraHelper {
         } else if (notBigEnough.size() > 0) {
             return Collections.max(notBigEnough, new CompareSizesByArea());
         } else {
-            LogUtil.e(TAG, "chooseOptimalSize: couldn't find any suitable preview size");
+            LogUtil.e(TAG, "chooseOptimalSize: couldn't find any suitable preview size, use the first one");
             return choices[0];
         }
     }
