@@ -7,6 +7,8 @@ import com.render.engine.filter.BaseFilter;
 
 import java.util.LinkedHashMap;
 
+// TODO: 2021/9/24 use based class to add and delete beauty filter 
+// TODO: 2021/9/24 build a derived class to show still image 
 
 public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAvailableListener {
     protected static final long INVALID_PTR = -1;
