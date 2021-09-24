@@ -18,4 +18,5 @@
     <string name="tip_ver_blur">垂直模糊</string>
 
     <string name="tip_clear">还原</string>
+    <string name="tip_switch_camera">切换</string>
 </resources>

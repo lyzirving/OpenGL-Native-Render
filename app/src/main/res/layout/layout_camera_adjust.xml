@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/camera_adjust_panel"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:layout_constraintBottom_toTopOf="@+id/tab_switch_camera"
+    android:layout_marginStart="@dimen/border_margin"
+    android:layout_marginEnd="@dimen/border_margin"
+    android:layout_marginBottom="@dimen/border_margin">
+
+    <include layout="@layout/layout_adjust_beauty" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

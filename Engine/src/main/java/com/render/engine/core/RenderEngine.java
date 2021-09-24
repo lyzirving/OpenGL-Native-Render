@@ -180,7 +180,7 @@ public class RenderEngine implements IRenderEngine {
 
         abstract public @FilterConst.FilterType String getType();
 
-        private void setRenderEnvPtr(long ptr) { mRenderEnvPtr = ptr; }
+        protected void setRenderEnvPtr(long ptr) { mRenderEnvPtr = ptr; }
     }
 
     private static native long nCreate();

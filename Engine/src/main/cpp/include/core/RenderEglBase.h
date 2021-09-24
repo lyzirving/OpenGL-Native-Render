@@ -5,8 +5,8 @@
 #define ENGINE_RENDEREGLBASE_H
 
 #include <EGL/egl.h>
-#include <android/native_window_jni.h>
 #include <GLES2/gl2.h>
+#include <android/native_window_jni.h>
 
 class RenderEglBase {
 public:

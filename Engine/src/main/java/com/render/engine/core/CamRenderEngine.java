@@ -1,5 +1,6 @@
 package com.render.engine.core;
 
+
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraMetadata;
 import android.view.Surface;
@@ -7,16 +8,13 @@ import android.view.Surface;
 import androidx.annotation.NonNull;
 
 import com.render.engine.camera.RenderCamMetadata;
+import com.render.engine.core.filter.BaseRenderEngine;
 import com.render.engine.util.LogUtil;
 
+public class CamRenderEngine extends BaseRenderEngine {
+    private static final String TAG = "CamRenderEngine";
 
-public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAvailableListener {
-    private static final String TAG = "CameraRenderEngine";
-    private static final long INVALID_PTR = -1;
-
-    private long mNativePtr;
-
-    public CameraRenderEngine() {
+    public CamRenderEngine() {
         mNativePtr = nCreate();
     }
 
@@ -99,11 +97,6 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
     }
 
     @Override
-    public void onFrameAvailable(SurfaceTexture surfaceTexture) {
-        requestRender();
-    }
-
-    @Override
     public void requestRender() {
         if (!isInitialized()) {
             LogUtil.e(TAG, "requestRender: env is invalid");
@@ -122,14 +115,6 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
         mNativePtr = INVALID_PTR;
     }
 
-    public void setSurfaceTexture(SurfaceTexture surfaceTexture) {
-        if (!isInitialized()) {
-            LogUtil.e(TAG, "setSurfaceTexture: invalid state");
-            return;
-        }
-        nSetSurfaceTexture(mNativePtr, surfaceTexture);
-    }
-
     public void setRenderCamMetadata(@NonNull RenderCamMetadata data) {
         if (!isInitialized()) {
             LogUtil.e(TAG, "setRenderCamMetadata: invalid state");
@@ -143,16 +128,24 @@ public class CameraRenderEngine implements IRenderEngine, SurfaceTexture.OnFrame
         nSetRenderCamMetadata(mNativePtr, data);
     }
 
+    public void setSurfaceTexture(SurfaceTexture surfaceTexture) {
+        if (!isInitialized()) {
+            LogUtil.e(TAG, "setSurfaceTexture: invalid state");
+            return;
+        }
+        nSetSurfaceTexture(mNativePtr, surfaceTexture);
+    }
+
     private static native void nBuildTexture(long ptr);
     private static native long nCreate();
     private static native boolean nInitialized(long ptr);
     private static native void nOnPause(long ptr);
     private static native void nOnResume(long ptr, Surface surface);
+    private static native void nPreviewChange(long ptr, int previewWidth, int previewHeight);
     private static native void nRequestRender(long ptr);
     private static native void nRelease(long ptr);
-    private static native void nSetSurfaceTexture(long ptr, SurfaceTexture surfaceTexture);
-    private static native void nPreviewChange(long ptr, int previewWidth, int previewHeight);
     private static native void nSurfaceCreate(long ptr, Surface surface, RenderAdapter adapter);
     private static native void nSurfaceChange(long ptr, int width, int height);
     private static native void nSetRenderCamMetadata(long ptr, RenderCamMetadata data);
+    private static native void nSetSurfaceTexture(long ptr, SurfaceTexture surfaceTexture);
 }

@@ -2,21 +2,193 @@
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:layout_width="0dp" android:layout_height="0dp"
-    app:layout_constraintStart_toStartOf="parent"
-    app:layout_constraintEnd_toEndOf="parent"
-    app:layout_constraintTop_toBottomOf="@+id/camera_view"
-    app:layout_constraintBottom_toBottomOf="parent"
-    android:background="#ffffff">
+    android:id="@+id/bottom_btn_panel"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-    <ImageView
-        android:id="@+id/iv_switch_camera"
-        android:layout_width="@dimen/main_icon_size"
-        android:layout_height="@dimen/main_icon_size"
-        android:src="@drawable/icon_switch_camera"
-        app:layout_constraintEnd_toEndOf="parent"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/tab_switch_camera"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:layout_marginEnd="@dimen/sub_border_margin" />
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="@dimen/sub_border_margin">
+
+        <ImageView
+            android:id="@+id/iv_switch_camera"
+            android:layout_width="@dimen/bottom_icon_size"
+            android:layout_height="@dimen/bottom_icon_size"
+            android:src="@drawable/icon_switch_camera"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tv_switch_camera"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:contentDescription="@string/tip_switch_camera" />
+
+        <TextView
+            android:id="@+id/tv_switch_camera"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_switch_camera"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/iv_switch_camera"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/tab_beauty"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tab_switch_camera"
+        android:layout_marginStart="@dimen/sub_border_margin">
+
+        <ImageView
+            android:id="@+id/iv_beauty"
+            android:layout_width="@dimen/bottom_icon_size"
+            android:layout_height="@dimen/bottom_icon_size"
+            android:src="@drawable/icon_beauty"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tv_beauty"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:contentDescription="@string/tip_beauty" />
+
+        <TextView
+            android:id="@+id/tv_beauty"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_beauty"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/iv_beauty"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/tab_brightness"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tab_beauty"
+        android:layout_marginStart="@dimen/sub_border_margin">
+
+        <ImageView
+            android:id="@+id/iv_brightness"
+            android:layout_width="@dimen/bottom_icon_size"
+            android:layout_height="@dimen/bottom_icon_size"
+            android:src="@drawable/icon_brightness"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tv_brightness"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:contentDescription="@string/tip_brightness" />
+
+        <TextView
+            android:id="@+id/tv_brightness"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_brightness"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/iv_brightness"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/tab_blur"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tab_brightness"
+        android:layout_marginStart="@dimen/sub_border_margin">
+
+        <ImageView
+            android:id="@+id/iv_blur"
+            android:layout_width="@dimen/bottom_icon_size"
+            android:layout_height="@dimen/bottom_icon_size"
+            android:src="@drawable/icon_blur"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tv_blur"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:contentDescription="@string/tip_blur" />
+
+        <TextView
+            android:id="@+id/tv_blur"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_blur"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/iv_blur"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/tab_clear"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="@dimen/sub_border_margin">
+
+        <ImageView
+            android:id="@+id/iv_clear"
+            android:layout_width="@dimen/bottom_icon_size"
+            android:layout_height="@dimen/bottom_icon_size"
+            android:src="@drawable/icon_clear"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/tv_clear"
+            app:layout_constraintVertical_chainStyle="packed"
+            android:contentDescription="@string/tip_clear" />
+
+        <TextView
+            android:id="@+id/tv_clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_clear"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/iv_clear"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

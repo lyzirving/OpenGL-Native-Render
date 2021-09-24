@@ -15,8 +15,14 @@ import androidx.annotation.NonNull;
 import com.render.demo.R;
 import com.render.engine.camera.CameraHelper;
 import com.render.engine.camera.RenderCamMetadata;
-import com.render.engine.core.CameraRenderEngine;
+import com.render.engine.core.CamRenderEngine;
 import com.render.engine.core.RenderAdapter;
+import com.render.engine.core.filter.ContrastFilter;
+import com.render.engine.core.filter.ExposureFilter;
+import com.render.engine.core.filter.GaussianFilter;
+import com.render.engine.core.filter.HighlightShadowFilter;
+import com.render.engine.core.filter.SaturationFilter;
+import com.render.engine.core.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
 
 /**
@@ -26,9 +32,18 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private static final String TAG = "CameraActivity";
 
     private SurfaceView mSurface;
-    private CameraRenderEngine mCameraRender;
+    private CamRenderEngine mCameraRender;
     private RenderAdapter mRenderAdapter;
     private int mSurfaceWidth, mSurfaceHeight;
+
+    private View mAdjustBeautyRoot;
+
+    private ContrastFilter mContrastFilter;
+    private SharpenFilter mSharpenFilter;
+    private SaturationFilter mSaturationFilter;
+    private ExposureFilter mExposureFilter;
+    private HighlightShadowFilter mHighlightShadowFilter;
+    private GaussianFilter mGaussianFilter;
 
     private static final int MSG_RENDER_PREPARE = 1;
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 2;
@@ -61,7 +76,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mSurface.getHolder().setFormat(PixelFormat.TRANSPARENT);
         mSurface.getHolder().addCallback(this);
 
-        findViewById(R.id.iv_switch_camera).setOnClickListener(this);
+        findViewById(R.id.tab_switch_camera).setOnClickListener(this);
+
+        mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
+        findViewById(R.id.tab_beauty).setOnClickListener(this);
     }
 
     @Override
@@ -73,19 +91,6 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         CameraHelper.get().release();
         if (mCameraRender != null) { mCameraRender.release(); }
         mCameraRender = null;
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.iv_switch_camera: {
-                handleClickSwitchCamera();
-                break;
-            }
-            default: {
-                break;
-            }
-        }
     }
 
     @Override
@@ -109,10 +114,27 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     }
 
     @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.tab_switch_camera: {
+                handleClickSwitchCamera();
+                break;
+            }
+            case R.id.tab_beauty: {
+                handleClickBeauty();
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    @Override
     public void surfaceCreated(@NonNull SurfaceHolder holder) {
         LogUtil.i(TAG, "surfaceCreated");
         if (mCameraRender == null || !mCameraRender.isInitialized()) {
-            mCameraRender = new CameraRenderEngine();
+            mCameraRender = new CamRenderEngine();
             mCameraRender.onSurfaceCreate(holder.getSurface(), getRenderAdapter());
         } else {
             mCameraRender.onResume(holder.getSurface());
@@ -137,6 +159,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     @Override
     public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
         LogUtil.i(TAG, "surfaceDestroyed");
+    }
+
+    private boolean anyTabShow() {
+        return mAdjustBeautyRoot.getVisibility() == View.VISIBLE;
     }
 
     private RenderAdapter getRenderAdapter() {
@@ -165,6 +191,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         return mRenderAdapter;
     }
 
+    private void hideAllTab() {
+        mAdjustBeautyRoot.setVisibility(View.GONE);
+    }
+
     private void handleClickSwitchCamera() {
         if (CameraHelper.get().isCameraOpen()) {
             mCameraRender.onPause();
@@ -180,6 +210,21 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         }
     }
 
+    private void handleClickBeauty() {
+        if (anyTabShow()) {
+            hideAllTab();
+            return;
+        }
+        boolean show = mAdjustBeautyRoot.getVisibility() == View.VISIBLE;
+        showTab(mAdjustBeautyRoot, !show);
+        /*if (!show && (mContrastFilter == null || !mContrastFilter.filterValid())) {
+            mContrastFilter = new ContrastFilter();
+            mSharpenFilter = new SharpenFilter();
+            mSaturationFilter = new SaturationFilter();
+            mCameraRender.requestRender();
+        }*/
+    }
+
     private void handleOesTextureCreate(int oesTexture) {
         SurfaceTexture surfaceTexture = new SurfaceTexture(oesTexture);
         CameraHelper.get().setOesTexture(surfaceTexture);
@@ -190,5 +235,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mCameraRender.setRenderCamMetadata(data);
         CameraHelper.get().setOnFrameAvailableListener(mCameraRender);
         CameraHelper.get().open(getApplicationContext());
+    }
+
+    private void showTab(View view, boolean show) {
+        view.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 }
