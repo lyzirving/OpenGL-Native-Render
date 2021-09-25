@@ -36,11 +36,10 @@
             app:layout_constraintTop_toBottomOf="@+id/sub_hor_guide_half"
             app:layout_constraintBottom_toBottomOf="parent"/>
 
-        <include layout="@layout/layout_adjust_beauty"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintBottom_toTopOf="@+id/sub_hor_guide_half"/>
-
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <include layout="@layout/layout_adjust_beauty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
