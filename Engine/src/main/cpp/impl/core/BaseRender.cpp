@@ -6,6 +6,9 @@
 #include "JniUtil.h"
 #include "LogUtil.h"
 
+#include "HighlightShadowFilter.h"
+#include "GaussianFilter.h"
+
 #define TAG "BaseRender"
 #define JAVA_CLASS_BASE_RENDER "com/render/engine/core/BaseRenderEngine"
 
@@ -34,6 +37,15 @@ static void nEnvAdjust(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType,
     const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
     pRender->adjust(type, progress);
     env->ReleaseStringUTFChars(filterType, type);
+}
+
+static void nEnvAdjustProperty(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jstring property, jint progress) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
+    const char* prop = env->GetStringUTFChars(property, JNI_FALSE);
+    pRender->adjustProperty(type, prop, progress);
+    env->ReleaseStringUTFChars(filterType, type);
+    env->ReleaseStringUTFChars(property, prop);
 }
 
 static jboolean nEnvAddBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jboolean commit) {
@@ -104,6 +116,10 @@ static JNINativeMethod sJniMethods[] = {
                 (void *) nEnvAdjust
         },
         {
+                "nAdjustProperty", "(JLjava/lang/String;Ljava/lang/String;I)V",
+                (void *) nEnvAdjustProperty
+        },
+        {
                 "nClearBeautyFilter", "(J)V",
                 (void *) nEnvClearBeautyFilter
         },
@@ -159,6 +175,44 @@ void BaseRender::adjust(const char *filterType, int progress) {
     if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
         std::shared_ptr<BaseFilter> filter = mBeautyFilterGroup->getFilter(filterType);
         filter->adjust(progress);
+    }
+}
+
+void BaseRender::adjustProperty(const char *filterType, const char *property, int progress) {
+    if (filterType == nullptr || std::strlen(filterType) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter type is invalid"});
+        return;
+    }
+    if (property == nullptr || std::strlen(property) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter prop is invalid"});
+        return;
+    }
+    if (std::strcmp(EngineUtil::FILTER_HIGHLIGHT_SHADOW, filterType) == 0) {
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
+            std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
+            //do not delete filter pointer here, it should be kept alive in map;
+            BaseFilter* baseFilter = tmp.get();
+            auto* target = dynamic_cast<HighlightShadowFilter *>(baseFilter);
+            if (std::strcmp(EngineUtil::FILTER_PROP_HIGHLIGHT, property) == 0) {
+                target->adjustHighlight(progress);
+            } else if (std::strcmp(EngineUtil::FILTER_PROP_SHADOW, property) == 0) {
+                target->adjustShadow(progress);
+            }
+        }
+    } else if (std::strcmp(EngineUtil::FILTER_GAUSSIAN, filterType) == 0) {
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
+            std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
+            //do not delete filter pointer here, it should be kept alive in map;
+            BaseFilter* baseFilter = tmp.get();
+            auto* target = dynamic_cast<GaussianFilter *>(baseFilter);
+            if (std::strcmp(EngineUtil::FILTER_PROP_HOR_GAUSSIAN, property) == 0) {
+                target->adjustHorBlur(progress);
+            } else if (std::strcmp(EngineUtil::FILTER_PROP_VER_GAUSSIAN, property) == 0) {
+                target->adjustVerBlur(progress);
+            }
+        }
+    } else {
+        LogUtil::logI(TAG, {"adjustProperty: unknown filter ", filterType});
     }
 }
 
@@ -291,7 +345,6 @@ void BaseRender::render(JNIEnv *env) {
 
 void BaseRender::release(JNIEnv *env) {
     if (mJavaListener != nullptr) { env->DeleteGlobalRef(mJavaListener); }
-    if (mEglCore != nullptr) { mEglCore->release(); }
     delete mEglCore;
     delete mEvtQueue;
     delete mWorkQueue;
@@ -314,6 +367,7 @@ bool BaseRender::renderEnvResume() {
 void BaseRender::renderEnvDestroy() {
     mEvtQueue->clear();
     mWorkQueue->clear();
+    mEglCore->release();
 }
 
 void BaseRender::runTaskPreDraw() {

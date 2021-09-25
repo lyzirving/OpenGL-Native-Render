@@ -17,8 +17,10 @@ import java.util.Map;
 public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAvailableListener {
     private static final String TAG = "BaseRenderEngine";
     protected static final long INVALID_PTR = -1;
+
     protected long mNativePtr = INVALID_PTR;
     protected LinkedHashMap<String, BaseFilter> mBeautyFilter = new LinkedHashMap<>();
+    protected int mSurfaceWidth, mSurfaceHeight;
 
     @Override
     public void addBeautyFilter(BaseFilter filter, boolean commit) {
@@ -39,7 +41,13 @@ public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAv
     }
 
     @Override
-    public void adjustProperty(String filterType, String property, int progress) {}
+    public void adjustProperty(String filterType, String property, int progress) {
+        if (!isInitialized()) {
+            LogUtil.i(TAG, "adjustProperty: env is not initialized");
+            return;
+        }
+        nAdjustProperty(mNativePtr, filterType, property, progress);
+    }
 
     @Override
     public void clearBeautyFilter() {
@@ -115,6 +123,8 @@ public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAv
             LogUtil.e(TAG, "onSurfaceChange: invalid native pointer");
             return;
         }
+        mSurfaceWidth = width;
+        mSurfaceHeight = height;
         //does not need to check whether the render is initialized
         nSurfaceChange(mNativePtr, width, height);
     }
@@ -140,6 +150,7 @@ public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAv
 
     private static native boolean nAddBeautyFilter(long ptr, String filterType, boolean commit);
     private static native void nAdjust(long ptr, String filterType, int progress);
+    private static native void nAdjustProperty(long ptr, String filterType, String property, int progress);
     private static native void nClearBeautyFilter(long ptr);
     private static native boolean nInitialized(long ptr);
     private static native void nOnPause(long ptr);

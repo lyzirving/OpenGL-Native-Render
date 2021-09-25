@@ -11,21 +11,24 @@ import androidx.annotation.NonNull;
 
 import com.render.demo.R;
 import com.render.engine.core.RenderAdapter;
-import com.render.engine.core.RenderEngine;
-import com.render.engine.core.filter.ContrastFilter;
-import com.render.engine.core.filter.ExposureFilter;
+import com.render.engine.filter.ContrastFilter;
+import com.render.engine.filter.ExposureFilter;
 import com.render.engine.filter.FilterConst;
-import com.render.engine.core.filter.GaussianFilter;
-import com.render.engine.core.filter.HighlightShadowFilter;
-import com.render.engine.core.filter.SaturationFilter;
-import com.render.engine.core.filter.SharpenFilter;
+import com.render.engine.filter.GaussianFilter;
+import com.render.engine.filter.HighlightShadowFilter;
+import com.render.engine.filter.SaturationFilter;
+import com.render.engine.filter.SharpenFilter;
+import com.render.engine.img.ImageRenderEngine;
 import com.render.engine.util.LogUtil;
 
+/**
+ * @author lyzirving
+ */
 public class StillImageActivity extends BaseActivity implements View.OnClickListener, SurfaceHolder.Callback, SeekBar.OnSeekBarChangeListener {
     private static final String TAG = "StillImageActivity";
 
     private SurfaceView mSurfaceView;
-    private RenderEngine mRender;
+    private ImageRenderEngine mImgRender;
     private RenderAdapter mRenderAdapter;
 
     private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot;
@@ -36,6 +39,7 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     private ContrastFilter mContrastFilter;
     private SharpenFilter mSharpenFilter;
     private SaturationFilter mSaturationFilter;
+
     private ExposureFilter mExposureFilter;
     private HighlightShadowFilter mHighlightShadowFilter;
     private GaussianFilter mGaussianFilter;
@@ -88,8 +92,8 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     @Override
     protected void release() {
         LogUtil.i(TAG, "release");
-        if (mRender != null) { mRender.release(); }
-        mRender = null;
+        if (mImgRender != null) { mImgRender.release(); }
+        mImgRender = null;
         mRenderAdapter = null;
         mSurfaceView.getHolder().removeCallback(this);
     }
@@ -111,7 +115,7 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         super.onPause();
         LogUtil.i(TAG, "onPause");
         hideAllTab();
-        if (mRender != null) { mRender.onPause(); }
+        if (mImgRender != null) { mImgRender.onPause(); }
     }
 
     @Override
@@ -156,42 +160,42 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         switch (seekBar.getId()) {
             case R.id.seek_bar_contrast: {
                 mContrastFilter.adjust(seekBar.getProgress());
-                mRender.requestRender();
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_sharpen: {
                 mSharpenFilter.adjust(seekBar.getProgress());
-                mRender.requestRender();
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_saturation: {
                 mSaturationFilter.adjust(seekBar.getProgress());
-                mRender.requestRender();
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_exposure: {
                 mExposureFilter.adjust(seekBar.getProgress());
-                mRender.requestRender();
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_inc_shadow: {
-                mHighlightShadowFilter.adjustProp(FilterConst.SHADOW, seekBar.getProgress());
-                mRender.requestRender();
+                mHighlightShadowFilter.adjustProperty(FilterConst.SHADOW, seekBar.getProgress());
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_dec_highlight: {
-                mHighlightShadowFilter.adjustProp(FilterConst.HIGHLIGHT, seekBar.getProgress());
-                mRender.requestRender();
+                mHighlightShadowFilter.adjustProperty(FilterConst.HIGHLIGHT, seekBar.getProgress());
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_hor_blur: {
-                mGaussianFilter.adjustProp(FilterConst.HOR_GAUSSIAN, seekBar.getProgress());
-                mRender.requestRender();
+                mGaussianFilter.adjustProperty(FilterConst.HOR_GAUSSIAN, seekBar.getProgress());
+                mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_ver_blur: {
-                mGaussianFilter.adjustProp(FilterConst.VER_GAUSSIAN, seekBar.getProgress());
-                mRender.requestRender();
+                mGaussianFilter.adjustProperty(FilterConst.VER_GAUSSIAN, seekBar.getProgress());
+                mImgRender.requestRender();
                 break;
             }
             default: {
@@ -203,22 +207,22 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     @Override
     public void surfaceCreated(@NonNull SurfaceHolder holder) {
         LogUtil.i(TAG, "surfaceCreated");
-        if (mRender == null || !mRender.isInitialized()) {
-            mRender = new RenderEngine();
-            mRender.onSurfaceCreate(holder.getSurface(), getRenderAdapter());
+        if (mImgRender == null || !mImgRender.isInitialized()) {
+            mImgRender = new ImageRenderEngine();
+            mImgRender.onSurfaceCreate(holder.getSurface(), getRenderAdapter());
         } else {
-            mRender.onResume(holder.getSurface());
+            mImgRender.onResume(holder.getSurface());
         }
     }
 
     @Override
     public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
         LogUtil.i(TAG, "surfaceChanged: width = " + width + ", height = " + height);
-        if (mRender != null) {
-            mRender.onSurfaceChange(width, height);
-            mRender.setResource(getApplicationContext(), R.drawable.lenna);
+        if (mImgRender != null) {
+            mImgRender.onSurfaceChange(width, height);
+            mImgRender.setResource(getApplicationContext(), R.drawable.lenna);
             //we should explicitly call requestRender() when surface size is changed
-            mRender.requestRender();
+            mImgRender.requestRender();
         }
     }
 
@@ -265,14 +269,14 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         }
         boolean show = mAdjustBeautyRoot.getVisibility() == View.VISIBLE;
         showTab(mAdjustBeautyRoot, !show);
-        if (!show && (mContrastFilter == null || !mContrastFilter.filterValid())) {
+        if (!show && mContrastFilter == null) {
             mContrastFilter = new ContrastFilter();
             mSharpenFilter = new SharpenFilter();
             mSaturationFilter = new SaturationFilter();
-            mRender.addBeautyFilter(mContrastFilter, false);
-            mRender.addBeautyFilter(mSharpenFilter, false);
-            mRender.addBeautyFilter(mSaturationFilter, true);
-            mRender.requestRender();
+            mImgRender.addBeautyFilter(mContrastFilter, false);
+            mImgRender.addBeautyFilter(mSharpenFilter, false);
+            mImgRender.addBeautyFilter(mSaturationFilter, true);
+            mImgRender.requestRender();
         }
     }
 
@@ -283,12 +287,12 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         }
         boolean show = mAdjustBrightnessRoot.getVisibility() == View.VISIBLE;
         showTab(mAdjustBrightnessRoot, !show);
-        if (!show && (mExposureFilter == null || !mExposureFilter.filterValid())) {
+        if (!show && mExposureFilter == null) {
             mExposureFilter = new ExposureFilter();
             mHighlightShadowFilter = new HighlightShadowFilter();
-            mRender.addBeautyFilter(mExposureFilter, false);
-            mRender.addBeautyFilter(mHighlightShadowFilter, true);
-            mRender.requestRender();
+            mImgRender.addBeautyFilter(mExposureFilter, false);
+            mImgRender.addBeautyFilter(mHighlightShadowFilter, true);
+            mImgRender.requestRender();
         }
     }
 
@@ -299,10 +303,10 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         }
         boolean show = mAdjustBlurRoot.getVisibility() == View.VISIBLE;
         showTab(mAdjustBlurRoot, !show);
-        if (!show && (mGaussianFilter == null || !mGaussianFilter.filterValid())) {
+        if (!show && mGaussianFilter == null) {
             mGaussianFilter = new GaussianFilter();
-            mRender.addBeautyFilter(mGaussianFilter, true);
-            mRender.requestRender();
+            mImgRender.addBeautyFilter(mGaussianFilter, true);
+            mImgRender.requestRender();
         }
     }
 
@@ -321,9 +325,8 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
 
         mGaussianFilter = null;
 
-        mRender.clearBeautyFilter();
-
-        mRender.requestRender();
+        mImgRender.clearBeautyFilter();
+        mImgRender.requestRender();
     }
 
     private void initDefaultVal() {
