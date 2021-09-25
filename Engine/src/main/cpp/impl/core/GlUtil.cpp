@@ -1,11 +1,16 @@
 //
 // Created by liuyuzhou on 2021/9/2.
 //
+#include "GlUtil.h"
 #include "LogUtil.h"
-#include "Static.h"
+
+#include <pthread.h>
 
 #define JAVA_CLASS "com/render/engine/core/EngineEnv"
 #define TAG "GlUtil"
+
+static GlUtil *gGlUtil = nullptr;
+static pthread_mutex_t gMutex;
 
 static void nInitUtilEnv(JNIEnv *env, jclass clazz, jobject assetManager) {
     auto pGlUtil = GlUtil::self();
@@ -18,6 +23,14 @@ static JNINativeMethod sJniMethods[] = {
                 (void *) nInitUtilEnv
         }
 };
+
+void GlUtil::destroy() {
+    pthread_mutex_destroy(&gMutex);
+}
+
+void GlUtil::init() {
+    pthread_mutex_init(&gMutex, nullptr);
+}
 
 bool GlUtil::registerSelf(JNIEnv *env) {
     int count = sizeof(sJniMethods) / sizeof(sJniMethods[0]);
@@ -110,15 +123,6 @@ GLuint GlUtil::loadProgram(const char *vertexShader, const char *fragmentShader)
     return program;
 }
 
-bool GlUtil::mapContains(std::map<jlong, jobject> *pMap, jlong key) {
-    auto iterator = pMap->find(key);
-    if (iterator == pMap->end()) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
 void GlUtil::release() {}
 
 char *GlUtil::readAssets(const char *path) {
@@ -145,14 +149,12 @@ char *GlUtil::readAssets(const char *path) {
 }
 
 GlUtil *GlUtil::self() {
-    if (EngineUtil::gGlUtil == nullptr) {
-        EngineUtil::lock();
-        if (EngineUtil::gGlUtil == nullptr) {
-            EngineUtil::gGlUtil = new GlUtil;
-        }
-        EngineUtil::unlock();
+    if (gGlUtil == nullptr) {
+        pthread_mutex_lock(&gMutex);
+        if (gGlUtil == nullptr) { gGlUtil = new GlUtil; }
+        pthread_mutex_unlock(&gMutex);
     }
-    return EngineUtil::gGlUtil;
+    return gGlUtil;
 }
 
 void GlUtil::setAssetsManager(JNIEnv *env, jobject assetManager) {

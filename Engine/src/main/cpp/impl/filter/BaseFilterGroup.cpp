@@ -2,8 +2,9 @@
 // Created by liuyuzhou on 2021/9/8.
 //
 #include "BaseFilterGroup.h"
-#include "LogUtil.h"
 #include "GaussianFilter.h"
+#include "Common.h"
+#include "LogUtil.h"
 
 #define TAG "BaseFilterGroup"
 
@@ -133,7 +134,7 @@ GLint BaseFilterGroup::onDraw(GLint inputTextureId) {
     int index = 0;
     for (iterator = mFilters->begin(); iterator != mFilters->end(); iterator++) {
         glBindFramebuffer(GL_FRAMEBUFFER, mFrameBuffer[index]);
-        if (iterator->second->getType() != nullptr && std::strcmp(iterator->second->getType(), EngineUtil::FILTER_TYPE_GROUP) == 0) {
+        if (iterator->second->getType() != nullptr && std::strcmp(iterator->second->getType(), render::FILTER_TYPE_GROUP) == 0) {
             iterator->second->onDraw(mFrameBuffer[index], inputTextureId);
         } else {
             iterator->second->onDraw(inputTextureId);

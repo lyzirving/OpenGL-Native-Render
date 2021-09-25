@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/14.
 //
 #include "ExposureFilter.h"
+#include "GlUtil.h"
 #include "LogUtil.h"
 
 #define TAG "ExposureFilter"

@@ -4,8 +4,8 @@
 #ifndef ENGINE_OESFILTER_H
 #define ENGINE_OESFILTER_H
 
-#include "Static.h"
 #include "BaseFilter.h"
+#include "Common.h"
 
 class OesFilter : public BaseFilter {
 public:
@@ -26,7 +26,7 @@ public:
 private:
     int mTransHandler{0};
     int mOesSamplerHandler{0};
-    int mCameraFace{EngineUtil::CameraMetaData::LENS_FACING_BACK};
+    int mCameraFace{render::CameraMetaData::LENS_FACING_BACK};
     GLuint* mOesFrameBuffer = nullptr;
     GLint mPreviewWidth{0};
     GLint mPreviewHeight{0};

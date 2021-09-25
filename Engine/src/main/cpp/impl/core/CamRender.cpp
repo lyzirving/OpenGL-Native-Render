@@ -102,10 +102,10 @@ void CamRender::buildCameraTransMatrix() {
     if (mCamMetaData != nullptr && mCamMatrix == nullptr) {
         mCamMatrix = new GLfloat[16];
         MatrixUtil::setIdentityM(mCamMatrix, 0);
-        if (mCamMetaData->frontType == EngineUtil::CameraMetaData::LENS_FACING_FRONT) {
+        if (mCamMetaData->frontType == render::CameraMetaData::LENS_FACING_FRONT) {
             MatrixUtil::flip(mCamMatrix, true, false);
             MatrixUtil::rotate(mCamMatrix, 90, 0, 0, 1);
-        } else if (mCamMetaData->frontType == EngineUtil::CameraMetaData::LENS_FACING_BACK) {
+        } else if (mCamMetaData->frontType == render::CameraMetaData::LENS_FACING_BACK) {
             MatrixUtil::rotate(mCamMatrix, 270, 0, 0, 1);
         }
         float previewRatio = ((float)(mCamMetaData->previewWidth)) / ((float)(mCamMetaData->previewHeight));

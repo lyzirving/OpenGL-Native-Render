@@ -3,15 +3,16 @@
 //
 #include "GaussianFilter.h"
 #include "LogUtil.h"
+#include "Common.h"
 
 #define TAG "GaussianFilter"
 
 GaussianFilter::GaussianFilter() {
     mHorFilter = new GaussianOnePassFilter(Orientation::HORIZONTAL);
     mVerFilter = new GaussianOnePassFilter(Orientation::VERTICAL);
-    mFilterType = new char[strlen(EngineUtil::FILTER_TYPE_GROUP) + 1];
-    std::memcpy(mFilterType, EngineUtil::FILTER_TYPE_GROUP, strlen(EngineUtil::FILTER_TYPE_GROUP));
-    mFilterType[strlen(EngineUtil::FILTER_TYPE_GROUP)] = 0;
+    mFilterType = new char[strlen(render::FILTER_TYPE_GROUP) + 1];
+    std::memcpy(mFilterType, render::FILTER_TYPE_GROUP, strlen(render::FILTER_TYPE_GROUP));
+    mFilterType[strlen(render::FILTER_TYPE_GROUP)] = 0;
 }
 
 GaussianFilter::~GaussianFilter() {

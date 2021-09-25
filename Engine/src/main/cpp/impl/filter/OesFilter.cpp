@@ -3,7 +3,14 @@
 //
 #include "OesFilter.h"
 #include "MatrixUtil.h"
+#include "GlUtil.h"
 #include "LogUtil.h"
+
+/**
+ * this file must be included after <GLES2/gl2.h>
+ * BaseFilter.h contains file <GLES2/gl2.h>
+ */
+#include <GLES2/gl2ext.h>
 
 #define TAG "OesFilter"
 
@@ -39,7 +46,7 @@ void OesFilter::initBuffer() {
         delete[] mTextureCoordinate;
         mTextureCoordinate = nullptr;
     }
-    if (mCameraFace == EngineUtil::CameraMetaData::LENS_FACING_BACK) {
+    if (mCameraFace == render::CameraMetaData::LENS_FACING_BACK) {
         float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
         float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
         float heightVal = widthVal * previewRatio;

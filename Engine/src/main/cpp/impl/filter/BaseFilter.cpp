@@ -2,7 +2,7 @@
 // Created by liuyuzhou on 2021/9/2.
 //
 #include "BaseFilter.h"
-#include "Static.h"
+#include "GlUtil.h"
 #include "LogUtil.h"
 
 #define TAG "BaseFilter"

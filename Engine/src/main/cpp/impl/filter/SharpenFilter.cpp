@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/13.
 //
 #include "SharpenFilter.h"
+#include "GlUtil.h"
 #include "LogUtil.h"
 
 #define TAG "SharpenFilter"

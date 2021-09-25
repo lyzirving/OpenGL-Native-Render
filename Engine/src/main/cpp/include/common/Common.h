@@ -11,12 +11,25 @@ namespace render {
     static JavaVM *gJvm = nullptr;
     static std::map<std::string, jobject>* gClassMap = nullptr;
 
-    static void getJvm(JNIEnv* env) {
-        if (gJvm == nullptr) { env->GetJavaVM(&gJvm); }
-    }
+    static const char* FILTER_TYPE_GROUP = "GROUP";
+    static const char* FILTER_CONTRAST = "CONTRAST";
+    static const char* FILTER_SHARPEN = "SHARPEN";
+    static const char* FILTER_SATURATION = "SATURATION";
+    static const char* FILTER_EXPOSURE = "EXPOSURE";
+    static const char* FILTER_HIGHLIGHT_SHADOW = "HIGHLIGHT_SHADOW";
+    static const char* FILTER_GAUSSIAN = "GAUSSIAN";
+
+    static const char* FILTER_PROP_HIGHLIGHT = "HIGHLIGHT";
+    static const char* FILTER_PROP_SHADOW = "SHADOW";
+    static const char* FILTER_PROP_HOR_GAUSSIAN = "HOR_GAUSSIAN";
+    static const char* FILTER_PROP_VER_GAUSSIAN = "VER_GAUSSIAN";
 
     static void createClassMap() {
         if (gClassMap == nullptr) { gClassMap = new std::map<std::string, jobject>; }
+    }
+
+    static void getJvm(JNIEnv* env) {
+        if (gJvm == nullptr) { env->GetJavaVM(&gJvm); }
     }
 
     class CameraMetaData {

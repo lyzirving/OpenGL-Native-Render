@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/14.
 //
 #include "GaussianOnePassFilter.h"
+#include "GlUtil.h"
 #include "MatrixUtil.h"
 #include "LogUtil.h"
 

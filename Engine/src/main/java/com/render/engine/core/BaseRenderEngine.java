@@ -9,8 +9,6 @@ import com.render.engine.util.LogUtil;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-// TODO: 2021/9/24 build a derived class to show still image 
-
 /**
  * @author lyzirving
  */

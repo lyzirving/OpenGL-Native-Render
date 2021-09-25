@@ -4,6 +4,7 @@
 #ifndef RENDERDEMO_BACKGROUNDFILTER_H
 #define RENDERDEMO_BACKGROUNDFILTER_H
 
+#include <jni.h>
 #include "BaseFilter.h"
 
 class BackgroundFilter : public BaseFilter {

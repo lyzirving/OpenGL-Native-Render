@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/8.
 //
 #include "ScreenFilter.h"
+#include "GlUtil.h"
 #include "MatrixUtil.h"
 #include "LogUtil.h"
 

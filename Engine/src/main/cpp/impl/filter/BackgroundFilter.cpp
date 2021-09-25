@@ -1,6 +1,8 @@
 //
 // Created by liuyuzhou on 2021/9/8.
 //
+#include <android/bitmap.h>
+
 #include "BackgroundFilter.h"
 #include "GlUtil.h"
 #include "LogUtil.h"

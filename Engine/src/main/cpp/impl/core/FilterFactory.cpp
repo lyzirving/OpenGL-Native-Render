@@ -3,6 +3,7 @@
 //
 #include "LogUtil.h"
 #include "FilterFactory.h"
+#include "Common.h"
 
 #include "ContrastFilter.h"
 #include "SharpenFilter.h"
@@ -14,17 +15,17 @@
 #define TAG "FilterFactory"
 
 std::shared_ptr<BaseFilter> FilterFactory::makeFilter(const std::string &filterType) {
-    if (filterType == EngineUtil::FILTER_CONTRAST) {
+    if (filterType == render::FILTER_CONTRAST) {
         return std::make_shared<ContrastFilter>();
-    } else if (filterType == EngineUtil::FILTER_SHARPEN) {
+    } else if (filterType == render::FILTER_SHARPEN) {
         return std::make_shared<SharpenFilter>();
-    } else if (filterType == EngineUtil::FILTER_SATURATION) {
+    } else if (filterType == render::FILTER_SATURATION) {
         return std::make_shared<SaturationFilter>();
-    } else if (filterType == EngineUtil::FILTER_EXPOSURE) {
+    } else if (filterType == render::FILTER_EXPOSURE) {
         return std::make_shared<ExposureFilter>();
-    } else if (filterType == EngineUtil::FILTER_HIGHLIGHT_SHADOW) {
+    } else if (filterType == render::FILTER_HIGHLIGHT_SHADOW) {
         return std::make_shared<HighlightShadowFilter>();
-    } else if (filterType == EngineUtil::FILTER_GAUSSIAN) {
+    } else if (filterType == render::FILTER_GAUSSIAN) {
         return std::make_shared<GaussianFilter>();
     } else {
         LogUtil::logI(TAG, {"makeFilter: none filter found for ", filterType});

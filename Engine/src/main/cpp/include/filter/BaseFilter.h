@@ -4,8 +4,7 @@
 #ifndef ENGINE_BASEFILTER_H
 #define ENGINE_BASEFILTER_H
 
-#include "GlUtil.h"
-#include "Static.h"
+#include <GLES2/gl2.h>
 
 class BaseFilter {
 public:

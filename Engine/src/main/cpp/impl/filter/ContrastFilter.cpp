@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/9.
 //
 #include "ContrastFilter.h"
+#include "GlUtil.h"
 #include "LogUtil.h"
 
 #define TAG "ContrastFilter"
