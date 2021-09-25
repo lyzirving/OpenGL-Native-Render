@@ -85,9 +85,6 @@ public class RenderEngine implements IRenderEngine {
     }
 
     @Override
-    public void onPreviewChange(int previewWidth, int previewHeight) {}
-
-    @Override
     public void onSurfaceCreate(Surface surface, RenderAdapter adapter) {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "onSurfaceCreate: invalid native pointer");

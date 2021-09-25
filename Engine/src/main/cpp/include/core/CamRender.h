@@ -12,11 +12,7 @@ public:
 
     static bool registerSelf(JNIEnv *env);
 
-    void adjust(const char *filterType, int progress) override;
-    bool addBeautyFilter(const char *filterType, bool commit) override;
-    void clearBeautyFilter() override;
     void drawFrame() override;
-    void release(JNIEnv *env) override;
     void setCameraMetadata(JNIEnv* env, jobject data);
     void setPreview(GLint width, GLint height);
     void setSurfaceTexture(JNIEnv* env, jobject surfaceTexture);

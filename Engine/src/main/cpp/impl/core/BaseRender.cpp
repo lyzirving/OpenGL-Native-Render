@@ -2,11 +2,12 @@
 // Created by liuyuzhou on 2021/9/24.
 //
 #include "BaseRender.h"
-
+#include "FilterFactory.h"
 #include "JniUtil.h"
 #include "LogUtil.h"
 
 #define TAG "BaseRender"
+#define JAVA_CLASS_BASE_RENDER "com/render/engine/core/BaseRenderEngine"
 
 BaseRender::BaseRender() {
     mWorkQueue = new WorkQueue;
@@ -14,10 +15,191 @@ BaseRender::BaseRender() {
     mEglCore = new RenderEglBase;
 }
 
-BaseRender::~BaseRender() = default;;
+BaseRender::~BaseRender() = default;
+
+void *envRenderLoop(void *args) {
+    auto *pRender = static_cast<BaseRender *>(args);
+    JNIEnv *env = nullptr;
+    if (!JniUtil::threadAttachJvm(render::gJvm, &env)) {
+        LogUtil::logI(TAG, {"renderLoop: failed to attach thread to jvm"});
+        return nullptr;
+    }
+    pRender->render(env);
+    JniUtil::detachThread(render::gJvm);
+    return nullptr;
+}
+
+static void nEnvAdjust(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jint progress) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
+    pRender->adjust(type, progress);
+    env->ReleaseStringUTFChars(filterType, type);
+}
+
+static jboolean nEnvAddBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr, jstring filterType, jboolean commit) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    const char* type = env->GetStringUTFChars(filterType, JNI_FALSE);
+    bool res = pRender->addBeautyFilter(type, commit);
+    env->ReleaseStringUTFChars(filterType, type);
+    return res;
+}
+
+static void nEnvClearBeautyFilter(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->clearBeautyFilter();
+}
+
+static jboolean nEnvInitialized(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    return pRender->initialized();
+}
+
+static void nEnvOnPause(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->enqueueMessage(EventType::EVENT_PAUSE);
+}
+
+static void nEnvOnResume(JNIEnv *env, jclass clazz, jlong ptr, jobject surface) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+    pRender->setNativeWindow(nativeWindow);
+    pRender->enqueueMessage(EventType::EVENT_RESUME);
+}
+
+static void nEnvRequestRender(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->enqueueMessage(EventType::EVENT_DRAW);
+}
+
+static void nEnvRelease(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->enqueueMessage(EventType::EVENT_QUIT);
+}
+
+static void nEnvSurfaceCreate(JNIEnv *env, jclass clazz, jlong ptr, jobject surface, jobject adapter) {
+    auto *pRender = reinterpret_cast<BaseRender*>(ptr);
+    pRender->setJavaListener(env, adapter);
+    render::getJvm(env);
+    if (!pRender->initialized()) {
+        ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
+        pRender->setNativeWindow(nativeWindow);
+        pthread_t thread;
+        pthread_create(&thread, nullptr, envRenderLoop, pRender);
+    }
+}
+
+static void nEnvSurfaceChange(JNIEnv *env, jclass clazz, jlong ptr, jint width, jint height) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->setSurfaceSize(width, height);
+    pRender->enqueueMessage(EventType::EVENT_SURFACE_CHANGE);
+}
+
+static JNINativeMethod sJniMethods[] = {
+        {
+                "nAddBeautyFilter", "(JLjava/lang/String;Z)Z",
+                (void *) nEnvAddBeautyFilter
+        },
+        {
+                "nAdjust", "(JLjava/lang/String;I)V",
+                (void *) nEnvAdjust
+        },
+        {
+                "nClearBeautyFilter", "(J)V",
+                (void *) nEnvClearBeautyFilter
+        },
+        {
+                "nInitialized", "(J)Z",
+                (void *) nEnvInitialized
+        },
+        {
+                "nOnPause", "(J)V",
+                (void *) nEnvOnPause
+        },
+        {
+                "nOnResume", "(JLandroid/view/Surface;)V",
+                (void *) nEnvOnResume
+        },
+        {
+                "nRequestRender",    "(J)V",
+                (void *) nEnvRequestRender
+        },
+        {
+                "nRelease",          "(J)V",
+                (void *) nEnvRelease
+        },
+        {
+                "nSurfaceCreate", "(JLandroid/view/Surface;Lcom/render/engine/core/RenderAdapter;)V",
+                (void *) nEnvSurfaceCreate
+        },
+        {
+                "nSurfaceChange", "(JII)V",
+                (void *) nEnvSurfaceChange
+        },
+};
+
+bool BaseRender::registerSelf(JNIEnv *env) {
+    int count = sizeof(sJniMethods) / sizeof(sJniMethods[0]);
+    jclass javaClass = env->FindClass(JAVA_CLASS_BASE_RENDER);
+    if (!javaClass) {
+        LogUtil::logE(TAG, {"registerSelf: failed to find class ", JAVA_CLASS_BASE_RENDER});
+        return false;
+    }
+    if (env->RegisterNatives(javaClass, sJniMethods, count) < 0) {
+        LogUtil::logE(TAG, {"registerSelf: failed to register native methods ", JAVA_CLASS_BASE_RENDER});
+        return false;
+    }
+    return true;
+}
 
 void BaseRender::enqueueMessage(EventType what) {
     mEvtQueue->enqueueMessage(new EventMessage(what));
+}
+
+void BaseRender::adjust(const char *filterType, int progress) {
+    if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
+        std::shared_ptr<BaseFilter> filter = mBeautyFilterGroup->getFilter(filterType);
+        filter->adjust(progress);
+    }
+}
+
+bool BaseRender::addBeautyFilter(const char *filterType, bool commit) {
+    std::shared_ptr<BaseFilter> filter;
+    std::shared_ptr<FilterInitTask> task;
+    if (filterType == nullptr || std::strlen(filterType) == 0) {
+        LogUtil::logI(TAG, {"addBeautyFilter: filter type is empty"});
+        goto fail;
+    }
+    if (mBeautyFilterGroup == nullptr) { mBeautyFilterGroup = new BaseFilterGroup; }
+    if (!mBeautyFilterGroup->containsFilter(filterType)) {
+        filter = FilterFactory::makeFilter(filterType);
+        if (filter != nullptr) {
+            LogUtil::logI(TAG, {"addBeautyFilter: ", filterType});
+            mBeautyFilterGroup->addFilter(filterType, filter);
+            mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+            if (commit) {
+                task = std::make_shared<FilterInitTask>();
+                task->setObj(mBeautyFilterGroup);
+                mWorkQueue->enqueue(task);
+            }
+        } else {
+            LogUtil::logI(TAG, {"addBeautyFilter: factory could not create filter ", filterType});
+            goto fail;
+        }
+    } else {
+        LogUtil::logI(TAG, {"addBeautyFilter: already contains filter ", filterType});
+        goto fail;
+    }
+    return true;
+    fail:
+    return false;
+}
+
+void BaseRender::clearBeautyFilter() {
+    if (mBeautyFilterGroup != nullptr) {
+        std::shared_ptr<FilterDestroyTask> task = std::make_shared<FilterDestroyTask>();
+        task->setObj(mBeautyFilterGroup);
+        mWorkQueue->enqueue(task);
+    }
 }
 
 bool BaseRender::initialized() {

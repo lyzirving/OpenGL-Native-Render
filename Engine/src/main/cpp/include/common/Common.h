@@ -11,6 +11,10 @@ namespace render {
     static JavaVM *gJvm = nullptr;
     static std::map<std::string, jobject>* gClassMap = nullptr;
 
+    static void getJvm(JNIEnv* env) {
+        if (gJvm == nullptr) { env->GetJavaVM(&gJvm); }
+    }
+
     static void createClassMap() {
         if (gClassMap == nullptr) { gClassMap = new std::map<std::string, jobject>; }
     }

@@ -16,15 +16,17 @@
 
 class BaseRender {
 public:
+    static bool registerSelf(JNIEnv *env);
+
     BaseRender();
     ~BaseRender();
 
-    virtual bool addBeautyFilter(const char* filterType, bool commit) = 0;
-    virtual void adjust(const char* filterType, int progress) = 0;
-    virtual void clearBeautyFilter() = 0;
     virtual void drawFrame() = 0;
     virtual void release(JNIEnv* env);
 
+    void adjust(const char* filterType, int progress);
+    bool addBeautyFilter(const char* filterType, bool commit);
+    void clearBeautyFilter();
     void enqueueMessage(EventType what);
     bool initialized();
     void notifyEnvPrepare(JNIEnv* env, jobject listener);

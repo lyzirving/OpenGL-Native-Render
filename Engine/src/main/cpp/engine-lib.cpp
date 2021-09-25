@@ -21,6 +21,7 @@ JNIEXPORT int JNICALL JNI_OnLoad(JavaVM *vm,void *reserved) {
     EngineUtil::init();
     if (!Render::registerSelf(env)) { return JNI_ERR; }
     if (!GlUtil::registerSelf(env)) { return JNI_ERR; }
+    if (!BaseRender::registerSelf(env)) { return JNI_ERR; }
     if (!CamRender::registerSelf(env)) { return JNI_ERR; }
     return JNI_VERSION_1_6;
 }
