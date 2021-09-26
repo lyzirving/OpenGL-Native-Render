@@ -32,7 +32,7 @@ find_library( # name of the lib
 find_library( # name of the lib
         lib-GLES
         # name of lib in NDK
-        GLESv2 )
+        GLESv3 )
 
 target_link_libraries( # Specifies the target library.
         engine

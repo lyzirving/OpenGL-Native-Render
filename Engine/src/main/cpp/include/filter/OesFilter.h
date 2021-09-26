@@ -14,6 +14,7 @@ public:
     ~OesFilter();
     void applyMatrix(const GLfloat* src, int size);
     void destroy() override;
+    GLuint getOesFrameBuffer();
     void init() override;
     void initBuffer() override;
     void initFrameBuffer() override;
@@ -28,8 +29,8 @@ public:
 private:
     int mTransHandler{0};
     int mOesSamplerHandler{0};
+    GLuint* mOesFrameBuffer{nullptr};
     int mCameraFace{render::CameraMetaData::LENS_FACING_BACK};
-    GLuint* mOesFrameBuffer = nullptr;
     GLint mPreviewWidth{0};
     GLint mPreviewHeight{0};
 };

@@ -125,6 +125,11 @@ void CamRender::drawFrame() {
         mOesFilter->applyMatrix(mCamMatrix, 16);
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
+        if (mEnableDownloadPreview) {
+            long startTime = render::getCurrentTimeMs();
+            downloadPreview(mOesFilter->getOesFrameBuffer());
+            LogUtil::logI(TAG, {"drawFrame: download last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
+        }
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
@@ -165,6 +170,29 @@ void CamRender::destroy(JNIEnv* env) {
 
     delete[] mCamMatrix;
     mCamMatrix = nullptr;
+}
+
+void CamRender::downloadPreview(GLuint frameBuffer) {
+    if (frameBuffer == GL_NONE) {
+        LogUtil::logI(TAG, {"downloadPreview: frame buffer is invalid"});
+        return;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, frameBuffer);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[mDownloadFreeIndex]);
+    glReadPixels(0, 0, mSurfaceWidth, mSurfaceHeight, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+    void *pixelData = nullptr;
+    int nextIndex = mDownloadFreeIndex == 0 ? 1 : 0;
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[nextIndex]);
+    pixelData = glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, mSurfaceWidth * mSurfaceHeight * 4, GL_MAP_READ_BIT);
+    //use data before unmap buffer;
+    glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
+
+    mDownloadFreeIndex = mDownloadFreeIndex == 0 ? 1 : 0;
 }
 
 void CamRender::handleOtherMessage(JNIEnv* env, EventType what) {
@@ -226,7 +254,25 @@ void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
     destroy(env);
 }
 
-void CamRender::handleSurfaceChange(JNIEnv *env) {}
+void CamRender::handleSurfaceChange(JNIEnv *env) {
+    if (mDownloadBuffer != nullptr) {
+        glDeleteBuffers(2, mDownloadBuffer);
+        delete[] mDownloadBuffer;
+    }
+    mDownloadBuffer = new GLuint[2];
+    glGenBuffers(2, mDownloadBuffer);
+
+    int bufSize = mSurfaceWidth * mSurfaceHeight * 4;
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[0]);
+    glBufferData(GL_PIXEL_PACK_BUFFER, bufSize, nullptr, GL_STREAM_READ);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[1]);
+    glBufferData(GL_PIXEL_PACK_BUFFER, bufSize, nullptr, GL_STREAM_READ);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
+
+    mDownloadFreeIndex = 0;
+}
 
 void CamRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oesTexture) {
     if (listener != nullptr) {
@@ -260,6 +306,13 @@ void CamRender::pause(JNIEnv* env) {
 
     if (mSurfaceTexture != nullptr) { env->DeleteGlobalRef(mSurfaceTexture); }
     mSurfaceTexture = nullptr;
+
+    if (mDownloadBuffer != nullptr) {
+        glDeleteBuffers(2, mDownloadBuffer);
+        delete[] mDownloadBuffer;
+        mDownloadBuffer = nullptr;
+    }
+    mDownloadFreeIndex = 0;
 
     delete mCamMetaData;
     mCamMetaData = nullptr;

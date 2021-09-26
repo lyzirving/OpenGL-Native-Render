@@ -37,6 +37,11 @@ void OesFilter::destroy() {
     }
 }
 
+GLuint OesFilter::getOesFrameBuffer() {
+    if (mOesFrameBuffer == nullptr) { return GL_NONE; }
+    return mOesFrameBuffer[0];
+}
+
 void OesFilter::init() {
     if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
     BaseFilter::init();

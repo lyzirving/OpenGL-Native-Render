@@ -32,6 +32,12 @@ namespace render {
         if (gJvm == nullptr) { env->GetJavaVM(&gJvm); }
     }
 
+    static long long getCurrentTimeMs() {
+        timeval tv{};
+        gettimeofday(&tv, nullptr);
+        return ((long long)tv.tv_sec) * 1000 + tv.tv_usec / 1000;
+    }
+
     class CameraMetaData {
     public:
         static const int LENS_FACING_FRONT = 0;

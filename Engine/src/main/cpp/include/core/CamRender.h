@@ -30,6 +30,7 @@ protected:
     void buildOesTexture();
     void buildCameraTransMatrix();
     void destroy(JNIEnv* env);
+    void downloadPreview(GLuint frameBuffer);
     void notifyEnvOesTextureCreate(JNIEnv* env, jobject listener, int oesTexture);
     void pause(JNIEnv* env);
     void updateTexImg(JNIEnv* env);
@@ -38,12 +39,16 @@ private:
     GLint mPreviewWidth{0};
     GLint mPreviewHeight{0};
     GLuint mOesTexture{0};
+    GLuint* mDownloadBuffer{nullptr};
     GLfloat *mCamMatrix{nullptr};
 
     jobject mSurfaceTexture{nullptr};
     render::CameraMetaData* mCamMetaData{nullptr};
 
     OesFilter* mOesFilter{nullptr};
+
+    bool mEnableDownloadPreview{false};
+    int mDownloadFreeIndex{0};
 };
 
 #endif //ENGINE_CAMRENDER_H
