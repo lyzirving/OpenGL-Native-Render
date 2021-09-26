@@ -17,7 +17,9 @@ public:
     void initFrameBuffer() override;
     void initTexture() override;
     GLint onDraw(GLint inputTextureId) override;
+    void onPause() override;
     void setBitmap(JNIEnv* env, jobject bitmap);
+
 private:
     unsigned char* mPixel = nullptr;
     int mBitmapWidth{0};

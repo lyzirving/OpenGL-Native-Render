@@ -21,6 +21,7 @@ public:
     void initTexture() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+    void onPause() override;
     void setCameraFaceFront(int faceFront);
     void setPreviewSize(GLint width, GLint height);
 

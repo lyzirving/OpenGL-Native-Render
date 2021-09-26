@@ -250,6 +250,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         if (mCameraRender != null) {
             CameraHelper.get().prepare(getApplicationContext(), width, height);
             Size previewSize = CameraHelper.get().getPreviewSize();
+            RenderCamMetadata data = new RenderCamMetadata.Builder()
+                    .previewSize(previewSize.getWidth(), previewSize.getHeight())
+                    .frontType(CameraHelper.get().getFrontType()).build();
+            mCameraRender.setRenderCamMetadata(data);
             //the method must be called by order onPreviewChange() -> onSurfaceChange() -> buildTexture()
             mCameraRender.onPreviewChange(previewSize.getWidth(), previewSize.getHeight());
             mCameraRender.onSurfaceChange(width, height);
@@ -308,6 +312,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             mCameraRender.onResume(mSurface.getHolder().getSurface());
             CameraHelper.get().prepare(getApplicationContext(), mSurfaceWidth, mSurfaceHeight);
             Size previewSize = CameraHelper.get().getPreviewSize();
+            RenderCamMetadata data = new RenderCamMetadata.Builder()
+                    .previewSize(previewSize.getWidth(), previewSize.getHeight())
+                    .frontType(CameraHelper.get().getFrontType()).build();
+            mCameraRender.setRenderCamMetadata(data);
             //the method must be called by order onPreviewChange() -> onSurfaceChange() -> buildTexture()
             mCameraRender.onPreviewChange(previewSize.getWidth(), previewSize.getHeight());
             mCameraRender.onSurfaceChange(mSurfaceWidth, mSurfaceHeight);
@@ -382,12 +390,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
     private void handleOesTextureCreate(int oesTexture) {
         SurfaceTexture surfaceTexture = new SurfaceTexture(oesTexture);
-        CameraHelper.get().setOesTexture(surfaceTexture);
         mCameraRender.setSurfaceTexture(surfaceTexture);
-        RenderCamMetadata data = new RenderCamMetadata.Builder()
-                .previewSize(CameraHelper.get().getPreviewSize().getWidth(), CameraHelper.get().getPreviewSize().getHeight())
-                .frontType(CameraHelper.get().getFrontType()).build();
-        mCameraRender.setRenderCamMetadata(data);
+        CameraHelper.get().setOesTexture(surfaceTexture);
         CameraHelper.get().setOnFrameAvailableListener(mCameraRender);
         CameraHelper.get().open(getApplicationContext());
     }

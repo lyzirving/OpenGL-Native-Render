@@ -123,6 +123,22 @@ GLint BackgroundFilter::onDraw(GLint inputTextureId) {
     return mFrameBufferTextureId;
 }
 
+void BackgroundFilter::onPause() {
+    BaseFilter::onPause();
+    if (mFrameBufferId != 0) {
+        glDeleteFramebuffers(1, &mFrameBufferId);
+        mFrameBufferId = 0;
+    }
+    if (mFrameBufferTextureId != 0) {
+        glDeleteTextures(1, &mFrameBufferTextureId);
+        mFrameBufferTextureId = 0;
+    }
+    if (mPixel != nullptr) {
+        delete[] mPixel;
+        mPixel = nullptr;
+    }
+}
+
 void BackgroundFilter::setBitmap(JNIEnv* env, jobject bitmap) {
     AndroidBitmapInfo info;
     if (AndroidBitmap_getInfo(env, bitmap, &info) < 0) {

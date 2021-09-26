@@ -135,6 +135,22 @@ GLint MaskFilter::onDraw(GLint inputTextureId) {
     return mTextureId;
 }
 
+void MaskFilter::onPause() {
+    BaseFilter::onPause();
+    if (mFrameBufferId != 0) {
+        glDeleteFramebuffers(1, &mFrameBufferId);
+        mFrameBufferId = 0;
+    }
+    if (mMaskTextureId != 0) {
+        glDeleteTextures(1, &mMaskTextureId);
+        mMaskTextureId = 0;
+    }
+    if (mMaskPixel != nullptr) {
+        delete[] mMaskPixel;
+        mMaskPixel = nullptr;
+    }
+}
+
 void MaskFilter::setSourceSize(int width, int height) {
     mSourceWidth = width;
     mSourceHeight = height;

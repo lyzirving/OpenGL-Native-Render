@@ -43,14 +43,6 @@ void OesFilter::init() {
 }
 
 void OesFilter::initBuffer() {
-    if (mVertex != nullptr) {
-        delete[] mVertex;
-        mVertex = nullptr;
-    }
-    if (mTextureCoordinate != nullptr) {
-        delete[] mTextureCoordinate;
-        mTextureCoordinate = nullptr;
-    }
     /*if (mCameraFace == render::CameraMetaData::LENS_FACING_BACK) {
         float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
         float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
@@ -145,6 +137,15 @@ GLint OesFilter::onDraw(GLint oesInputTexture) {
     MatrixUtil::setIdentityM(mMatrix, 0);
 
     return mTextureId;
+}
+
+void OesFilter::onPause() {
+    BaseFilter::onPause();
+    if (mOesFrameBuffer != nullptr) {
+        glDeleteFramebuffers(1, mOesFrameBuffer);
+        delete[] mOesFrameBuffer;
+        mOesFrameBuffer = nullptr;
+    }
 }
 
 void OesFilter::setCameraFaceFront(int faceFront) {

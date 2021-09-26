@@ -198,11 +198,12 @@ void CamRender::handlePreDraw(JNIEnv *env) {
         mOesFilter->setCameraFaceFront(mCamMetaData->frontType);
         mOesFilter->init();
     }
-    if (mBeautyFilterGroup != nullptr) {
+    if (mBeautyFilterGroup != nullptr && !mBeautyFilterGroup->initialized()) {
         mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mBeautyFilterGroup->init();
     }
     buildCameraTransMatrix();
+    updateTexImg(env);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 }

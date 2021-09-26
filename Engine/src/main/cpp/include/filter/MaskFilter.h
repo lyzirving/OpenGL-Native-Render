@@ -16,6 +16,7 @@ public:
     void initFrameBuffer() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+    void onPause() override;
     void setSourceSize(int width, int height);
 
 private:

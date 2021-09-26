@@ -107,6 +107,10 @@ void GaussianFilter::onPause() {
     BaseFilter::onPause();
     mHorFilter->onPause();
     mVerFilter->onPause();
+    if (mFrameBufferId != 0) {
+        glDeleteFramebuffers(1, &mFrameBufferId);
+        mFrameBufferId = 0;
+    }
 }
 
 void GaussianFilter::destroy() {

@@ -82,9 +82,7 @@ void ImageRender::handleRenderEnvPause(JNIEnv *env) {
     if (mMaskFilter != nullptr) { mMaskFilter->onPause(); }
 }
 
-void ImageRender::handleRenderEnvResume(JNIEnv *env) {
-
-}
+void ImageRender::handleRenderEnvResume(JNIEnv *env) {}
 
 void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
     if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->destroy(); }

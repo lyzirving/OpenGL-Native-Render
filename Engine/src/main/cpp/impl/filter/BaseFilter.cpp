@@ -162,7 +162,22 @@ GLint BaseFilter::onDraw(GLint inputTextureId) {
 
 GLint BaseFilter::onDraw(GLint inputFrameBufferId, GLint inputTextureId) {}
 
-void BaseFilter::onPause() { mInitialized = false; }
+void BaseFilter::onPause() {
+    mInitialized = false;
+    if (mProgram != 0) {
+        glDeleteProgram(mProgram);
+        mProgram = 0;
+    }
+    if (mTextureId != 0) {
+        glDeleteTextures(1, &mTextureId);
+        mTextureId = 0;
+    }
+    if (mBufferId[0] != 0 || mBufferId[1] != 0) {
+        glDeleteBuffers(2, mBufferId);
+        mBufferId[0] = 0;
+        mBufferId[1] = 0;
+    }
+}
 
 void BaseFilter::onResume() {}
 
