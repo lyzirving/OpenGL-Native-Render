@@ -1,7 +1,7 @@
 //
 // Created by liuyuzhou on 2021/9/24.
 //
-#include <GLES2/gl2.h>
+#include <GLES3/gl3.h>
 #include <GLES2/gl2ext.h>
 
 #include "CamRender.h"

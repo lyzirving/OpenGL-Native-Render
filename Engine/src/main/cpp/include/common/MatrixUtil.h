@@ -4,7 +4,7 @@
 #ifndef ENGINE_MATRIXUTIL_H
 #define ENGINE_MATRIXUTIL_H
 
-#include <GLES2/gl2.h>
+#include <GLES3/gl3.h>
 
 class MatrixUtil {
 public:

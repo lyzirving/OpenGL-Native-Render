@@ -23,13 +23,14 @@ bool RenderEglBase::initEglEnv() {
             EGL_GREEN_SIZE, 8,
             EGL_RED_SIZE, 8,
             EGL_ALPHA_SIZE, 8,
-            /*EGL_DEPTH_SIZE, 8,
+            EGL_DEPTH_SIZE, 8,
             EGL_STENCIL_SIZE, 8,
-            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,*/
+            /*EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,*/
+            EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT_KHR,
             EGL_NONE//EGL_NONE means the process of match-up ends
     };
     const EGLint glContextAttribute[] = {
-            EGL_CONTEXT_CLIENT_VERSION, 2,
+            EGL_CONTEXT_CLIENT_VERSION, 3,
             EGL_NONE};
     mEglDisplay = eglGetDisplay(EGL_DEFAULT_DISPLAY);
     if (mEglDisplay == EGL_NO_DISPLAY) {
