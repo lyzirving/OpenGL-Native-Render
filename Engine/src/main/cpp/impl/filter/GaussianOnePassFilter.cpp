@@ -26,6 +26,11 @@ void GaussianOnePassFilter::adjustVerBlur(float blurSize) {
     mVerBlurSize = blurSize;
 }
 
+void GaussianOnePassFilter::init() {
+    if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
+    BaseFilter::init();
+}
+
 void GaussianOnePassFilter::flip(bool horFlip, bool verFlip) {
     MatrixUtil::flip(mMatrix, horFlip, verFlip);
 }

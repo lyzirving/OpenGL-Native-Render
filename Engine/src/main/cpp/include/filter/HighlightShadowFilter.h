@@ -15,9 +15,11 @@ public:
 
     void adjustHighlight(int progress);
     void adjustShadow(int progress);
+    void init() override;
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+
 private:
     int mShadowHandler{0};
     int mHighlightHandler{0};

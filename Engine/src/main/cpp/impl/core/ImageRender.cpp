@@ -49,7 +49,7 @@ void ImageRender::drawFrame() {
         int drawCount = 0;
         int lastTexture = mBackgroundFilter->onDraw(RENDER_NO_TEXTURE);
         drawCount++;
-        if (mBeautyFilterGroup != nullptr) {
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
         }

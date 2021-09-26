@@ -18,10 +18,12 @@ public:
     ~GaussianOnePassFilter();
     void adjustHorBlur(float blurSize);
     void adjustVerBlur(float blurSize);
+    void init() override;
     void flip(bool horFlip, bool verFlip);
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+
 private:
     Orientation mOrientation{Orientation::HORIZONTAL};
     int mTextureWidthOffsetHandler{0};

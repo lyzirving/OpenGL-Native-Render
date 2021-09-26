@@ -14,6 +14,7 @@ public:
     ~OesFilter();
     void applyMatrix(const GLfloat* src, int size);
     void destroy() override;
+    void init() override;
     void initBuffer() override;
     void initFrameBuffer() override;
     void initHandler() override;

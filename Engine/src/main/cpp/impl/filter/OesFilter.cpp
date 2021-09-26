@@ -37,6 +37,11 @@ void OesFilter::destroy() {
     }
 }
 
+void OesFilter::init() {
+    if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
+    BaseFilter::init();
+}
+
 void OesFilter::initBuffer() {
     if (mVertex != nullptr) {
         delete[] mVertex;
@@ -46,7 +51,7 @@ void OesFilter::initBuffer() {
         delete[] mTextureCoordinate;
         mTextureCoordinate = nullptr;
     }
-    if (mCameraFace == render::CameraMetaData::LENS_FACING_BACK) {
+    /*if (mCameraFace == render::CameraMetaData::LENS_FACING_BACK) {
         float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
         float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
         float heightVal = widthVal * previewRatio;
@@ -65,7 +70,7 @@ void OesFilter::initBuffer() {
                 //left - bottom
                 -widthVal, -heightVal, 0
         };
-    }
+    }*/
     BaseFilter::initBuffer();
 }
 

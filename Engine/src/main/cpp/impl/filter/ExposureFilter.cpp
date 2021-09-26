@@ -17,6 +17,11 @@ void ExposureFilter::adjust(int progress) {
     LogUtil::logI(TAG, {"adjust: progress = ", std::to_string(progress), ", exposure = ", std::to_string(mExposure)});
 }
 
+void ExposureFilter::init() {
+    if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
+    BaseFilter::init();
+}
+
 void ExposureFilter::initHandler() {
     BaseFilter::initHandler();
     mExposureHandler = glGetUniformLocation(mProgram, "uExposure");

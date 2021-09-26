@@ -21,6 +21,11 @@ void SaturationFilter::adjust(int progress) {
     LogUtil::logI(TAG, {"adjust: progress = ", std::to_string(progress), ", saturation = ", std::to_string(mSaturation)});
 }
 
+void SaturationFilter::init() {
+    if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
+    BaseFilter::init();
+}
+
 void SaturationFilter::initHandler() {
     BaseFilter::initHandler();
     mSaturationHandler = glGetUniformLocation(mProgram, "uSaturation");

@@ -48,6 +48,7 @@ void GaussianFilter::adjustVerBlur(int progress) {
 
 void GaussianFilter::init() {
     if (!mInitialized) {
+        LogUtil::logI(TAG, {"init"});
         preInit();
         mHorFilter->init();
         mVerFilter->init();

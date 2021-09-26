@@ -125,7 +125,7 @@ void CamRender::drawFrame() {
         mOesFilter->applyMatrix(mCamMatrix, 16);
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
-        if (mBeautyFilterGroup != nullptr) {
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
         }
@@ -198,6 +198,10 @@ void CamRender::handlePreDraw(JNIEnv *env) {
         mOesFilter->setCameraFaceFront(mCamMetaData->frontType);
         mOesFilter->init();
     }
+    if (mBeautyFilterGroup != nullptr) {
+        mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        mBeautyFilterGroup->init();
+    }
     buildCameraTransMatrix();
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -214,22 +218,14 @@ void CamRender::handleRenderEnvPause(JNIEnv *env) {
     pause(env);
 }
 
-void CamRender::handleRenderEnvResume(JNIEnv *env) {
-    //resume the beauty filters if need
-    if (mBeautyFilterGroup != nullptr) {
-        mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-        mBeautyFilterGroup->init();
-    }
-}
+void CamRender::handleRenderEnvResume(JNIEnv *env) {}
 
 void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
     LogUtil::logI(TAG, {"handleRenderEnvDestroy"});
     destroy(env);
 }
 
-void CamRender::handleSurfaceChange(JNIEnv *env) {
-    //no implementation
-}
+void CamRender::handleSurfaceChange(JNIEnv *env) {}
 
 void CamRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oesTexture) {
     if (listener != nullptr) {

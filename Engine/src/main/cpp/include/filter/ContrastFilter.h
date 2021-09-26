@@ -14,9 +14,11 @@ class ContrastFilter : public BaseFilter {
 public:
 
     void adjust(int progress) override;
+    void init() override;
     void loadShader() override;
     void initHandler() override;
     GLint onDraw(GLint inputTextureId) override;
+
 private:
     GLint mContrastHandler{0};
     GLfloat mContrast{1};

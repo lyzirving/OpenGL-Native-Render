@@ -21,6 +21,11 @@ void ContrastFilter::adjust(int progress) {
     LogUtil::logI(TAG, {"adjust: progress = ", std::to_string(progress), ", contrast = ", std::to_string(mContrast)});
 }
 
+void ContrastFilter::init() {
+    if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
+    BaseFilter::init();
+}
+
 void ContrastFilter::loadShader() {
     auto gUtil = GlUtil::self();
     if (mVertexShader == nullptr) { mVertexShader = gUtil->readAssets("shader/default_vertex_shader.glsl"); }

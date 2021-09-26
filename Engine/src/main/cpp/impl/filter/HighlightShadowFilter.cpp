@@ -27,6 +27,11 @@ void HighlightShadowFilter::adjustShadow(int progress) {
     LogUtil::logI(TAG, {"adjustShadow: progress = ", std::to_string(progress), ", shadow = ", std::to_string(mShadow)});
 }
 
+void HighlightShadowFilter::init() {
+    if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
+    BaseFilter::init();
+}
+
 void HighlightShadowFilter::initHandler() {
     BaseFilter::initHandler();
     mShadowHandler = glGetUniformLocation(mProgram, "uShadows");

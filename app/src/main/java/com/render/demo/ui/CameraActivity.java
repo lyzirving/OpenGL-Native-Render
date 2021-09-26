@@ -19,6 +19,10 @@ import com.render.engine.camera.RenderCamMetadata;
 import com.render.engine.camera.CamRenderEngine;
 import com.render.engine.core.RenderAdapter;
 import com.render.engine.filter.ContrastFilter;
+import com.render.engine.filter.ExposureFilter;
+import com.render.engine.filter.FilterConst;
+import com.render.engine.filter.GaussianFilter;
+import com.render.engine.filter.HighlightShadowFilter;
 import com.render.engine.filter.SaturationFilter;
 import com.render.engine.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
@@ -34,12 +38,17 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private RenderAdapter mRenderAdapter;
     private int mSurfaceWidth, mSurfaceHeight;
 
-    private View mAdjustBeautyRoot;
+    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot;
     private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
+    private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
+    private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
 
     private ContrastFilter mContrastFilter;
     private SaturationFilter mSaturationFilter;
     private SharpenFilter mSharpenFilter;
+    private ExposureFilter mExposureFilter;
+    private HighlightShadowFilter mHighlightShadowFilter;
+    private GaussianFilter mGaussianFilter;
 
     private static final int MSG_RENDER_PREPARE = 1;
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 2;
@@ -73,10 +82,14 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mSurface.getHolder().addCallback(this);
 
         findViewById(R.id.tab_switch_camera).setOnClickListener(this);
+        findViewById(R.id.tab_beauty).setOnClickListener(this);
+        findViewById(R.id.tab_brightness).setOnClickListener(this);
+        findViewById(R.id.tab_blur).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
-        findViewById(R.id.tab_beauty).setOnClickListener(this);
+        mAdjustBrightnessRoot = findViewById(R.id.layout_adjust_brightness_root);
+        mAdjustBlurRoot = findViewById(R.id.layout_adjust_blur_root);
 
         mContrastSeekBar = findViewById(R.id.seek_bar_contrast);
         mSharpenSeekBar = findViewById(R.id.seek_bar_sharpen);
@@ -85,6 +98,20 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mContrastSeekBar.setOnSeekBarChangeListener(this);
         mSharpenSeekBar.setOnSeekBarChangeListener(this);
         mSaturationSeekBar.setOnSeekBarChangeListener(this);
+
+        mExposureSeekBar = findViewById(R.id.seek_bar_exposure);
+        mIncShadowSeekBar = findViewById(R.id.seek_bar_inc_shadow);
+        mDecHighlightSeekBar = findViewById(R.id.seek_bar_dec_highlight);
+
+        mExposureSeekBar.setOnSeekBarChangeListener(this);
+        mIncShadowSeekBar.setOnSeekBarChangeListener(this);
+        mDecHighlightSeekBar.setOnSeekBarChangeListener(this);
+
+        mHorBlurSeekBar = findViewById(R.id.seek_bar_hor_blur);
+        mVerBlurSeekBar = findViewById(R.id.seek_bar_ver_blur);
+
+        mHorBlurSeekBar.setOnSeekBarChangeListener(this);
+        mVerBlurSeekBar.setOnSeekBarChangeListener(this);
     }
 
     @Override
@@ -131,6 +158,14 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 handleClickBeauty();
                 break;
             }
+            case R.id.tab_brightness: {
+                handleClickBrightness();
+                break;
+            }
+            case R.id.tab_blur: {
+                handleClickBlur();
+                break;
+            }
             case R.id.tab_clear: {
                 handleClickClear();
                 break;
@@ -162,6 +197,31 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
             case R.id.seek_bar_saturation: {
                 mSaturationFilter.adjust(seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_exposure: {
+                mExposureFilter.adjust(seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_inc_shadow: {
+                mHighlightShadowFilter.adjustProperty(FilterConst.SHADOW, seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_dec_highlight: {
+                mHighlightShadowFilter.adjustProperty(FilterConst.HIGHLIGHT, seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_hor_blur: {
+                mGaussianFilter.adjustProperty(FilterConst.HOR_GAUSSIAN, seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_ver_blur: {
+                mGaussianFilter.adjustProperty(FilterConst.VER_GAUSSIAN, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
@@ -203,7 +263,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     }
 
     private boolean anyTabShow() {
-        return mAdjustBeautyRoot.getVisibility() == View.VISIBLE;
+        return mAdjustBeautyRoot.getVisibility() == View.VISIBLE
+                || mAdjustBrightnessRoot.getVisibility() == View.VISIBLE
+                || mAdjustBlurRoot.getVisibility() == View.VISIBLE;
     }
 
     private RenderAdapter getRenderAdapter() {
@@ -234,6 +296,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
     private void hideAllTab() {
         mAdjustBeautyRoot.setVisibility(View.GONE);
+        mAdjustBrightnessRoot.setVisibility(View.GONE);
+        mAdjustBlurRoot.setVisibility(View.GONE);
     }
 
     private void handleClickSwitchCamera() {
@@ -269,6 +333,36 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         }
     }
 
+    private void handleClickBrightness() {
+        if (anyTabShow()) {
+            hideAllTab();
+            return;
+        }
+        boolean show = mAdjustBrightnessRoot.getVisibility() == View.VISIBLE;
+        showTab(mAdjustBrightnessRoot, !show);
+        if (!show && mExposureFilter == null) {
+            mExposureFilter = new ExposureFilter();
+            mHighlightShadowFilter = new HighlightShadowFilter();
+            mCameraRender.addBeautyFilter(mExposureFilter, false);
+            mCameraRender.addBeautyFilter(mHighlightShadowFilter, true);
+            mCameraRender.requestRender();
+        }
+    }
+
+    private void handleClickBlur() {
+        if (anyTabShow()) {
+            hideAllTab();
+            return;
+        }
+        boolean show = mAdjustBlurRoot.getVisibility() == View.VISIBLE;
+        showTab(mAdjustBlurRoot, !show);
+        if (!show && mGaussianFilter == null) {
+            mGaussianFilter = new GaussianFilter();
+            mCameraRender.addBeautyFilter(mGaussianFilter, true);
+            mCameraRender.requestRender();
+        }
+    }
+
     private void handleClickClear() {
         if (anyTabShow()) {
             hideAllTab();
@@ -278,6 +372,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mContrastFilter = null;
         mSharpenFilter = null;
         mSaturationFilter = null;
+        mExposureFilter = null;
+        mHighlightShadowFilter = null;
+        mGaussianFilter = null;
 
         mCameraRender.clearBeautyFilter();
         mCameraRender.requestRender();
@@ -299,6 +396,11 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         if (mContrastSeekBar != null) { mContrastSeekBar.setProgress(50); }
         if (mSharpenSeekBar != null) { mSharpenSeekBar.setProgress(50); }
         if (mSaturationSeekBar != null) { mSaturationSeekBar.setProgress(50); }
+        if (mExposureSeekBar != null) { mExposureSeekBar.setProgress(0); }
+        if (mIncShadowSeekBar != null) { mIncShadowSeekBar.setProgress(0); }
+        if (mDecHighlightSeekBar != null) { mDecHighlightSeekBar.setProgress(0); }
+        if (mHorBlurSeekBar != null) { mHorBlurSeekBar.setProgress(0); }
+        if (mVerBlurSeekBar != null) { mVerBlurSeekBar.setProgress(0); }
     }
 
     private void showTab(View view, boolean show) {

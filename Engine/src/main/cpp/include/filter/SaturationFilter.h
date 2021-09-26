@@ -13,6 +13,7 @@ class SaturationFilter : public BaseFilter {
 public:
 
     void adjust(int progress) override;
+    void init() override;
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;

@@ -16,6 +16,7 @@ BaseFilterGroup::~BaseFilterGroup() = default;
 
 void BaseFilterGroup::addFilter(const std::string& key, std::shared_ptr<BaseFilter> filter) {
     mFilters->insert(std::make_pair(key, filter));
+    mInitialized = false;
 }
 
 bool BaseFilterGroup::containsFilter(const std::string &key) {
@@ -64,18 +65,15 @@ std::shared_ptr<BaseFilter> BaseFilterGroup::getFilter(const std::string &key) {
 
 void BaseFilterGroup::init() {
     int filterSize = mFilters != nullptr ? (int)(mFilters->size()) : 0;
-    LogUtil::logI(TAG, {"init: filter size = ", std::to_string(filterSize),
-                        ", frame buffer size = ", std::to_string(mFrameBufferSize),
-                        ", texture size = ", std::to_string(mFrameBufferTextureSize),
-                        ", initialized = ", std::to_string(mInitialized)});
     if (filterSize != mFrameBufferSize || !mInitialized) {
         initFrameBuffer();
         initTexture();
     }
-    std::map<std::string, std::shared_ptr<BaseFilter>>::iterator iterator;
-    for (iterator = mFilters->begin(); iterator != mFilters->end(); iterator++) {
-        LogUtil::logI(TAG, {"init: filter name ", iterator->first});
-        iterator->second->init();
+    if (!mInitialized) {
+        std::map<std::string, std::shared_ptr<BaseFilter>>::iterator iterator;
+        for (iterator = mFilters->begin(); iterator != mFilters->end(); iterator++) {
+            iterator->second->init();
+        }
     }
     mInitialized = true;
 }

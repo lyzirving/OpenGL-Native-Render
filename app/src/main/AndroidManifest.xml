@@ -20,7 +20,7 @@
         </activity>
 
         <activity android:name=".ui.StillImageActivity" android:launchMode="singleTask" />
-        <activity android:name=".ui.CameraActivity" android:launchMode="singleTask"/>
+        <activity android:name=".ui.CameraActivity" android:launchMode="singleTask" android:screenOrientation="portrait" />
     </application>
 
 </manifest>
