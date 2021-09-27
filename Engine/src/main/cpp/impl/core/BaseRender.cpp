@@ -281,7 +281,7 @@ void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARE;
     notifyEnvPrepare(env, mJavaListener);
     for (;;) {
-        EventMessage &&message = mEvtQueue->dequeueMessage();
+        EventMessage message = mEvtQueue->dequeueMessage();
         switch (message.what) {
             case EventType::EVENT_SURFACE_CHANGE: {
                 LogUtil::logI(TAG, {"render: handle message surface change"});
