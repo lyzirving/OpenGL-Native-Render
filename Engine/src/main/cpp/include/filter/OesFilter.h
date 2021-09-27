@@ -10,13 +10,10 @@
 class OesFilter : public BaseFilter {
 public:
 
-    OesFilter();
-    ~OesFilter();
-    void applyMatrix(const GLfloat* src, int size);
+    void calculateMatrix();
     void destroy() override;
     GLuint getOesFrameBuffer();
     void init() override;
-    void initBuffer() override;
     void initFrameBuffer() override;
     void initHandler() override;
     void initTexture() override;

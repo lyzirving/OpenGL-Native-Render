@@ -14,18 +14,38 @@
 
 #define TAG "OesFilter"
 
-OesFilter::OesFilter() {
-    mMatrix = new GLfloat[16];
+void OesFilter::calculateMatrix() {
+    if (mMatrix == nullptr) { mMatrix = new GLfloat[16]; }
+    auto* tmpLhsM = new GLfloat[16];
+    auto* tmpResultM = new GLfloat[16];
     MatrixUtil::setIdentityM(mMatrix, 0);
-}
+    MatrixUtil::setIdentityM(tmpLhsM, 0);
+    MatrixUtil::setIdentityM(tmpResultM, 0);
 
-OesFilter::~OesFilter() {
-    delete[] mMatrix;
-}
+    //get rotation matrix
+    if (mCameraFace == render::CameraMetaData::LENS_FACING_FRONT) {
+        MatrixUtil::flip(mMatrix, false, true);
+        MatrixUtil::setRotate(tmpLhsM, 90, 0, 0, 1);
+    } else if (mCameraFace == render::CameraMetaData::LENS_FACING_BACK) {
+        MatrixUtil::setRotate(tmpLhsM, 270, 0, 0, 1);
+    }
+    MatrixUtil::multiplyMM(tmpResultM, tmpLhsM, mMatrix);
+    MatrixUtil::setIdentityM(tmpLhsM, 0);
+    MatrixUtil::setIdentityM(mMatrix, 0);
 
-void OesFilter::applyMatrix(const GLfloat *src, int size) {
-    if (mMatrix == nullptr) { mMatrix = new GLfloat[size]; }
-    for (int i = 0; i < size; ++i) { mMatrix[i] = src[i]; }
+    GLfloat previewRatio = ((GLfloat)mPreviewWidth) / ((GLfloat)mPreviewHeight);
+    GLfloat viewRatio = ((GLfloat)mWidth) / ((GLfloat)mHeight);
+    if (previewRatio > viewRatio) {
+        MatrixUtil::scaleM(tmpLhsM, 0, viewRatio / previewRatio, 1, 1);
+    }  else if (previewRatio < viewRatio) {
+        MatrixUtil::scaleM(tmpLhsM, 0, 1, previewRatio / viewRatio,1);
+    }
+    MatrixUtil::multiplyMM(mMatrix, tmpLhsM, tmpResultM);
+    MatrixUtil::setIdentityM(tmpLhsM, 0);
+    MatrixUtil::setIdentityM(tmpResultM, 0);
+
+    delete[] tmpLhsM;
+    delete[] tmpResultM;
 }
 
 void OesFilter::destroy() {
@@ -35,6 +55,7 @@ void OesFilter::destroy() {
         delete[] mOesFrameBuffer;
         mOesFrameBuffer = nullptr;
     }
+    delete[] mMatrix;
 }
 
 GLuint OesFilter::getOesFrameBuffer() {
@@ -45,30 +66,6 @@ GLuint OesFilter::getOesFrameBuffer() {
 void OesFilter::init() {
     if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
     BaseFilter::init();
-}
-
-void OesFilter::initBuffer() {
-    /*if (mCameraFace == render::CameraMetaData::LENS_FACING_BACK) {
-        float previewRatio = ((float)mPreviewHeight) / ((float)mPreviewWidth);
-        float widthVal = ((float)mPreviewWidth) / ((float)mWidth);
-        float heightVal = widthVal * previewRatio;
-        LogUtil::logI(TAG, {"initBuffer: preview ratio = ", std::to_string(previewRatio), ", width val = ", std::to_string(widthVal), ", height val = ", std::to_string(heightVal)});
-        mVertex = new GLfloat[DEFAULT_VERTEX_COUNT * 3]{
-                //right - top
-                widthVal, heightVal, 0,
-                //left - bottom
-                -widthVal, -heightVal, 0,
-                //left - top
-                -widthVal, heightVal, 0,
-                //right - top
-                widthVal, heightVal, 0,
-                //right - bottom
-                widthVal, -heightVal, 0,
-                //left - bottom
-                -widthVal, -heightVal, 0
-        };
-    }*/
-    BaseFilter::initBuffer();
 }
 
 void OesFilter::initHandler() {
@@ -139,7 +136,6 @@ GLint OesFilter::onDraw(GLint oesInputTexture) {
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    MatrixUtil::setIdentityM(mMatrix, 0);
 
     return mTextureId;
 }
@@ -151,6 +147,7 @@ void OesFilter::onPause() {
         delete[] mOesFrameBuffer;
         mOesFrameBuffer = nullptr;
     }
+    delete[] mMatrix;
 }
 
 void OesFilter::setCameraFaceFront(int faceFront) {

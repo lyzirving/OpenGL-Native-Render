@@ -9,6 +9,14 @@
 
 GLfloat* gTempM = nullptr;
 
+class MatrixException : public std::exception {
+public:
+    explicit MatrixException(const char* input) { msg = input; }
+    const char *what() const _NOEXCEPT override { return msg; }
+private:
+    const char* msg{nullptr};
+};
+
 void MatrixUtil::flip(GLfloat *matrix, bool horizontalFlip, bool verticalFlip) {
     if (horizontalFlip || verticalFlip) {
         scaleM(matrix, 0, horizontalFlip ? -1 : 1, verticalFlip ? -1 : 1, 1);
@@ -27,25 +35,63 @@ void MatrixUtil::move(GLfloat *src, GLfloat *dst, int size) {
     for (int i = 0; i < size; ++i) { dst[i] = src[i]; }
 }
 
-void MatrixUtil::multiply(GLfloat *rm, GLfloat *lhs, GLfloat *rhs) {
+void MatrixUtil::multiplyMM(GLfloat *resultM, const GLfloat *lhsM, const GLfloat *rhsM) {
     for (int i = 0; i < 4; i++) {
-        const float rhs_i0 = rhs[I(i, 0)];
-        float ri0 = lhs[I(0, 0)] * rhs_i0;
-        float ri1 = lhs[I(0, 1)] * rhs_i0;
-        float ri2 = lhs[I(0, 2)] * rhs_i0;
-        float ri3 = lhs[I(0, 3)] * rhs_i0;
+        const float rhs_i0 = rhsM[I(i, 0)];
+        float ri0 = lhsM[I(0, 0)] * rhs_i0;
+        float ri1 = lhsM[I(0, 1)] * rhs_i0;
+        float ri2 = lhsM[I(0, 2)] * rhs_i0;
+        float ri3 = lhsM[I(0, 3)] * rhs_i0;
         for (int j = 1; j < 4; j++) {
-            const float rhs_ij = rhs[I(i, j)];
-            ri0 += lhs[I(j, 0)] * rhs_ij;
-            ri1 += lhs[I(j, 1)] * rhs_ij;
-            ri2 += lhs[I(j, 2)] * rhs_ij;
-            ri3 += lhs[I(j, 3)] * rhs_ij;
+            const float rhs_ij = rhsM[I(i, j)];
+            ri0 += lhsM[I(j, 0)] * rhs_ij;
+            ri1 += lhsM[I(j, 1)] * rhs_ij;
+            ri2 += lhsM[I(j, 2)] * rhs_ij;
+            ri3 += lhsM[I(j, 3)] * rhs_ij;
         }
-        rm[I(i, 0)] = ri0;
-        rm[I(i, 1)] = ri1;
-        rm[I(i, 2)] = ri2;
-        rm[I(i, 3)] = ri3;
+        resultM[I(i, 0)] = ri0;
+        resultM[I(i, 1)] = ri1;
+        resultM[I(i, 2)] = ri2;
+        resultM[I(i, 3)] = ri3;
     }
+}
+
+void MatrixUtil::orthogonal(GLfloat *matrix, int offset, GLfloat left, GLfloat right,
+        GLfloat bottom, GLfloat top, GLfloat near, GLfloat far) {
+    if (left == right) {
+        throw MatrixException("orthogonal: left should not equal to right");
+    }
+    if (bottom == top) {
+        throw MatrixException("orthogonal: bottom should not equal to top");
+    }
+    if (near == far) {
+        throw MatrixException("orthogonal: near should not equal to far");
+    }
+    GLfloat r_width  = 1.0f / (right - left);
+    GLfloat r_height = 1.0f / (top - bottom);
+    GLfloat r_depth  = 1.0f / (far - near);
+    GLfloat x =  2.0f * (r_width);
+    GLfloat y =  2.0f * (r_height);
+    GLfloat z = -2.0f * (r_depth);
+    GLfloat tx = -(right + left) * r_width;
+    GLfloat ty = -(top + bottom) * r_height;
+    GLfloat tz = -(far + near) * r_depth;
+    matrix[offset + 0] = x;
+    matrix[offset + 5] = y;
+    matrix[offset +10] = z;
+    matrix[offset +12] = tx;
+    matrix[offset +13] = ty;
+    matrix[offset +14] = tz;
+    matrix[offset +15] = 1.0f;
+    matrix[offset + 1] = 0.0f;
+    matrix[offset + 2] = 0.0f;
+    matrix[offset + 3] = 0.0f;
+    matrix[offset + 4] = 0.0f;
+    matrix[offset + 6] = 0.0f;
+    matrix[offset + 7] = 0.0f;
+    matrix[offset + 8] = 0.0f;
+    matrix[offset + 9] = 0.0f;
+    matrix[offset + 11] = 0.0f;
 }
 
 void MatrixUtil::rotate(GLfloat *matrix, GLfloat degree, GLfloat x, GLfloat y, GLfloat z) {
@@ -55,7 +101,7 @@ void MatrixUtil::rotate(GLfloat *matrix, GLfloat degree, GLfloat x, GLfloat y, G
     }
     setRotate(gTempM, degree, x, y, z);
     auto* result = new GLfloat[16];
-    multiply(result, matrix, gTempM);
+    multiplyMM(result, matrix, gTempM);
     move(result, matrix);
     delete[] result;
 }

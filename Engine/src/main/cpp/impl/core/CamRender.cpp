@@ -98,31 +98,9 @@ void CamRender::buildOesTexture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void CamRender::buildCameraTransMatrix() {
-    if (mCamMetaData != nullptr && mCamMatrix == nullptr) {
-        mCamMatrix = new GLfloat[16];
-        MatrixUtil::setIdentityM(mCamMatrix, 0);
-        if (mCamMetaData->frontType == render::CameraMetaData::LENS_FACING_FRONT) {
-            MatrixUtil::flip(mCamMatrix, true, false);
-            MatrixUtil::rotate(mCamMatrix, 90, 0, 0, 1);
-        } else if (mCamMetaData->frontType == render::CameraMetaData::LENS_FACING_BACK) {
-            MatrixUtil::rotate(mCamMatrix, 270, 0, 0, 1);
-        }
-        float previewRatio = ((float)(mCamMetaData->previewWidth)) / ((float)(mCamMetaData->previewHeight));
-        float viewRatio = ((float)(mSurfaceWidth)) / ((float)(mSurfaceHeight));
-        LogUtil::logI(TAG, {"buildCameraTransMatrix: preview = ", std::to_string(previewRatio), ", view = ", std::to_string(viewRatio)});
-        if (previewRatio > viewRatio) {
-            MatrixUtil::scaleM(mCamMatrix, 0, viewRatio / previewRatio, 1, 1);
-        }  else if (previewRatio < viewRatio) {
-            MatrixUtil::scaleM(mCamMatrix, 0, 1, previewRatio / viewRatio,1);
-        }
-    }
-}
-
 void CamRender::drawFrame() {
     if (mOesFilter != nullptr && mOesFilter->initialized() && mOesTexture != 0 && mCamMetaData != nullptr) {
         int drawCount = 0;
-        mOesFilter->applyMatrix(mCamMatrix, 16);
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
         if (mEnableDownloadPreview) {
@@ -167,9 +145,6 @@ void CamRender::destroy(JNIEnv* env) {
 
     delete mCamMetaData;
     mCamMetaData = nullptr;
-
-    delete[] mCamMatrix;
-    mCamMatrix = nullptr;
 }
 
 void CamRender::downloadPreview(GLuint frameBuffer) {
@@ -224,13 +199,13 @@ void CamRender::handlePreDraw(JNIEnv *env) {
         mOesFilter->setPreviewSize(mPreviewWidth, mPreviewHeight);
         mOesFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mOesFilter->setCameraFaceFront(mCamMetaData->frontType);
+        mOesFilter->calculateMatrix();
         mOesFilter->init();
     }
     if (mBeautyFilterGroup != nullptr && !mBeautyFilterGroup->initialized()) {
         mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mBeautyFilterGroup->init();
     }
-    buildCameraTransMatrix();
     updateTexImg(env);
     glClearColor(0.0, 0.0, 0.0, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
@@ -316,9 +291,6 @@ void CamRender::pause(JNIEnv* env) {
 
     delete mCamMetaData;
     mCamMetaData = nullptr;
-
-    delete[] mCamMatrix;
-    mCamMatrix = nullptr;
 }
 
 void CamRender::setCameraMetadata(JNIEnv *env, jobject data) {
