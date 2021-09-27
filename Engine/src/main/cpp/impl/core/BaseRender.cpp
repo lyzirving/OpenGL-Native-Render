@@ -14,8 +14,8 @@
 
 BaseRender::BaseRender() {
     mWorkQueue = new WorkQueue;
-    mEvtQueue = new EventQueue;
     mEglCore = new RenderEglBase;
+    mEventQueue = new CustomQueue<EventMessage>;
 }
 
 BaseRender::~BaseRender() = default;
@@ -168,7 +168,7 @@ bool BaseRender::registerSelf(JNIEnv *env) {
 }
 
 void BaseRender::enqueueMessage(EventType what) {
-    mEvtQueue->enqueueMessage(new EventMessage(what));
+    mEventQueue->enqueue(EventMessage(what));
 }
 
 void BaseRender::adjust(const char *filterType, int progress) {
@@ -281,7 +281,7 @@ void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARE;
     notifyEnvPrepare(env, mJavaListener);
     for (;;) {
-        EventMessage message = mEvtQueue->dequeueMessage();
+        EventMessage message = mEventQueue->dequeue();
         switch (message.what) {
             case EventType::EVENT_SURFACE_CHANGE: {
                 LogUtil::logI(TAG, {"render: handle message surface change"});
@@ -346,17 +346,17 @@ void BaseRender::render(JNIEnv *env) {
 void BaseRender::release(JNIEnv *env) {
     if (mJavaListener != nullptr) { env->DeleteGlobalRef(mJavaListener); }
     delete mEglCore;
-    delete mEvtQueue;
+    delete mEventQueue;
     delete mWorkQueue;
     mJavaListener = nullptr;
     mWorkQueue = nullptr;
     mEglCore = nullptr;
-    mEvtQueue = nullptr;
+    mEventQueue = nullptr;
 }
 
 void BaseRender::renderEnvPause() {
-    mEvtQueue->clear();
     mWorkQueue->clear();
+    mEventQueue->clear();
     mEglCore->release();
 }
 
@@ -365,8 +365,8 @@ bool BaseRender::renderEnvResume() {
 }
 
 void BaseRender::renderEnvDestroy() {
-    mEvtQueue->clear();
     mWorkQueue->clear();
+    mEventQueue->clear();
     mEglCore->release();
 }
 

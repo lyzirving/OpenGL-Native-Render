@@ -104,9 +104,9 @@ void CamRender::drawFrame() {
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
         if (mEnableDownloadPreview) {
-            long startTime = render::getCurrentTimeMs();
+            //long startTime = render::getCurrentTimeMs();
             downloadPreview(mOesFilter->getOesFrameBuffer());
-            LogUtil::logI(TAG, {"drawFrame: download last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
+            //LogUtil::logI(TAG, {"drawFrame: download last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
         }
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);

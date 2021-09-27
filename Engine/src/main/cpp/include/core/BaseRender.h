@@ -7,9 +7,10 @@
 #include <jni.h>
 
 #include "Common.h"
-#include "EventQueue.h"
+#include "EventMessage.h"
 #include "WorkQueue.h"
 #include "RenderEglBase.h"
+#include "CustomQueue.h"
 
 #include "ScreenFilter.h"
 #include "BaseFilterGroup.h"
@@ -54,8 +55,8 @@ protected:
 
     RenderEglBase* mEglCore;
     jobject mJavaListener{nullptr};
-    EventQueue* mEvtQueue{nullptr};
     WorkQueue* mWorkQueue{nullptr};
+    CustomQueue<EventMessage>* mEventQueue{nullptr};
     render::Status mStatus = render::Status::STATUS_IDLE;
 
     GLint mSurfaceWidth{0};
