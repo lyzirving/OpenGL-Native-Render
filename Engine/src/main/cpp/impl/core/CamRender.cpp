@@ -25,6 +25,11 @@ static jlong nEnvCreate(JNIEnv *env, jclass clazz) {
     return reinterpret_cast<jlong>(new CamRender);
 }
 
+static void nEnvDetect(JNIEnv *env, jclass clazz, jlong ptr, jboolean start) {
+    auto *pRender = reinterpret_cast<CamRender *>(ptr);
+    pRender->detect(env, start);
+}
+
 static void nEnvPreviewChange(JNIEnv *env, jclass clazz, jlong ptr, jint previewWidth, jint previewHeight) {
     auto *pRender = reinterpret_cast<CamRender*>(ptr);
     pRender->setPreview(previewWidth, previewHeight);
@@ -48,6 +53,10 @@ static JNINativeMethod sJniMethods[] = {
         {
                 "nCreate",           "()J",
                 (void *) nEnvCreate
+        },
+        {
+                "nDetect", "(JZ)V",
+                (void *) nEnvDetect
         },
         {
                 "nPreviewChange", "(JII)V",
@@ -98,6 +107,15 @@ void CamRender::buildOesTexture() {
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void CamRender::detect(JNIEnv* env, bool start) {
+    if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector; }
+    if (start) {
+        mFaceDetector->prepare(env);
+    } else {
+        mFaceDetector->quit();
+    }
+}
+
 void CamRender::drawFrame() {
     if (mOesFilter != nullptr && mOesFilter->initialized() && mOesTexture != 0 && mCamMetaData != nullptr) {
         int drawCount = 0;
@@ -145,6 +163,9 @@ void CamRender::destroy(JNIEnv* env) {
 
     delete mCamMetaData;
     mCamMetaData = nullptr;
+
+    delete mFaceDetector;
+    mFaceDetector = nullptr;
 }
 
 void CamRender::downloadPreview(GLuint frameBuffer) {
@@ -157,11 +178,14 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
     glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[mDownloadFreeIndex]);
     glReadPixels(0, 0, mSurfaceWidth, mSurfaceHeight, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
-    void *pixelData = nullptr;
+    unsigned char* pixelData = nullptr;
     int nextIndex = mDownloadFreeIndex == 0 ? 1 : 0;
     glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[nextIndex]);
-    pixelData = glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0, mSurfaceWidth * mSurfaceHeight * 4, GL_MAP_READ_BIT);
+    pixelData = static_cast<unsigned char *>(glMapBufferRange(GL_PIXEL_PACK_BUFFER, 0,
+                                                              mSurfaceWidth * mSurfaceHeight * 4,
+                                                              GL_MAP_READ_BIT));
     //use data before unmap buffer;
+    if (pixelData) { mFaceDetector->copyAndEnqueueData(pixelData, mSurfaceWidth, mSurfaceHeight, 4); }
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
 
     glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
@@ -291,6 +315,9 @@ void CamRender::pause(JNIEnv* env) {
 
     delete mCamMetaData;
     mCamMetaData = nullptr;
+
+    delete mFaceDetector;
+    mFaceDetector = nullptr;
 }
 
 void CamRender::setCameraMetadata(JNIEnv *env, jobject data) {

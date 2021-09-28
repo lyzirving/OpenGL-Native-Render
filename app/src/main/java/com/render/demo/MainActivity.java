@@ -8,6 +8,7 @@ import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Environment;
 import android.view.View;
 import android.widget.Toast;
 
@@ -16,6 +17,8 @@ import com.render.demo.ui.CameraActivity;
 import com.render.demo.ui.StillImageActivity;
 import com.render.engine.core.EngineEnv;
 import com.render.engine.util.LogUtil;
+
+import java.io.File;
 
 /**
  * @author lyzirving
@@ -39,6 +42,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     @Override
     protected void initData() {
         EngineEnv.init(getApplicationContext().getAssets());
+        checkSdCard();
     }
 
     @Override
@@ -122,6 +126,15 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             default: {
                 break;
             }
+        }
+    }
+
+    private void checkSdCard() {
+        if (Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
+            String sdcardPath = Environment.getExternalStorageDirectory().getAbsolutePath();
+            LogUtil.i(TAG, "checkSdCard: sdcard = " + sdcardPath);
+        } else {
+            LogUtil.i(TAG, "checkSdCard: not exist");
         }
     }
 

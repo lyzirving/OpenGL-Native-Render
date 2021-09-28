@@ -9,8 +9,6 @@
 
 class JniUtil {
 public:
-    static std::map<std::string, jobject> gClassMap;
-
     static void detachThread(JavaVM* vm);
     static jobject find(std::map<std::string, jobject>* pMap, const std::string& key);
     static jobject findListener(std::map<jlong, jobject>* pMap, jlong key);

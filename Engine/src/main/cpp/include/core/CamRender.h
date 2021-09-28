@@ -6,12 +6,14 @@
 
 #include "BaseRender.h"
 #include "OesFilter.h"
+#include "FaceDetector.h"
 
 class CamRender : public BaseRender {
 public:
 
     static bool registerSelf(JNIEnv *env);
 
+    void detect(JNIEnv* env, bool start);
     void drawFrame() override;
     void setCameraMetadata(JNIEnv* env, jobject data);
     void setPreview(GLint width, GLint height);
@@ -44,6 +46,8 @@ private:
     render::CameraMetaData* mCamMetaData{nullptr};
 
     OesFilter* mOesFilter{nullptr};
+
+    FaceDetector* mFaceDetector{nullptr};
 
     bool mEnableDownloadPreview{false};
     int mDownloadFreeIndex{0};

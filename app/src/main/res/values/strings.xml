@@ -19,4 +19,5 @@
 
     <string name="tip_clear">还原</string>
     <string name="tip_switch_camera">切换</string>
+    <string name="tip_detect_face">检测人脸</string>
 </resources>

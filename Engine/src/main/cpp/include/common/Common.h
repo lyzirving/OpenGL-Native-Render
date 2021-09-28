@@ -8,6 +8,7 @@
 #include <jni.h>
 
 namespace render {
+    //the static filed's work scope is only in it's cpp
     static JavaVM *gJvm = nullptr;
     static std::map<std::string, jobject>* gClassMap = nullptr;
 

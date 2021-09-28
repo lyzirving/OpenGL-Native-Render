@@ -9,7 +9,9 @@ import android.util.Size;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.SeekBar;
+import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 
@@ -30,7 +32,8 @@ import com.render.engine.util.LogUtil;
 /**
  * @author lyzirving
  */
-public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback, View.OnClickListener, SeekBar.OnSeekBarChangeListener {
+public class CameraActivity extends BaseActivity implements SurfaceHolder.Callback, View.OnClickListener,
+        SeekBar.OnSeekBarChangeListener, CompoundButton.OnCheckedChangeListener {
     private static final String TAG = "CameraActivity";
 
     private SurfaceView mSurface;
@@ -86,6 +89,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         findViewById(R.id.tab_brightness).setOnClickListener(this);
         findViewById(R.id.tab_blur).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
+        ((Switch)(findViewById(R.id.switch_detect_face))).setOnCheckedChangeListener(this);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         mAdjustBrightnessRoot = findViewById(R.id.layout_adjust_brightness_root);
@@ -168,6 +172,19 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
             case R.id.tab_clear: {
                 handleClickClear();
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        switch (buttonView.getId()) {
+            case R.id.switch_detect_face: {
+                mCameraRender.detect(isChecked);
                 break;
             }
             default: {

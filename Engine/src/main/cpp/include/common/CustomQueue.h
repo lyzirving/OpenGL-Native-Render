@@ -6,6 +6,7 @@
 
 #include <pthread.h>
 #include <queue>
+#include "LogUtil.h"
 
 template <typename T>
 class ObjectQueue {
@@ -26,14 +27,20 @@ public:
     void clear() {
         pthread_mutex_lock(&mMutex);
         while (!mQueue->empty()) mQueue->pop();
-        delete mQueue;
-        mQueue = new std::queue<T>;
+        pthread_cond_signal(&mCond);
         pthread_mutex_unlock(&mMutex);
     }
 
     void enqueue(T&& obj) {
         pthread_mutex_lock(&mMutex);
-        mQueue->push(std::forward<T>(obj));
+        mQueue->push(std::move(obj));
+        pthread_cond_signal(&mCond);
+        pthread_mutex_unlock(&mMutex);
+    }
+
+    void enqueue(const T& obj) {
+        pthread_mutex_lock(&mMutex);
+        mQueue->push(obj);
         pthread_cond_signal(&mCond);
         pthread_mutex_unlock(&mMutex);
     }
@@ -43,7 +50,7 @@ public:
     T dequeue() {
         pthread_mutex_lock(&mMutex);
         if (mQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
-
+        if (mQueue->empty()) { return T(); }
         T result = mQueue->front();
         mQueue->pop();
         pthread_mutex_unlock(&mMutex);
@@ -57,12 +64,18 @@ public:
 
     T dequeueNotWait() {
         pthread_mutex_lock(&mMutex);
-        if (mQueue->empty()) { return nullptr; }
+        if (mQueue->empty()) { return T(); }
         T result = mQueue->front();
         mQueue->pop();
         pthread_mutex_unlock(&mMutex);
         //execute RVO
         return result;
+    }
+
+    void notify() {
+        pthread_mutex_lock(&mMutex);
+        pthread_cond_signal(&mCond);
+        pthread_mutex_unlock(&mMutex);
     }
 
 private:
@@ -93,8 +106,7 @@ public:
     void clear() {
         pthread_mutex_lock(&mMutex);
         while (!mPointerQueue->empty()) mPointerQueue->pop();
-        delete mPointerQueue;
-        mPointerQueue = new std::queue<PointerType>;
+        pthread_cond_signal(&mCond);
         pthread_mutex_unlock(&mMutex);
     }
 
@@ -110,7 +122,7 @@ public:
     PointerType dequeue() {
         pthread_mutex_lock(&mMutex);
         if (mPointerQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
-
+        if (mPointerQueue->empty()) { return T(); }
         PointerType result = mPointerQueue->front();
         mPointerQueue->pop();
         pthread_mutex_unlock(&mMutex);
@@ -125,6 +137,12 @@ public:
         pthread_mutex_unlock(&mMutex);
         //execute RVO
         return result;
+    }
+
+    void notify() {
+        pthread_mutex_lock(&mMutex);
+        pthread_cond_signal(&mCond);
+        pthread_mutex_unlock(&mMutex);
     }
 
 private:
