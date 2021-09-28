@@ -106,7 +106,7 @@ void ImageRender::setResource(JNIEnv *env, jobject bitmap) {
     mBackgroundFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
     mBackgroundFilter->setBitmap(env, bitmap);
     if (!mBackgroundFilter->initialized()) {
-        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
+        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mBackgroundFilter);
         mWorkQueue->enqueue(task);
     }
@@ -116,7 +116,7 @@ void ImageRender::setResource(JNIEnv *env, jobject bitmap) {
     mMaskFilter->setSourceSize(mBackgroundFilter->getBitmapWidth(), mBackgroundFilter->getBitmapHeight());
     mMaskFilter->buildMask();
     if (!mMaskFilter->initialized()) {
-        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
+        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mMaskFilter);
         mWorkQueue->enqueue(task);
     }
@@ -124,14 +124,14 @@ void ImageRender::setResource(JNIEnv *env, jobject bitmap) {
     if (mScreenFilter == nullptr) { mScreenFilter = new ScreenFilter; }
     mScreenFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
     if (!mScreenFilter->initialized()) {
-        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
+        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mScreenFilter);
         mWorkQueue->enqueue(task);
     }
 
     if (mBeautyFilterGroup != nullptr) {
         mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-        std::shared_ptr<FilterInitTask> task = std::make_shared<FilterInitTask>();
+        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
         task->setObj(mBeautyFilterGroup);
         mWorkQueue->enqueue(task);
     }

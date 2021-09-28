@@ -8,14 +8,14 @@
 #include <queue>
 
 template <typename T>
-class CustomQueue {
+class ObjectQueue {
 public:
-    CustomQueue() {
+    ObjectQueue() {
         pthread_mutex_init(&mMutex, nullptr);
         pthread_cond_init(&mCond, nullptr);
         mQueue = new std::queue<T>;
     }
-    ~CustomQueue() {
+    ~ObjectQueue() {
         while (!mQueue->empty()) mQueue->pop();
         delete mQueue;
         mQueue = nullptr;
@@ -38,6 +38,8 @@ public:
         pthread_mutex_unlock(&mMutex);
     }
 
+    bool empty() { return mQueue != nullptr ? mQueue->empty() : true; }
+
     T dequeue() {
         pthread_mutex_lock(&mMutex);
         if (mQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
@@ -53,10 +55,82 @@ public:
         return result;
     }
 
+    T dequeueNotWait() {
+        pthread_mutex_lock(&mMutex);
+        if (mQueue->empty()) { return nullptr; }
+        T result = mQueue->front();
+        mQueue->pop();
+        pthread_mutex_unlock(&mMutex);
+        //execute RVO
+        return result;
+    }
+
 private:
     pthread_mutex_t mMutex{};
     pthread_cond_t mCond{};
     std::queue<T>* mQueue{nullptr};
+};
+
+template <typename T>
+class PointerQueue {
+public:
+    typedef std::shared_ptr<T> PointerType;
+
+    PointerQueue() {
+        pthread_mutex_init(&mMutex, nullptr);
+        pthread_cond_init(&mCond, nullptr);
+        mPointerQueue = new std::queue<PointerType>;
+    }
+
+    ~PointerQueue() {
+        while (!mPointerQueue->empty()) mPointerQueue->pop();
+        delete mPointerQueue;
+        mPointerQueue = nullptr;
+        pthread_mutex_destroy(&mMutex);
+        pthread_cond_destroy(&mCond);
+    }
+
+    void clear() {
+        pthread_mutex_lock(&mMutex);
+        while (!mPointerQueue->empty()) mPointerQueue->pop();
+        delete mPointerQueue;
+        mPointerQueue = new std::queue<PointerType>;
+        pthread_mutex_unlock(&mMutex);
+    }
+
+    void enqueue(const PointerType& pointer) {
+        pthread_mutex_lock(&mMutex);
+        mPointerQueue->push(pointer);
+        pthread_cond_signal(&mCond);
+        pthread_mutex_unlock(&mMutex);
+    }
+
+    bool empty() { return mPointerQueue != nullptr ? mPointerQueue->empty() : true; }
+
+    PointerType dequeue() {
+        pthread_mutex_lock(&mMutex);
+        if (mPointerQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
+
+        PointerType result = mPointerQueue->front();
+        mPointerQueue->pop();
+        pthread_mutex_unlock(&mMutex);
+        return result;
+    }
+
+    PointerType dequeueNotWait() {
+        pthread_mutex_lock(&mMutex);
+        if (mPointerQueue->empty()) { return nullptr; }
+        PointerType result = mPointerQueue->front();
+        mPointerQueue->pop();
+        pthread_mutex_unlock(&mMutex);
+        //execute RVO
+        return result;
+    }
+
+private:
+    pthread_mutex_t mMutex{};
+    pthread_cond_t mCond{};
+    std::queue<PointerType>* mPointerQueue{nullptr};
 };
 
 #endif //ENGINE_CUSTOMQUEUE_H

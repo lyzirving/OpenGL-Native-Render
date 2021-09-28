@@ -13,9 +13,9 @@
 #define JAVA_CLASS_BASE_RENDER "com/render/engine/core/BaseRenderEngine"
 
 BaseRender::BaseRender() {
-    mWorkQueue = new WorkQueue;
     mEglCore = new RenderEglBase;
-    mEventQueue = new CustomQueue<EventMessage>;
+    mEventQueue = new ObjectQueue<EventMessage>;
+    mWorkQueue = new PointerQueue<WorkTask>;
 }
 
 BaseRender::~BaseRender() = default;
@@ -218,7 +218,6 @@ void BaseRender::adjustProperty(const char *filterType, const char *property, in
 
 bool BaseRender::addBeautyFilter(const char *filterType, bool commit) {
     std::shared_ptr<BaseFilter> filter;
-    std::shared_ptr<FilterInitTask> task;
     if (filterType == nullptr || std::strlen(filterType) == 0) {
         LogUtil::logI(TAG, {"addBeautyFilter: filter type is empty"});
         goto fail;
@@ -231,7 +230,7 @@ bool BaseRender::addBeautyFilter(const char *filterType, bool commit) {
             mBeautyFilterGroup->addFilter(filterType, filter);
             mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
             if (commit) {
-                task = std::make_shared<FilterInitTask>();
+                std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
                 task->setObj(mBeautyFilterGroup);
                 mWorkQueue->enqueue(task);
             }
@@ -250,7 +249,7 @@ bool BaseRender::addBeautyFilter(const char *filterType, bool commit) {
 
 void BaseRender::clearBeautyFilter() {
     if (mBeautyFilterGroup != nullptr) {
-        std::shared_ptr<FilterDestroyTask> task = std::make_shared<FilterDestroyTask>();
+        std::shared_ptr<WorkTask> task = std::make_shared<FilterDestroyTask>();
         task->setObj(mBeautyFilterGroup);
         mWorkQueue->enqueue(task);
     }
@@ -372,8 +371,8 @@ void BaseRender::renderEnvDestroy() {
 
 void BaseRender::runTaskPreDraw() {
     while (!mWorkQueue->empty()) {
-        std::shared_ptr<WorkTask> task = std::make_shared<WorkTask>();
-        if (mWorkQueue->dequeue(task)) { task->run(); }
+        std::shared_ptr<WorkTask> task = mWorkQueue->dequeueNotWait();
+        if (task != nullptr) task->run();
     }
 }
 

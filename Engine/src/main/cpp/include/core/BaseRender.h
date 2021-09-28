@@ -8,7 +8,7 @@
 
 #include "Common.h"
 #include "EventMessage.h"
-#include "WorkQueue.h"
+#include "WorkTask.h"
 #include "RenderEglBase.h"
 #include "CustomQueue.h"
 
@@ -55,8 +55,8 @@ protected:
 
     RenderEglBase* mEglCore;
     jobject mJavaListener{nullptr};
-    WorkQueue* mWorkQueue{nullptr};
-    CustomQueue<EventMessage>* mEventQueue{nullptr};
+    ObjectQueue<EventMessage>* mEventQueue{nullptr};
+    PointerQueue<WorkTask>* mWorkQueue{nullptr};
     render::Status mStatus = render::Status::STATUS_IDLE;
 
     GLint mSurfaceWidth{0};
