@@ -64,10 +64,17 @@ public:
 
     T dequeueNotWait() {
         pthread_mutex_lock(&mMutex);
-        if (mQueue->empty()) { return T(); }
+        if (mQueue->empty()) {
+            LogUtil::logI("queue", {"dequeueNotWait"});
+            return T();
+        }
+        LogUtil::logI("queue", {"dequeueNotWait 1"});
         T result = mQueue->front();
+        LogUtil::logI("queue", {"dequeueNotWait 2"});
         mQueue->pop();
+        LogUtil::logI("queue", {"dequeueNotWait 3"});
         pthread_mutex_unlock(&mMutex);
+        LogUtil::logI("queue", {"dequeueNotWait 4"});
         //execute RVO
         return result;
     }
@@ -122,7 +129,7 @@ public:
     PointerType dequeue() {
         pthread_mutex_lock(&mMutex);
         if (mPointerQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
-        if (mPointerQueue->empty()) { return T(); }
+        if (mPointerQueue->empty()) { return PointerType(); }
         PointerType result = mPointerQueue->front();
         mPointerQueue->pop();
         pthread_mutex_unlock(&mMutex);

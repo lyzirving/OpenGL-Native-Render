@@ -4,6 +4,8 @@
 #ifndef ENGINE_IMAGE_H
 #define ENGINE_IMAGE_H
 
+#include "LogUtil.h"
+
 class Image {
 public:
     unsigned char* data{nullptr};
@@ -14,7 +16,8 @@ public:
         data = nullptr;
     }
     ~Image() {
-        delete data;
+        LogUtil::logI("Image", {"deconstruct"});
+        if (data != nullptr) { free(data); }
         data = nullptr;
     }
 private:

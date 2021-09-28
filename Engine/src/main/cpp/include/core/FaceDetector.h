@@ -17,17 +17,22 @@ public:
     ~FaceDetector();
 
     void copyAndEnqueueData(const unsigned char* data, int width, int height, int channel);
+    bool isRunning();
+    bool isProcessing();
     void loop(JNIEnv* env);
     void prepare(JNIEnv* env);
     void quit();
+    void quitAndWait();
 
 private:
 
-    void writeImageToFile(const unsigned char* data, int size);
+    void writeImageToFile(const unsigned char* data, int width, int height, int channel);
 
     ObjectQueue<EventMessage>* mMessageQueue{nullptr};
-    ObjectQueue<Image>* mImageQueue{nullptr};
-    render::Status mStatus{render::Status::STATUS_IDLE};
+    PointerQueue<Image>* mImgQueue{nullptr};
+    volatile render::Status mStatus{render::Status::STATUS_IDLE};
+    pthread_mutex_t mQuitMutexLock;
+    pthread_cond_t mQuitCondLock;
 };
 
 #endif //ENGINE_FACEDETECTOR_H

@@ -121,10 +121,10 @@ void CamRender::drawFrame() {
         int drawCount = 0;
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
-        if (mEnableDownloadPreview) {
-            //long startTime = render::getCurrentTimeMs();
+        if (mFaceDetector != nullptr && mFaceDetector->isRunning()) {
+            long startTime = render::getCurrentTimeMs();
             downloadPreview(mOesFilter->getOesFrameBuffer());
-            //LogUtil::logI(TAG, {"drawFrame: download last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
+            LogUtil::logI(TAG, {"drawFrame: download last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
         }
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
@@ -161,11 +161,14 @@ void CamRender::destroy(JNIEnv* env) {
     if (mSurfaceTexture != nullptr) { env->DeleteGlobalRef(mSurfaceTexture); }
     mSurfaceTexture = nullptr;
 
-    delete mCamMetaData;
-    mCamMetaData = nullptr;
-
+    if (mFaceDetector != nullptr) {
+        mFaceDetector->quitAndWait();
+    }
     delete mFaceDetector;
     mFaceDetector = nullptr;
+
+    delete mCamMetaData;
+    mCamMetaData = nullptr;
 }
 
 void CamRender::downloadPreview(GLuint frameBuffer) {
@@ -187,7 +190,6 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
     //use data before unmap buffer;
     if (pixelData) { mFaceDetector->copyAndEnqueueData(pixelData, mSurfaceWidth, mSurfaceHeight, 4); }
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-
     glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
 
@@ -315,9 +317,6 @@ void CamRender::pause(JNIEnv* env) {
 
     delete mCamMetaData;
     mCamMetaData = nullptr;
-
-    delete mFaceDetector;
-    mFaceDetector = nullptr;
 }
 
 void CamRender::setCameraMetadata(JNIEnv *env, jobject data) {

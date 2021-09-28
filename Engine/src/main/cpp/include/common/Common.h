@@ -55,7 +55,8 @@ namespace render {
         STATUS_PREPARE = 1,
         STATUS_RUN = 2,
         STATUS_PAUSE = 3,
-        STATUS_DESTROY = 4
+        STATUS_PROCESSING = 4,
+        STATUS_DESTROY = 5
     };
 }
 
