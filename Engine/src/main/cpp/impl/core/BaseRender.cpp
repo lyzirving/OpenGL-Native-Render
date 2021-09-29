@@ -256,7 +256,7 @@ void BaseRender::clearBeautyFilter() {
 }
 
 bool BaseRender::initialized() {
-    return mStatus >= render::Status::STATUS_PREPARE && mStatus <= render::Status::STATUS_PAUSE;
+    return mStatus >= render::Status::STATUS_PREPARED && mStatus <= render::Status::STATUS_PAUSE;
 }
 
 void BaseRender::notifyEnvPrepare(JNIEnv *env, jobject listener) {
@@ -276,8 +276,9 @@ void BaseRender::notifyEnvRelease(JNIEnv *env, jobject listener) {
 }
 
 void BaseRender::render(JNIEnv *env) {
+    mStatus = render::Status::STATUS_PREPARING;
     if (!mEglCore->initEglEnv()) { goto quit; }
-    mStatus = render::Status::STATUS_PREPARE;
+    mStatus = render::Status::STATUS_PREPARED;
     notifyEnvPrepare(env, mJavaListener);
     for (;;) {
         EventMessage message = mEventQueue->dequeue();

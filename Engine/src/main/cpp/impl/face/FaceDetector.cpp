@@ -13,11 +13,11 @@
 #include "LogUtil.h"
 
 #define TAG "FaceDetector"
+#define CLASSIFIER_PATH "/storage/emulated/0/Android/data/com.render.demo/files/Documents/lbpcascade_frontalface_improved.xml"
 
 const char* rootPath = reinterpret_cast<const char *>("/storage/emulated/0/testImage");
 
 FaceDetector::FaceDetector() {
-    mImgQueue = new PointerQueue<Image>;
     mMessageQueue = new ObjectQueue<EventMessage>;
     pthread_mutex_init(&mQuitMutexLock, nullptr);
     pthread_cond_init(&mQuitCondLock, nullptr);
@@ -45,7 +45,21 @@ void *processLoop(void *args) {
     return nullptr;
 }
 
-void FaceDetector::writePng(const unsigned char *data, int width, int height, int channel) {
+void FaceDetector::buildTracker() {
+    releaseTracker();
+    cv::Ptr<cv::CascadeClassifier> mainClassifier = cv::makePtr<cv::CascadeClassifier>(CLASSIFIER_PATH);
+    cv::Ptr<CascadeDetectorAdapter> mainDetector = cv::makePtr<CascadeDetectorAdapter>(mainClassifier);
+
+    cv::Ptr<cv::CascadeClassifier> subClassifier = cv::makePtr<cv::CascadeClassifier>(CLASSIFIER_PATH);
+    cv::Ptr<CascadeDetectorAdapter> subDetector = cv::makePtr<CascadeDetectorAdapter>(subClassifier);
+
+    cv::DetectionBasedTracker::Parameters params;
+    mFaceTracker = cv::makePtr<cv::DetectionBasedTracker>(mainDetector, subDetector, params);
+    bool res = mFaceTracker->run();
+    LogUtil::logI(TAG, {"buildTracker: result = ", (res ? "true" : "false")});
+}
+
+void FaceDetector::enqueueImg(unsigned char *data, int width, int height, int channel, EventType type) {
     if (data != nullptr) {
         std::shared_ptr<Image> img = std::make_shared<Image>();
         img->width = width;
@@ -54,8 +68,7 @@ void FaceDetector::writePng(const unsigned char *data, int width, int height, in
         img->data = static_cast<unsigned char *>(malloc(width * height * channel));
         memcpy(img->data, data, width * height * channel);
         mImgQueue->enqueue(img);
-        mStatus = render::Status::STATUS_PROCESSING;
-        mMessageQueue->enqueue(EventMessage(EventType::EVENT_WRITE_PNG));
+        mMessageQueue->enqueue(EventMessage(type));
     }
 }
 
@@ -63,22 +76,26 @@ bool FaceDetector::isRunning() {
     return mStatus == render::Status::STATUS_RUN;
 }
 
-bool FaceDetector::isProcessing() {
-    return mStatus == render::Status::STATUS_PROCESSING;
-}
-
 void FaceDetector::loop(JNIEnv *env) {
+    mStatus = render::Status::STATUS_PREPARING;
+    buildTracker();
     LogUtil::logI(TAG, {"loop: enter"});
+    mStatus = render::Status::STATUS_RUN;
     for (;;) {
-        mStatus = render::Status::STATUS_RUN;
         EventMessage msg = mMessageQueue->dequeue();
         switch (msg.what) {
             case EventType::EVENT_WRITE_PNG: {
                 LogUtil::logI(TAG, {"loop: handle write png"});
-                mStatus = render::Status::STATUS_PROCESSING;
                 std::shared_ptr<Image> img = mImgQueue->dequeue();
                 if (img->data != nullptr) {
-                    writeImageToFile(img->data, img->width, img->height, img->channel);
+                    writePngImage(img->data, img->width, img->height, img->channel);
+                }
+                break;
+            }
+            case EventType::EVENT_FACE_TRACK: {
+                std::shared_ptr<Image> img = mImgQueue->dequeue();
+                if (img->data != nullptr) {
+                    trackFace(img->data, img->width, img->height, img->channel);
                 }
                 break;
             }
@@ -93,27 +110,29 @@ void FaceDetector::loop(JNIEnv *env) {
         }
     }
     quit:
+    releaseTracker();
     pthread_mutex_lock(&mQuitMutexLock);
     pthread_cond_signal(&mQuitCondLock);
     pthread_mutex_unlock(&mQuitMutexLock);
-    LogUtil::logI(TAG, {"loop: quit"});
-    mImgQueue->clear();
+    LogUtil::logI(TAG, {"loop: quit completely"});
 }
 
 void FaceDetector::prepare(JNIEnv* env) {
     render::getJvm(env);
-    if (isRunning() || isProcessing()) {
+    if (isRunning()) {
         LogUtil::logI(TAG, {"prepare: still run status"});
     } else {
         LogUtil::logI(TAG, {"prepare: create thread"});
+        delete mImgQueue;
+        mImgQueue = new PointerQueue<Image>;
         pthread_t thread;
         pthread_create(&thread, nullptr, processLoop, this);
     }
 }
 
-void FaceDetector::writeImageToFile(const unsigned char *data, int width, int height, int channel) {
+void FaceDetector::writePngImage(const unsigned char *data, int width, int height, int channel) {
     if (data == nullptr) {
-        LogUtil::logI(TAG, {"writeImageToFile: input is null"});
+        LogUtil::logI(TAG, {"writePngImage: input is null"});
         return;
     }
     if (access(rootPath, 0) == -1) { mkdir(rootPath, 0666); }
@@ -128,21 +147,21 @@ void FaceDetector::writeImageToFile(const unsigned char *data, int width, int he
     png_bytep row = nullptr;
     png_text title_text;
     if (dst == nullptr) {
-        LogUtil::logI(TAG, {"writeImageToFile: failed to open file ", imgPath});
+        LogUtil::logI(TAG, {"writePngImage: failed to open file ", imgPath});
         goto end;
     }
     pngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     if (pngStruct == nullptr) {
-        LogUtil::logI(TAG, {"writeImageToFile: failed to create png struct ", imgPath});
+        LogUtil::logI(TAG, {"writePngImage: failed to create png struct ", imgPath});
         goto end;
     }
     pngInfo = png_create_info_struct(pngStruct);
     if (pngInfo == nullptr) {
-        LogUtil::logI(TAG, {"writeImageToFile: failed to create png info ", imgPath});
+        LogUtil::logI(TAG, {"writePngImage: failed to create png info ", imgPath});
         goto end;
     }
     if(setjmp(png_jmpbuf(pngStruct))) {
-        LogUtil::logI(TAG, {"writeImageToFile: error during creation"});
+        LogUtil::logI(TAG, {"writePngImage: error during creation"});
         goto end;
     }
     png_init_io(pngStruct, dst);
@@ -177,14 +196,15 @@ void FaceDetector::writeImageToFile(const unsigned char *data, int width, int he
 }
 
 void FaceDetector::quit() {
-    if (isRunning() || isProcessing()) {
+    if (isRunning()) {
         LogUtil::logI(TAG, {"quit"});
+        mStatus = render::Status::STATUS_DESTROY;
         mMessageQueue->enqueue(EventMessage(EventType::EVENT_QUIT));
     }
 }
 
 void FaceDetector::quitAndWait() {
-    if (isRunning() || isProcessing()) {
+    if (isRunning()) {
         pthread_mutex_lock(&mQuitMutexLock);
         mMessageQueue->enqueue(EventMessage(EventType::EVENT_QUIT));
         LogUtil::logI(TAG, {"quitAndWait: wait"});
@@ -192,3 +212,23 @@ void FaceDetector::quitAndWait() {
         LogUtil::logI(TAG, {"quitAndWait: resume"});
     }
 }
+
+void FaceDetector::releaseTracker() {
+    if (mFaceTracker != nullptr) {
+        mFaceTracker->stop();
+        mFaceTracker.reset();
+        mFaceTracker = nullptr;
+    }
+}
+
+void FaceDetector::trackFace(unsigned char *data, int width, int height, int channel) {
+    cv::Mat gray;
+    cv::Mat src(height, width, CV_8UC4, data);
+    cv::cvtColor(src, gray, cv::COLOR_RGBA2GRAY);
+    cv::equalizeHist(gray, gray);
+    mFaceTracker->process(gray);
+    std::vector<cv::Rect> faces;
+    mFaceTracker->getObjects(faces);
+    LogUtil::logI(TAG, {"trackFace: result = ", std::to_string(faces.size())});
+}
+

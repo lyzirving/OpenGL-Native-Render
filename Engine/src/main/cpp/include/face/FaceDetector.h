@@ -5,6 +5,8 @@
 #define ENGINE_FACEDETECTOR_H
 
 #include <jni.h>
+
+#include "CascadeDetectorAdapter.h"
 #include "CustomQueue.h"
 #include "EventMessage.h"
 #include "Image.h"
@@ -16,22 +18,26 @@ public:
     FaceDetector();
     ~FaceDetector();
 
-    void writePng(const unsigned char* data, int width, int height, int channel);
+    void buildTracker();
+    void enqueueImg(unsigned char* data, int width, int height, int channel, EventType type);
     bool isRunning();
-    bool isProcessing();
     void loop(JNIEnv* env);
     void prepare(JNIEnv* env);
     void quit();
     void quitAndWait();
+    void releaseTracker();
 
 private:
-    void writeImageToFile(const unsigned char* data, int width, int height, int channel);
+    void trackFace(unsigned char* data, int width, int height, int channel);
+    void writePngImage(const unsigned char* data, int width, int height, int channel);
 
     ObjectQueue<EventMessage>* mMessageQueue{nullptr};
     PointerQueue<Image>* mImgQueue{nullptr};
     volatile render::Status mStatus{render::Status::STATUS_IDLE};
     pthread_mutex_t mQuitMutexLock{};
     pthread_cond_t mQuitCondLock{};
+
+    cv::Ptr<cv::DetectionBasedTracker> mFaceTracker{nullptr};
 };
 
 #endif //ENGINE_FACEDETECTOR_H

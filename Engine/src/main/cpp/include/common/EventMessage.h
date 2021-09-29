@@ -14,7 +14,8 @@ enum class EventType : int8_t {
     EVENT_RESUME = 4,
     EVENT_BUILD_OES_TEXTURE = 5,
     EVENT_WRITE_PNG = 6,
-    EVENT_QUIT = 7
+    EVENT_FACE_TRACK = 7,
+    EVENT_QUIT = 8
 };
 
 class EventMessage {

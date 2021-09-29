@@ -197,7 +197,22 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
                                                               mSurfaceWidth * mSurfaceHeight * 4,
                                                               GL_MAP_READ_BIT));
     //use data before unmap buffer;
-    if (pixelData) { mFaceDetector->writePng(pixelData, mSurfaceWidth, mSurfaceHeight, 4); }
+    if (pixelData) {
+        switch (mDownloadMode) {
+            case render::DownloadMode::MODE_FACE_DETECT: {
+                mFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_FACE_TRACK);
+                break;
+            }
+            case render::DownloadMode::MODE_WRITE_PNG: {
+                mFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_WRITE_PNG);
+                break;
+            }
+            case render::DownloadMode::MODE_NONE:
+            default: {
+                break;
+            }
+        }
+    }
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);

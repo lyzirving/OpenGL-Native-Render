@@ -70,7 +70,8 @@ add_library(engine
         ${CPP_COMMON}
         ${CPP_CORE}
         ${CPP_FILTER}
-        ${CPP_FACE})
+        ${CPP_FACE}
+        ${DLIB_HEAD}/dlib/all/source.cpp )
 
 find_library( # name of the lib
         lib-log
@@ -94,6 +95,7 @@ target_link_libraries( # Specifies the target library.
         android
         lib-zip
         lib-png
+        opencv_java4
         ${lib-log}
         ${lib-EGL}
         ${lib-GLES})

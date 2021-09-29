@@ -53,6 +53,7 @@ private:
     FaceDetector* mFaceDetector{nullptr};
 
     int mDownloadFreeIndex{0};
+    render::DownloadMode mDownloadMode{render::DownloadMode::MODE_FACE_DETECT};
 };
 
 #endif //ENGINE_CAMRENDER_H

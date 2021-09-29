@@ -29,6 +29,55 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private static final int REQUEST_CAMERA_PERMISSION = 0x02;
 
     @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+            case R.id.btn_start_still_image: {
+                gotoPage(StillImageActivity.class);
+                break;
+            }
+            case R.id.btn_camera: {
+                gotoPage(CameraActivity.class);
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case REQUEST_WRITE_PERMISSION: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                    LogUtil.i(TAG, "onRequestPermissionsResult: read-write permission granted");
+                    EngineEnv.init(getApplicationContext());
+                    int cameraPermission = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA);
+                    if (cameraPermission != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
+                                REQUEST_CAMERA_PERMISSION);
+                    }
+                } else {
+                    Toast.makeText(getApplicationContext(), "读写权限没有授予", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            }
+            case REQUEST_CAMERA_PERMISSION: {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    LogUtil.i(TAG, "onRequestPermissionsResult: camera permission granted");
+                } else {
+                    Toast.makeText(getApplicationContext(), "相机权限没有授予", Toast.LENGTH_SHORT).show();
+                }
+                break;
+            }
+            default: {
+                break;
+            }
+        }
+    }
+
+    @Override
     protected int getLayoutId() {
         return R.layout.activity_main;
     }
@@ -40,14 +89,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     }
 
     @Override
-    protected void initData() {
-        EngineEnv.init(getApplicationContext().getAssets());
-        checkSdCard();
-    }
+    protected void initData() {}
 
     @Override
     protected void release() {
         LogUtil.i(TAG, "release");
+        EngineEnv.release();
     }
 
     @Override
@@ -81,63 +128,6 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         LogUtil.i(TAG, "onStop");
     }
 
-    @Override
-    public void onClick(View v) {
-        switch (v.getId()) {
-            case R.id.btn_start_still_image: {
-                gotoPage(StillImageActivity.class);
-                break;
-            }
-            case R.id.btn_camera: {
-                gotoPage(CameraActivity.class);
-                break;
-            }
-            default: {
-                break;
-            }
-        }
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        switch (requestCode) {
-            case REQUEST_WRITE_PERMISSION: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
-                    LogUtil.i(TAG, "onRequestPermissionsResult: read-write permission granted");
-                    int cameraPermission = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA);
-                    if (cameraPermission != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
-                                REQUEST_CAMERA_PERMISSION);
-                    }
-                } else {
-                    Toast.makeText(getApplicationContext(), "读写权限没有授予", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            }
-            case REQUEST_CAMERA_PERMISSION: {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    LogUtil.i(TAG, "onRequestPermissionsResult: camera permission granted");
-                } else {
-                    Toast.makeText(getApplicationContext(), "相机权限没有授予", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            }
-            default: {
-                break;
-            }
-        }
-    }
-
-    private void checkSdCard() {
-        if (Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
-            String sdcardPath = Environment.getExternalStorageDirectory().getAbsolutePath();
-            LogUtil.i(TAG, "checkSdCard: sdcard = " + sdcardPath);
-        } else {
-            LogUtil.i(TAG, "checkSdCard: not exist");
-        }
-    }
-
     private void gotoPage(Class where) {
         Intent intent = new Intent();
         intent.setClass(getApplicationContext(), where);
@@ -151,6 +141,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
                     REQUEST_WRITE_PERMISSION);
         } else {
+            EngineEnv.init(getApplicationContext());
             int cameraPermission = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA);
             if (cameraPermission != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA},
