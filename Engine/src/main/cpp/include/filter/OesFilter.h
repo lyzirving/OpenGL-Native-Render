@@ -12,7 +12,6 @@ public:
 
     void calculateMatrix();
     void destroy() override;
-    GLuint getOesFrameBuffer();
     void init() override;
     void initFrameBuffer() override;
     void initHandler() override;

@@ -4,19 +4,16 @@
 #ifndef ENGINE_IMAGE_H
 #define ENGINE_IMAGE_H
 
-#include "LogUtil.h"
-
 class Image {
 public:
     unsigned char* data{nullptr};
-    int width, height, channel;
+    int width{0}, height{0}, channel{0};
 
     Image() { data = nullptr; }
     Image(int inWidth, int inHeight, int inChannel) : width(inWidth), height(inHeight), channel(inChannel) {
         data = nullptr;
     }
     ~Image() {
-        LogUtil::logI("Image", {"deconstruct"});
         if (data != nullptr) { free(data); }
         data = nullptr;
     }

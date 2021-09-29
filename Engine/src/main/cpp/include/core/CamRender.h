@@ -6,6 +6,7 @@
 
 #include "BaseRender.h"
 #include "OesFilter.h"
+#include "DownloadPixelFilter.h"
 #include "FaceDetector.h"
 
 class CamRender : public BaseRender {
@@ -21,6 +22,7 @@ public:
 
 protected:
 
+    void handleDownloadPixel(GLuint inputTexture);
     void handleOtherMessage(JNIEnv* env, EventType what) override;
     void handlePreDraw(JNIEnv *env) override;
     void handlePostDraw(JNIEnv *env) override;
@@ -46,10 +48,10 @@ private:
     render::CameraMetaData* mCamMetaData{nullptr};
 
     OesFilter* mOesFilter{nullptr};
+    DownloadPixelFilter* mDownloadFilter{nullptr};
 
     FaceDetector* mFaceDetector{nullptr};
 
-    bool mEnableDownloadPreview{false};
     int mDownloadFreeIndex{0};
 };
 

@@ -45,7 +45,6 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
     private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
     private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
-    private Switch mDetectFaceSwitch;
 
     private ContrastFilter mContrastFilter;
     private SaturationFilter mSaturationFilter;
@@ -91,8 +90,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         findViewById(R.id.tab_blur).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
 
-        mDetectFaceSwitch = findViewById(R.id.switch_detect_face);
-        mDetectFaceSwitch.setOnCheckedChangeListener(this);
+        ((Switch)(findViewById(R.id.switch_detect_face))).setOnCheckedChangeListener(this);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         mAdjustBrightnessRoot = findViewById(R.id.layout_adjust_brightness_root);
@@ -144,7 +142,6 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     protected void onPause() {
         super.onPause();
         LogUtil.i(TAG, "onPause");
-        mDetectFaceSwitch.setChecked(false);
         CameraHelper.get().closeCamera();
         if (mCameraRender != null) { mCameraRender.onPause(); }
     }

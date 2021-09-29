@@ -47,6 +47,8 @@ const char * BaseFilter::getType() {
     return mFilterType;
 }
 
+GLuint BaseFilter::getFrameBuffer() { return 0; }
+
 void BaseFilter::init() {
     if (!mInitialized) {
         loadShader();

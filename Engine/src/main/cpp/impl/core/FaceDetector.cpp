@@ -45,8 +45,7 @@ void *processLoop(void *args) {
     return nullptr;
 }
 
-void FaceDetector::copyAndEnqueueData(const unsigned char *data, int width, int height, int channel) {
-    LogUtil::logI(TAG, {"copyAndEnqueueData"});
+void FaceDetector::writePng(const unsigned char *data, int width, int height, int channel) {
     if (data != nullptr) {
         std::shared_ptr<Image> img = std::make_shared<Image>();
         img->width = width;
@@ -56,7 +55,7 @@ void FaceDetector::copyAndEnqueueData(const unsigned char *data, int width, int 
         memcpy(img->data, data, width * height * channel);
         mImgQueue->enqueue(img);
         mStatus = render::Status::STATUS_PROCESSING;
-        mMessageQueue->enqueue(EventMessage(EventType::EVENT_DOWN_LOAD));
+        mMessageQueue->enqueue(EventMessage(EventType::EVENT_WRITE_PNG));
     }
 }
 
@@ -74,8 +73,8 @@ void FaceDetector::loop(JNIEnv *env) {
         mStatus = render::Status::STATUS_RUN;
         EventMessage msg = mMessageQueue->dequeue();
         switch (msg.what) {
-            case EventType::EVENT_DOWN_LOAD: {
-                LogUtil::logI(TAG, {"loop: handle down load"});
+            case EventType::EVENT_WRITE_PNG: {
+                LogUtil::logI(TAG, {"loop: handle write png"});
                 mStatus = render::Status::STATUS_PROCESSING;
                 std::shared_ptr<Image> img = mImgQueue->dequeue();
                 if (img->data != nullptr) {
@@ -117,9 +116,6 @@ void FaceDetector::writeImageToFile(const unsigned char *data, int width, int he
         LogUtil::logI(TAG, {"writeImageToFile: input is null"});
         return;
     }
-    int tmp = width;
-    width = height;
-    height = tmp;
     if (access(rootPath, 0) == -1) { mkdir(rootPath, 0666); }
     char imgPath[256] = {0};
     char pngTitle[256] = {0};
@@ -163,17 +159,10 @@ void FaceDetector::writeImageToFile(const unsigned char *data, int width, int he
     int x, y;
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
-            if (x == 0 || x == (width - 1) || y == 0 || y == (height - 1)) {
-                row[x * 3 + 0] = 0x00;
-                row[x * 3 + 1] = 0x00;
-                row[x * 3 + 2] = 0x00;
-                row[x * 3 + 3] = 0xff;
-            } else {
-                row[x * 3 + 0] = data[x * 3 + 0];
-                row[x * 3 + 1] = data[x * 3 + 1];
-                row[x * 3 + 2] = data[x * 3 + 2];
-                row[x * 3 + 3] = data[x * 3 + 3];
-            }
+            row[x * channel + 0] = data[y * width * channel + x * channel + 0];
+            row[x * channel + 1] = data[y * width * channel + x * channel + 1];
+            row[x * channel + 2] = data[y * width * channel + x * channel + 2];
+            row[x * channel + 3] = data[y * width * channel + x * channel + 3];
         }
         png_write_row(pngStruct, row);
     }
@@ -188,7 +177,7 @@ void FaceDetector::writeImageToFile(const unsigned char *data, int width, int he
 }
 
 void FaceDetector::quit() {
-    if (isRunning()) {
+    if (isRunning() || isProcessing()) {
         LogUtil::logI(TAG, {"quit"});
         mMessageQueue->enqueue(EventMessage(EventType::EVENT_QUIT));
     }

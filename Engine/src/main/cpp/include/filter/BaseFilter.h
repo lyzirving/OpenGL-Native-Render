@@ -16,6 +16,7 @@ public:
     virtual void adjust(int progress);
     virtual void destroy();
     virtual const char* getType();
+    virtual GLuint getFrameBuffer();
     virtual void init();
     virtual void initHandler();
     virtual void initBuffer();

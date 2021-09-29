@@ -13,7 +13,7 @@ enum class EventType : int8_t {
     EVENT_PAUSE = 3,
     EVENT_RESUME = 4,
     EVENT_BUILD_OES_TEXTURE = 5,
-    EVENT_DOWN_LOAD = 6,
+    EVENT_WRITE_PNG = 6,
     EVENT_QUIT = 7
 };
 

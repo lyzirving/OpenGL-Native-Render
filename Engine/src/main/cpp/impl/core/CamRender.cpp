@@ -110,6 +110,13 @@ void CamRender::buildOesTexture() {
 void CamRender::detect(JNIEnv* env, bool start) {
     if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector; }
     if (start) {
+        if (mDownloadFilter == nullptr) {
+            mDownloadFilter = new DownloadPixelFilter;
+            mDownloadFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+            std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
+            task->setObj(mDownloadFilter);
+            mWorkQueue->enqueue(task);
+        }
         mFaceDetector->prepare(env);
     } else {
         mFaceDetector->quit();
@@ -121,11 +128,7 @@ void CamRender::drawFrame() {
         int drawCount = 0;
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
-        if (mFaceDetector != nullptr && mFaceDetector->isRunning()) {
-            long startTime = render::getCurrentTimeMs();
-            downloadPreview(mOesFilter->getOesFrameBuffer());
-            LogUtil::logI(TAG, {"drawFrame: download last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
-        }
+        handleDownloadPixel(lastTexture);
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
@@ -148,6 +151,12 @@ void CamRender::destroy(JNIEnv* env) {
         delete mOesFilter;
     }
     mOesFilter = nullptr;
+
+    if (mDownloadFilter != nullptr) {
+        mDownloadFilter->destroy();
+        delete mDownloadFilter;
+    }
+    mDownloadFilter = nullptr;
 
     if (mBeautyFilterGroup != nullptr) {
         mBeautyFilterGroup->destroy();
@@ -188,12 +197,21 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
                                                               mSurfaceWidth * mSurfaceHeight * 4,
                                                               GL_MAP_READ_BIT));
     //use data before unmap buffer;
-    if (pixelData) { mFaceDetector->copyAndEnqueueData(pixelData, mSurfaceWidth, mSurfaceHeight, 4); }
+    if (pixelData) { mFaceDetector->writePng(pixelData, mSurfaceWidth, mSurfaceHeight, 4); }
     glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
     glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
 
     mDownloadFreeIndex = mDownloadFreeIndex == 0 ? 1 : 0;
+}
+
+void CamRender::handleDownloadPixel(GLuint inputTexture) {
+    if (mFaceDetector != nullptr && mFaceDetector->isRunning() && mDownloadFilter != nullptr && mDownloadFilter->initialized()) {
+        long startTime = render::getCurrentTimeMs();
+        mDownloadFilter->onDraw(inputTexture);
+        downloadPreview(mDownloadFilter->getFrameBuffer());
+        LogUtil::logI(TAG, {"handleDownloadPixel: last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
+    }
 }
 
 void CamRender::handleOtherMessage(JNIEnv* env, EventType what) {
@@ -231,6 +249,10 @@ void CamRender::handlePreDraw(JNIEnv *env) {
     if (mBeautyFilterGroup != nullptr && !mBeautyFilterGroup->initialized()) {
         mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mBeautyFilterGroup->init();
+    }
+    if (mDownloadFilter != nullptr && !mDownloadFilter->initialized()) {
+        mDownloadFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        mDownloadFilter->init();
     }
     updateTexImg(env);
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -301,6 +323,10 @@ void CamRender::pause(JNIEnv* env) {
         delete mOesFilter;
     }
     mOesFilter = nullptr;
+
+    if (mDownloadFilter != nullptr) {
+        mDownloadFilter->onPause();
+    }
 
     if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     mOesTexture = 0;

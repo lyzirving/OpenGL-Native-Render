@@ -16,7 +16,7 @@ public:
     FaceDetector();
     ~FaceDetector();
 
-    void copyAndEnqueueData(const unsigned char* data, int width, int height, int channel);
+    void writePng(const unsigned char* data, int width, int height, int channel);
     bool isRunning();
     bool isProcessing();
     void loop(JNIEnv* env);
@@ -25,7 +25,6 @@ public:
     void quitAndWait();
 
 private:
-
     void writeImageToFile(const unsigned char* data, int width, int height, int channel);
 
     ObjectQueue<EventMessage>* mMessageQueue{nullptr};
