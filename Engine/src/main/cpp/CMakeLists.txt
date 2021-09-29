@@ -3,20 +3,27 @@ cmake_minimum_required(VERSION 3.4.1)
 set(CORE_HEAD ${CMAKE_SOURCE_DIR}/include/core)
 set(COMMON_HEAD ${CMAKE_SOURCE_DIR}/include/common)
 set(FILTER_HEAD ${CMAKE_SOURCE_DIR}/include/filter)
+set(FACE_HEAD ${CMAKE_SOURCE_DIR}/include/face)
 set(PNG_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_png)
 set(ZIP_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_zip)
+set(OPENCV_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/opencv_include)
+set(DLIB_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_dlib)
 
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/third_party)
 
 include_directories(${CORE_HEAD})
 include_directories(${COMMON_HEAD})
 include_directories(${FILTER_HEAD})
+include_directories(${FACE_HEAD})
 include_directories(${PNG_HEAD})
 include_directories(${ZIP_HEAD})
+include_directories(${OPENCV_HEAD})
+include_directories(${DLIB_HEAD})
 
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/common CPP_COMMON)
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/core CPP_CORE)
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/filter CPP_FILTER)
+aux_source_directory(${CMAKE_SOURCE_DIR}/impl/face CPP_FACE)
 
 add_library(
         lib-zip
@@ -44,12 +51,26 @@ set_target_properties(
         # value
         ${THIRD_PARTY_DIR}/${ANDROID_ABI}/libpng.so)
 
+add_library(
+        opencv_java4
+        SHARED
+        IMPORTED)
+
+set_target_properties(
+        # lib name
+        opencv_java4
+        # property
+        PROPERTIES IMPORTED_LOCATION
+        # value
+        ${THIRD_PARTY_DIR}/${ANDROID_ABI}/libopencv_java4.so)
+
 add_library(engine
         SHARED
         engine-lib.cpp
         ${CPP_COMMON}
         ${CPP_CORE}
-        ${CPP_FILTER})
+        ${CPP_FILTER}
+        ${CPP_FACE})
 
 find_library( # name of the lib
         lib-log
