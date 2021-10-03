@@ -1,6 +1,7 @@
 package com.render.demo.ui;
 
 import android.graphics.PixelFormat;
+import android.graphics.RectF;
 import android.graphics.SurfaceTexture;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,6 +30,8 @@ import com.render.engine.filter.SaturationFilter;
 import com.render.engine.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
 
+import java.util.Arrays;
+
 /**
  * @author lyzirving
  */
@@ -36,6 +39,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         SeekBar.OnSeekBarChangeListener, CompoundButton.OnCheckedChangeListener {
     private static final String TAG = "CameraActivity";
 
+    private FaceRenderView mFaceRenderView;
     private SurfaceView mSurface;
     private CamRenderEngine mCameraRender;
     private RenderAdapter mRenderAdapter;
@@ -55,6 +59,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
     private static final int MSG_RENDER_PREPARE = 1;
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 2;
+    private static final int MSG_RENDER_FOUND_FACES = 3;
+    private static final int MSG_RENDER_FOUND_NO_FACES = 4;
+    private static final int MSG_RENDER_STOP_TRACK = 5;
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
@@ -62,6 +69,15 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             switch (msg.what) {
                 case MSG_RENDER_OES_TEXTURE_CREATE: {
                     handleOesTextureCreate(msg.arg1);
+                    break;
+                }
+                case MSG_RENDER_FOUND_FACES: {
+                    mFaceRenderView.setFaces((RectF[]) msg.obj);
+                    break;
+                }
+                case MSG_RENDER_STOP_TRACK:
+                case MSG_RENDER_FOUND_NO_FACES: {
+                    mFaceRenderView.setFaces(null);
                     break;
                 }
                 case MSG_RENDER_PREPARE:
@@ -83,6 +99,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mSurface.setZOrderOnTop(false);
         mSurface.getHolder().setFormat(PixelFormat.TRANSPARENT);
         mSurface.getHolder().addCallback(this);
+        mFaceRenderView = findViewById(R.id.view_face_render);
 
         findViewById(R.id.tab_switch_camera).setOnClickListener(this);
         findViewById(R.id.tab_beauty).setOnClickListener(this);
@@ -294,6 +311,19 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         if (mRenderAdapter == null) {
             mRenderAdapter = new RenderAdapter() {
                 @Override
+                public void onFaceDetect(RectF[] faces) {
+                    super.onFaceDetect(faces);
+                    RectF[] tmp = Arrays.copyOf(faces, faces.length);
+                    mMainHandler.obtainMessage(MSG_RENDER_FOUND_FACES, tmp).sendToTarget();
+                }
+
+                @Override
+                public void onNoFaceDetect() {
+                    super.onNoFaceDetect();
+                    mMainHandler.obtainMessage(MSG_RENDER_FOUND_NO_FACES).sendToTarget();
+                }
+
+                @Override
                 public void onRenderEnvPrepare() {
                     super.onRenderEnvPrepare();
                     LogUtil.i(TAG, "onRenderEnvPrepare");
@@ -310,6 +340,19 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                     super.onRenderOesTextureCreate(oesTexture);
                     LogUtil.i(TAG, "onRenderOesTextureCreate: " + oesTexture);
                     mMainHandler.obtainMessage(MSG_RENDER_OES_TEXTURE_CREATE, oesTexture, 0).sendToTarget();
+                }
+
+                @Override
+                public void onTrackStart() {
+                    super.onTrackStart();
+                    LogUtil.i(TAG, "onTrackStart");
+                }
+
+                @Override
+                public void onTrackStop() {
+                    super.onTrackStop();
+                    LogUtil.i(TAG, "onTrackStop");
+                    mMainHandler.obtainMessage(MSG_RENDER_STOP_TRACK).sendToTarget();
                 }
             };
         }

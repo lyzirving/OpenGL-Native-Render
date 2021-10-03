@@ -7,6 +7,7 @@
 #include <jni.h>
 
 #include "Common.h"
+#include "ValidPtr.h"
 #include "EventMessage.h"
 #include "WorkTask.h"
 #include "RenderEglBase.h"
@@ -14,6 +15,8 @@
 
 #include "ScreenFilter.h"
 #include "BaseFilterGroup.h"
+
+#define GET_LISTENER (mListener != nullptr ? mListener->get() : nullptr)
 
 class BaseRender {
 public:
@@ -54,6 +57,7 @@ protected:
     void surfaceChange();
 
     RenderEglBase* mEglCore;
+    ValidPtr<_jobject>* mListener{nullptr};
     jobject mJavaListener{nullptr};
     ObjectQueue<EventMessage>* mEventQueue{nullptr};
     PointerQueue<WorkTask>* mWorkQueue{nullptr};

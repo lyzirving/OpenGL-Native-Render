@@ -6,7 +6,6 @@
 #include <cstdio>
 
 #include "png.h"
-
 #include "FaceDetector.h"
 #include "JniUtil.h"
 #include "Common.h"
@@ -14,11 +13,20 @@
 
 #define TAG "FaceDetector"
 #define CLASSIFIER_PATH "/storage/emulated/0/Android/data/com.render.demo/files/Documents/lbpcascade_frontalface_improved.xml"
+#define JAVA_CLASS_RECTF "android/graphics/RectF"
 
+static std::map<std::string, jobject> gClassMap;
 const char* rootPath = reinterpret_cast<const char *>("/storage/emulated/0/testImage");
 
 FaceDetector::FaceDetector() {
     mMessageQueue = new ObjectQueue<EventMessage>;
+    pthread_mutex_init(&mQuitMutexLock, nullptr);
+    pthread_cond_init(&mQuitCondLock, nullptr);
+}
+
+FaceDetector::FaceDetector(ValidPtr<_jobject> *listener) {
+    mMessageQueue = new ObjectQueue<EventMessage>;
+    mListener = (listener != nullptr && listener->alive()) ? listener : nullptr;
     pthread_mutex_init(&mQuitMutexLock, nullptr);
     pthread_cond_init(&mQuitCondLock, nullptr);
 }
@@ -29,6 +37,8 @@ FaceDetector::~FaceDetector() {
     mImgQueue = nullptr;
     mMessageQueue = nullptr;
     mStatus = render::Status::STATUS_IDLE;
+    //just set the listener null, it will be released outside of FaceDetector
+    mListener = nullptr;
     pthread_mutex_destroy(&mQuitMutexLock);
     pthread_cond_destroy(&mQuitCondLock);
 }
@@ -43,6 +53,16 @@ void *processLoop(void *args) {
     detector->loop(env);
     JniUtil::detachThread(render::gJvm);
     return nullptr;
+}
+
+bool FaceDetector::registerSelf(JNIEnv *env) {
+    jclass rectClass = env->FindClass(JAVA_CLASS_RECTF);
+    if (rectClass != nullptr) {
+        gClassMap.insert(std::pair<std::string , jobject>(JAVA_CLASS_RECTF, env->NewGlobalRef(rectClass)));
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void FaceDetector::buildTracker() {
@@ -79,13 +99,13 @@ bool FaceDetector::isRunning() {
 void FaceDetector::loop(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARING;
     buildTracker();
-    LogUtil::logI(TAG, {"loop: enter"});
     mStatus = render::Status::STATUS_RUN;
+    LogUtil::logI(TAG, {"loop: enter"});
+    notifyStartTrack(env);
     for (;;) {
         EventMessage msg = mMessageQueue->dequeue();
         switch (msg.what) {
             case EventType::EVENT_WRITE_PNG: {
-                LogUtil::logI(TAG, {"loop: handle write png"});
                 std::shared_ptr<Image> img = mImgQueue->dequeue();
                 if (img->data != nullptr) {
                     writePngImage(img->data, img->width, img->height, img->channel);
@@ -93,15 +113,18 @@ void FaceDetector::loop(JNIEnv *env) {
                 break;
             }
             case EventType::EVENT_FACE_TRACK: {
-                std::shared_ptr<Image> img = mImgQueue->dequeue();
-                if (img->data != nullptr) {
-                    trackFace(img->data, img->width, img->height, img->channel);
+                std::shared_ptr<Image> img = mImgQueue->dequeueNotWait();
+                if (img != nullptr && img->data != nullptr) {
+                    trackFace(env, img->data, img->width, img->height, img->channel);
+                } else {
+                    LogUtil::logI(TAG, {"loop: track face invalid data"});
                 }
                 break;
             }
             case EventType::EVENT_QUIT: {
                 LogUtil::logI(TAG, {"loop: handle quit"});
                 mStatus = render::Status::STATUS_DESTROY;
+                notifyStopTrackFace(env);
                 goto quit;
             }
             default: {
@@ -111,10 +134,61 @@ void FaceDetector::loop(JNIEnv *env) {
     }
     quit:
     releaseTracker();
+    mMessageQueue->notify();
     pthread_mutex_lock(&mQuitMutexLock);
     pthread_cond_signal(&mQuitCondLock);
     pthread_mutex_unlock(&mQuitMutexLock);
     LogUtil::logI(TAG, {"loop: quit completely"});
+}
+
+void FaceDetector::notifyFaceDetect(JNIEnv* env, const std::vector<cv::Rect>& faces) {
+    if (mListener == nullptr || !mListener->alive()) {
+        LogUtil::logI(TAG, {"notifyFaceDetect: invalid listener"});
+        return;
+    }
+    jclass clazz = env->GetObjectClass(mListener->get());
+    if (faces.size() == 0) {
+        LogUtil::logI(TAG, {"notifyFaceDetect: no face detected"});
+        jmethodID method = env->GetMethodID(clazz, "onNoFaceDetect", "()V");
+        env->CallVoidMethod(mListener->get(), method);
+    } else {
+        jclass javaRectClazz = static_cast<jclass>(JniUtil::find(&gClassMap, JAVA_CLASS_RECTF));
+        jmethodID constructMethod = env->GetMethodID(javaRectClazz, "<init>", "(FFFF)V");
+        if (javaRectClazz != nullptr) {
+            jobjectArray result = env->NewObjectArray(faces.size(), javaRectClazz, nullptr);
+            for (int i = 0; i < faces.size(); i++) {
+                jobject javaFace = env->NewObject(
+                        javaRectClazz, constructMethod,
+                        (jfloat)(faces[i].x), (jfloat)(faces[i].y),
+                        (jfloat)(faces[i].x + faces[i].width),
+                        (jfloat)(faces[i].y + faces[i].height));
+                env->SetObjectArrayElement(result, i, javaFace);
+            }
+            jmethodID method = env->GetMethodID(clazz, "onFaceDetect", "([Landroid/graphics/RectF;)V");
+            env->CallVoidMethod(mListener->get(), method, result);
+            env->DeleteLocalRef(result);
+        }
+    }
+}
+
+void FaceDetector::notifyStartTrack(JNIEnv *env) {
+    if (mListener == nullptr || !mListener->alive()) {
+        LogUtil::logI(TAG, {"notifyStartTrack: invalid listener"});
+        return;
+    }
+    jclass clazz = env->GetObjectClass(mListener->get());
+    jmethodID method = env->GetMethodID(clazz, "onTrackStart", "()V");
+    env->CallVoidMethod(mListener->get(), method);
+}
+
+void FaceDetector::notifyStopTrackFace(JNIEnv *env) {
+    if (mListener == nullptr || !mListener->alive()) {
+        LogUtil::logI(TAG, {"notifyStopTrackFace: invalid listener"});
+        return;
+    }
+    jclass clazz = env->GetObjectClass(mListener->get());
+    jmethodID method = env->GetMethodID(clazz, "onTrackStop", "()V");
+    env->CallVoidMethod(mListener->get(), method);
 }
 
 void FaceDetector::prepare(JNIEnv* env) {
@@ -123,6 +197,7 @@ void FaceDetector::prepare(JNIEnv* env) {
         LogUtil::logI(TAG, {"prepare: still run status"});
     } else {
         LogUtil::logI(TAG, {"prepare: create thread"});
+        if (mImgQueue != nullptr) { mImgQueue->notify(); }
         delete mImgQueue;
         mImgQueue = new PointerQueue<Image>;
         pthread_t thread;
@@ -196,9 +271,11 @@ void FaceDetector::writePngImage(const unsigned char *data, int width, int heigh
 }
 
 void FaceDetector::quit() {
-    if (isRunning()) {
-        LogUtil::logI(TAG, {"quit"});
+    bool run = isRunning();
+    LogUtil::logI(TAG, {"quit: is running = ", (run ? "true" : "false")});
+    if (run) {
         mStatus = render::Status::STATUS_DESTROY;
+        LogUtil::logI(TAG, {"quit: pre enqueue msg"});
         mMessageQueue->enqueue(EventMessage(EventType::EVENT_QUIT));
     }
 }
@@ -221,7 +298,7 @@ void FaceDetector::releaseTracker() {
     }
 }
 
-void FaceDetector::trackFace(unsigned char *data, int width, int height, int channel) {
+void FaceDetector::trackFace(JNIEnv* env, unsigned char *data, int width, int height, int channel) {
     cv::Mat gray;
     cv::Mat src(height, width, CV_8UC4, data);
     cv::cvtColor(src, gray, cv::COLOR_RGBA2GRAY);
@@ -229,6 +306,8 @@ void FaceDetector::trackFace(unsigned char *data, int width, int height, int cha
     mFaceTracker->process(gray);
     std::vector<cv::Rect> faces;
     mFaceTracker->getObjects(faces);
-    LogUtil::logI(TAG, {"trackFace: result = ", std::to_string(faces.size())});
+    notifyFaceDetect(env, faces);
 }
+
+
 

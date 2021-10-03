@@ -49,8 +49,15 @@ public:
 
     T dequeue() {
         pthread_mutex_lock(&mMutex);
-        if (mQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
-        if (mQueue->empty()) { return T(); }
+        if (mQueue->empty()) {
+            if (mDebug) { LogUtil::logI(mTag, {"dequeue: start to wait"}); }
+            pthread_cond_wait(&mCond, &mMutex);
+        }
+        if (mQueue->empty()) {
+            if (mDebug) { LogUtil::logI(mTag, {"dequeue: empty, return new object"}); }
+            pthread_mutex_unlock(&mMutex);
+            return T();
+        }
         T result = mQueue->front();
         mQueue->pop();
         pthread_mutex_unlock(&mMutex);
@@ -59,22 +66,19 @@ public:
          * because local filed is returned,
          * and the type of filed equals to the return type
          */
+        if (mDebug) { LogUtil::logI(mTag, {"dequeue: front and pop"}); }
         return result;
     }
 
     T dequeueNotWait() {
         pthread_mutex_lock(&mMutex);
         if (mQueue->empty()) {
-            LogUtil::logI("queue", {"dequeueNotWait"});
+            pthread_mutex_unlock(&mMutex);
             return T();
         }
-        LogUtil::logI("queue", {"dequeueNotWait 1"});
         T result = mQueue->front();
-        LogUtil::logI("queue", {"dequeueNotWait 2"});
         mQueue->pop();
-        LogUtil::logI("queue", {"dequeueNotWait 3"});
         pthread_mutex_unlock(&mMutex);
-        LogUtil::logI("queue", {"dequeueNotWait 4"});
         //execute RVO
         return result;
     }
@@ -85,10 +89,15 @@ public:
         pthread_mutex_unlock(&mMutex);
     }
 
+    void setDebug(bool debug) { mDebug = debug; }
+    void setTag(std::string&& tag) { mTag = std::move(tag); }
+
 private:
     pthread_mutex_t mMutex{};
     pthread_cond_t mCond{};
     std::queue<T>* mQueue{nullptr};
+    std::string mTag{"ObjectQueue"};
+    bool mDebug{false};
 };
 
 template <typename T>
@@ -128,20 +137,33 @@ public:
 
     PointerType dequeue() {
         pthread_mutex_lock(&mMutex);
-        if (mPointerQueue->empty()) { pthread_cond_wait(&mCond, &mMutex); }
-        if (mPointerQueue->empty()) { return PointerType(); }
+        if (mPointerQueue->empty()) {
+            if (mDebug) { LogUtil::logI(mTag, {"dequeue: wait"}); }
+            pthread_cond_wait(&mCond, &mMutex);
+        }
+        if (mPointerQueue->empty()) {
+            if (mDebug) { LogUtil::logI(mTag, {"dequeue: return new obj"}); }
+            pthread_mutex_unlock(&mMutex);
+            return PointerType();
+        }
         PointerType result = mPointerQueue->front();
         mPointerQueue->pop();
         pthread_mutex_unlock(&mMutex);
+        if (mDebug) { LogUtil::logI(mTag, {"dequeue: front and pop"}); }
         return result;
     }
 
     PointerType dequeueNotWait() {
         pthread_mutex_lock(&mMutex);
-        if (mPointerQueue->empty()) { return nullptr; }
+        if (mPointerQueue->empty()) {
+            if (mDebug) { LogUtil::logI(mTag, {"dequeueNotWait: empty, return null"}); }
+            pthread_mutex_unlock(&mMutex);
+            return nullptr;
+        }
         PointerType result = mPointerQueue->front();
         mPointerQueue->pop();
         pthread_mutex_unlock(&mMutex);
+        if (mDebug) { LogUtil::logI(mTag, {"dequeueNotWait: return gained obj"}); }
         //execute RVO
         return result;
     }
@@ -152,10 +174,15 @@ public:
         pthread_mutex_unlock(&mMutex);
     }
 
+    void setDebug(bool debug) { mDebug = debug; }
+    void setTag(std::string&& tag) { mTag = std::move(tag); }
+
 private:
     pthread_mutex_t mMutex{};
     pthread_cond_t mCond{};
     std::queue<PointerType>* mPointerQueue{nullptr};
+    std::string mTag{"PointerQueue"};
+    bool mDebug{false};
 };
 
 #endif //ENGINE_CUSTOMQUEUE_H

@@ -279,7 +279,7 @@ void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARING;
     if (!mEglCore->initEglEnv()) { goto quit; }
     mStatus = render::Status::STATUS_PREPARED;
-    notifyEnvPrepare(env, mJavaListener);
+    notifyEnvPrepare(env, GET_LISTENER);
     for (;;) {
         EventMessage message = mEventQueue->dequeue();
         switch (message.what) {
@@ -302,7 +302,7 @@ void BaseRender::render(JNIEnv *env) {
                 mStatus = render::Status::STATUS_RUN;
                 bool success = renderEnvResume();
                 if (success) {
-                    notifyEnvPrepare(env, mJavaListener);
+                    notifyEnvPrepare(env, GET_LISTENER);
                     handleRenderEnvResume(env);
                 } else {
                     goto quit;
@@ -338,17 +338,21 @@ void BaseRender::render(JNIEnv *env) {
     }
     quit:
     LogUtil::logI(TAG, {"render: quit render-loop"});
-    notifyEnvRelease(env, mJavaListener);
+    notifyEnvRelease(env, GET_LISTENER);
     release(env);
     delete this;
 }
 
 void BaseRender::release(JNIEnv *env) {
-    if (mJavaListener != nullptr) { env->DeleteGlobalRef(mJavaListener); }
+    if (mListener != nullptr && mListener->alive()) {
+        env->DeleteGlobalRef(mListener->get());
+        mListener->setAlive(false);
+    }
+    delete mListener;
     delete mEglCore;
     delete mEventQueue;
     delete mWorkQueue;
-    mJavaListener = nullptr;
+    mListener = nullptr;
     mWorkQueue = nullptr;
     mEglCore = nullptr;
     mEventQueue = nullptr;
@@ -378,8 +382,14 @@ void BaseRender::runTaskPreDraw() {
 }
 
 void BaseRender::setJavaListener(JNIEnv *env, jobject listener) {
-    if (mJavaListener != nullptr) { env->DeleteGlobalRef(mJavaListener); }
-    if (listener != nullptr) { mJavaListener = env->NewGlobalRef(listener); }
+    if (mListener != nullptr && mListener->alive()) {
+        env->DeleteGlobalRef(mListener->get());
+        mListener->setAlive(false);
+    }
+    if (listener != nullptr) {
+        delete mListener;
+        mListener = new ValidPtr<_jobject>(env->NewGlobalRef(listener));
+    }
 }
 
 void BaseRender::setNativeWindow(ANativeWindow *window) {

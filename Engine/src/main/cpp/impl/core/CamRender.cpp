@@ -108,7 +108,7 @@ void CamRender::buildOesTexture() {
 }
 
 void CamRender::detect(JNIEnv* env, bool start) {
-    if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector; }
+    if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector(mListener); }
     if (start) {
         if (mDownloadFilter == nullptr) {
             mDownloadFilter = new DownloadPixelFilter;
@@ -222,10 +222,10 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
 
 void CamRender::handleDownloadPixel(GLuint inputTexture) {
     if (mFaceDetector != nullptr && mFaceDetector->isRunning() && mDownloadFilter != nullptr && mDownloadFilter->initialized()) {
-        long startTime = render::getCurrentTimeMs();
+        //long startTime = render::getCurrentTimeMs();
         mDownloadFilter->onDraw(inputTexture);
         downloadPreview(mDownloadFilter->getFrameBuffer());
-        LogUtil::logI(TAG, {"handleDownloadPixel: last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
+        //LogUtil::logI(TAG, {"handleDownloadPixel: last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
     }
 }
 
@@ -234,7 +234,7 @@ void CamRender::handleOtherMessage(JNIEnv* env, EventType what) {
         case EventType::EVENT_BUILD_OES_TEXTURE: {
             LogUtil::logI(TAG, {"handleOtherMessage: build oes texture"});
             buildOesTexture();
-            notifyEnvOesTextureCreate(env, mJavaListener, mOesTexture);
+            notifyEnvOesTextureCreate(env, GET_LISTENER, mOesTexture);
             break;
         }
         default: {

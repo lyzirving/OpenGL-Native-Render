@@ -16,6 +16,13 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintDimensionRatio="h,3:4"/>
 
+    <com.render.demo.ui.FaceRenderView
+        android:id="@+id/view_face_render"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="@+id/camera_view"
+        app:layout_constraintBottom_toBottomOf="@+id/camera_view" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"

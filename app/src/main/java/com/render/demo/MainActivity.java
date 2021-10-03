@@ -141,6 +141,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE},
                     REQUEST_WRITE_PERMISSION);
         } else {
+            LogUtil.i(TAG, "requestUserPermission");
             EngineEnv.init(getApplicationContext());
             int cameraPermission = ActivityCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.CAMERA);
             if (cameraPermission != PackageManager.PERMISSION_GRANTED) {

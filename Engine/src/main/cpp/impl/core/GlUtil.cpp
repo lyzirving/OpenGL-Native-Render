@@ -13,8 +13,11 @@ static GlUtil *gGlUtil = nullptr;
 static pthread_mutex_t gMutex;
 
 static void nInitUtilEnv(JNIEnv *env, jclass clazz, jobject assetManager) {
+    LogUtil::logI(TAG, {"nInitUtilEnv"});
     auto pGlUtil = GlUtil::self();
+    LogUtil::logI(TAG, {"nInitUtilEnv 1"});
     pGlUtil->setAssetsManager(env, assetManager);
+    LogUtil::logI(TAG, {"nInitUtilEnv 2"});
 }
 
 static JNINativeMethod sJniMethods[] = {
