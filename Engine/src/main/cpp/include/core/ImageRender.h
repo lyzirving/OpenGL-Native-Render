@@ -17,6 +17,7 @@ public:
 
 protected:
 
+    void handleEnvPrepare(JNIEnv *env) override;
     void handleOtherMessage(JNIEnv *env, EventType what) override;
     void handlePreDraw(JNIEnv *env) override;
     void handlePostDraw(JNIEnv *env) override;

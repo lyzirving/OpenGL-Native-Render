@@ -22,6 +22,7 @@ public:
 
 protected:
 
+    void handleEnvPrepare(JNIEnv *env) override;
     void handleDownloadPixel(GLuint inputTexture);
     void handleOtherMessage(JNIEnv* env, EventType what) override;
     void handlePreDraw(JNIEnv *env) override;

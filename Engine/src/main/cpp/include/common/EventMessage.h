@@ -15,16 +15,19 @@ enum class EventType : int8_t {
     EVENT_BUILD_OES_TEXTURE = 5,
     EVENT_WRITE_PNG = 6,
     EVENT_FACE_TRACK = 7,
-    EVENT_QUIT = 8
+    EVENT_CHANGE_STATUS = 8,
+    EVENT_QUIT = 9
 };
 
 class EventMessage {
 public:
     EventMessage();
     EventMessage(EventType msg);
+    EventMessage(EventType msg, int inputArg0);
     EventMessage(const EventMessage& eventMessage) noexcept;
     EventMessage(EventMessage&& eventMessage) noexcept;
     EventType what;
+    int arg0{-1};
 private:
 };
 

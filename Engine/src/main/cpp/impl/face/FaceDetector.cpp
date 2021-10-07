@@ -5,15 +5,18 @@
 #include <sys/stat.h>
 #include <cstdio>
 
-#include "png.h"
 #include "FaceDetector.h"
+#include "dlib/opencv/cv_image.h"
+#include "png.h"
 #include "JniUtil.h"
 #include "Common.h"
 #include "LogUtil.h"
 
 #define TAG "FaceDetector"
 #define CLASSIFIER_PATH "/storage/emulated/0/Android/data/com.render.demo/files/Documents/lbpcascade_frontalface_improved.xml"
+#define FACE_LANDMARK_PATH "/storage/emulated/0/Android/data/com.render.demo/files/Documents/shape_predictor_68_face_landmarks.dat"
 #define JAVA_CLASS_RECTF "android/graphics/RectF"
+#define JAVA_CLASS_LANDMARK "com/render/engine/face/LandMark"
 
 static std::map<std::string, jobject> gClassMap;
 const char* rootPath = reinterpret_cast<const char *>("/storage/emulated/0/testImage");
@@ -22,6 +25,8 @@ FaceDetector::FaceDetector() {
     mMessageQueue = new ObjectQueue<EventMessage>;
     pthread_mutex_init(&mQuitMutexLock, nullptr);
     pthread_cond_init(&mQuitCondLock, nullptr);
+
+    pthread_mutex_init(&mStatusLock, nullptr);
 }
 
 FaceDetector::FaceDetector(ValidPtr<_jobject> *listener) {
@@ -29,6 +34,8 @@ FaceDetector::FaceDetector(ValidPtr<_jobject> *listener) {
     mListener = (listener != nullptr && listener->alive()) ? listener : nullptr;
     pthread_mutex_init(&mQuitMutexLock, nullptr);
     pthread_cond_init(&mQuitCondLock, nullptr);
+
+    pthread_mutex_init(&mStatusLock, nullptr);
 }
 
 FaceDetector::~FaceDetector() {
@@ -41,6 +48,8 @@ FaceDetector::~FaceDetector() {
     mListener = nullptr;
     pthread_mutex_destroy(&mQuitMutexLock);
     pthread_cond_destroy(&mQuitCondLock);
+
+    pthread_mutex_destroy(&mStatusLock);
 }
 
 void *processLoop(void *args) {
@@ -59,6 +68,13 @@ bool FaceDetector::registerSelf(JNIEnv *env) {
     jclass rectClass = env->FindClass(JAVA_CLASS_RECTF);
     if (rectClass != nullptr) {
         gClassMap.insert(std::pair<std::string , jobject>(JAVA_CLASS_RECTF, env->NewGlobalRef(rectClass)));
+    } else {
+        return false;
+    }
+
+    jclass landmarkClazz = env->FindClass(JAVA_CLASS_LANDMARK);
+    if (landmarkClazz != nullptr) {
+        gClassMap.insert(std::pair<std::string , jobject>(JAVA_CLASS_LANDMARK, env->NewGlobalRef(landmarkClazz)));
         return true;
     } else {
         return false;
@@ -76,7 +92,16 @@ void FaceDetector::buildTracker() {
     cv::DetectionBasedTracker::Parameters params;
     mFaceTracker = cv::makePtr<cv::DetectionBasedTracker>(mainDetector, subDetector, params);
     bool res = mFaceTracker->run();
-    LogUtil::logI(TAG, {"buildTracker: result = ", (res ? "true" : "false")});
+    dlib::deserialize(FACE_LANDMARK_PATH) >> mShapePredictor;
+    LogUtil::logI(TAG, {"buildTracker: init face tracker, result = ", (res ? "true" : "false")});
+}
+
+void FaceDetector::changeStatus(render::Status newState) {
+    if (newState >= render::Status::STATUS_IDLE && newState <= render::Status::STATUS_DESTROY) {
+        pthread_mutex_lock(&mStatusLock);
+        mStatus = newState;
+        pthread_mutex_unlock(&mStatusLock);
+    }
 }
 
 void FaceDetector::enqueueImg(unsigned char *data, int width, int height, int channel, EventType type) {
@@ -92,16 +117,23 @@ void FaceDetector::enqueueImg(unsigned char *data, int width, int height, int ch
     }
 }
 
+render::Status FaceDetector::getStatus() {
+    render::Status result;
+    pthread_mutex_lock(&mStatusLock);
+    result = mStatus;
+    pthread_mutex_unlock(&mStatusLock);
+    return result;
+}
+
 bool FaceDetector::isRunning() {
-    return mStatus == render::Status::STATUS_RUN;
+    return getStatus() == render::Status::STATUS_RUN;
 }
 
 void FaceDetector::loop(JNIEnv *env) {
-    mStatus = render::Status::STATUS_PREPARING;
+    changeStatus(render::Status::STATUS_PREPARING);
     buildTracker();
-    mStatus = render::Status::STATUS_RUN;
-    LogUtil::logI(TAG, {"loop: enter"});
-    notifyStartTrack(env);
+    changeStatus(render::Status::STATUS_PREPARED);
+    LogUtil::logI(TAG, {"loop: prepared"});
     for (;;) {
         EventMessage msg = mMessageQueue->dequeue();
         switch (msg.what) {
@@ -121,9 +153,15 @@ void FaceDetector::loop(JNIEnv *env) {
                 }
                 break;
             }
+            case EventType::EVENT_CHANGE_STATUS: {
+                LogUtil::logI(TAG, {"loop: handle change status, new state = ", std::to_string(msg.arg0)});
+                changeStatus(static_cast<render::Status>(msg.arg0));
+                if (static_cast<render::Status>(msg.arg0) == render::Status::STATUS_RUN) { notifyStartTrack(env); }
+                break;
+            }
             case EventType::EVENT_QUIT: {
                 LogUtil::logI(TAG, {"loop: handle quit"});
-                mStatus = render::Status::STATUS_DESTROY;
+                changeStatus(render::Status::STATUS_DESTROY);
                 notifyStopTrackFace(env);
                 goto quit;
             }
@@ -139,36 +177,6 @@ void FaceDetector::loop(JNIEnv *env) {
     pthread_cond_signal(&mQuitCondLock);
     pthread_mutex_unlock(&mQuitMutexLock);
     LogUtil::logI(TAG, {"loop: quit completely"});
-}
-
-void FaceDetector::notifyFaceDetect(JNIEnv* env, const std::vector<cv::Rect>& faces) {
-    if (mListener == nullptr || !mListener->alive()) {
-        LogUtil::logI(TAG, {"notifyFaceDetect: invalid listener"});
-        return;
-    }
-    jclass clazz = env->GetObjectClass(mListener->get());
-    if (faces.size() == 0) {
-        LogUtil::logI(TAG, {"notifyFaceDetect: no face detected"});
-        jmethodID method = env->GetMethodID(clazz, "onNoFaceDetect", "()V");
-        env->CallVoidMethod(mListener->get(), method);
-    } else {
-        jclass javaRectClazz = static_cast<jclass>(JniUtil::find(&gClassMap, JAVA_CLASS_RECTF));
-        jmethodID constructMethod = env->GetMethodID(javaRectClazz, "<init>", "(FFFF)V");
-        if (javaRectClazz != nullptr) {
-            jobjectArray result = env->NewObjectArray(faces.size(), javaRectClazz, nullptr);
-            for (int i = 0; i < faces.size(); i++) {
-                jobject javaFace = env->NewObject(
-                        javaRectClazz, constructMethod,
-                        (jfloat)(faces[i].x), (jfloat)(faces[i].y),
-                        (jfloat)(faces[i].x + faces[i].width),
-                        (jfloat)(faces[i].y + faces[i].height));
-                env->SetObjectArrayElement(result, i, javaFace);
-            }
-            jmethodID method = env->GetMethodID(clazz, "onFaceDetect", "([Landroid/graphics/RectF;)V");
-            env->CallVoidMethod(mListener->get(), method, result);
-            env->DeleteLocalRef(result);
-        }
-    }
 }
 
 void FaceDetector::notifyStartTrack(JNIEnv *env) {
@@ -189,6 +197,10 @@ void FaceDetector::notifyStopTrackFace(JNIEnv *env) {
     jclass clazz = env->GetObjectClass(mListener->get());
     jmethodID method = env->GetMethodID(clazz, "onTrackStop", "()V");
     env->CallVoidMethod(mListener->get(), method);
+}
+
+void FaceDetector::pause() {
+    mMessageQueue->enqueue(EventMessage(EventType::EVENT_CHANGE_STATUS, static_cast<int>(render::Status::STATUS_PAUSE)));
 }
 
 void FaceDetector::prepare(JNIEnv* env) {
@@ -270,18 +282,9 @@ void FaceDetector::writePngImage(const unsigned char *data, int width, int heigh
     if (row != nullptr) { free(row); }
 }
 
-void FaceDetector::quit() {
-    bool run = isRunning();
-    LogUtil::logI(TAG, {"quit: is running = ", (run ? "true" : "false")});
-    if (run) {
-        mStatus = render::Status::STATUS_DESTROY;
-        LogUtil::logI(TAG, {"quit: pre enqueue msg"});
-        mMessageQueue->enqueue(EventMessage(EventType::EVENT_QUIT));
-    }
-}
-
 void FaceDetector::quitAndWait() {
-    if (isRunning()) {
+    render::Status status = getStatus();
+    if (status < render::Status::STATUS_DESTROY) {
         pthread_mutex_lock(&mQuitMutexLock);
         mMessageQueue->enqueue(EventMessage(EventType::EVENT_QUIT));
         LogUtil::logI(TAG, {"quitAndWait: wait"});
@@ -298,16 +301,58 @@ void FaceDetector::releaseTracker() {
     }
 }
 
+void FaceDetector::start() {
+    mMessageQueue->enqueue(EventMessage(EventType::EVENT_CHANGE_STATUS, static_cast<int>(render::Status::STATUS_RUN)));
+}
+
 void FaceDetector::trackFace(JNIEnv* env, unsigned char *data, int width, int height, int channel) {
-    cv::Mat gray;
+    if (mListener == nullptr || !mListener->alive()) {
+        LogUtil::logI(TAG, {"trackFace: invalid listener"});
+        return;
+    }
     cv::Mat src(height, width, CV_8UC4, data);
+    cv::Mat gray, bgrMat;
     cv::cvtColor(src, gray, cv::COLOR_RGBA2GRAY);
+    cv::cvtColor(src, bgrMat, cv::COLOR_RGBA2BGR);
+    dlib::cv_image<dlib::bgr_pixel> bgrPixel(bgrMat);
+
     cv::equalizeHist(gray, gray);
     mFaceTracker->process(gray);
     std::vector<cv::Rect> faces;
     mFaceTracker->getObjects(faces);
-    notifyFaceDetect(env, faces);
+
+    jclass listenerClass = env->GetObjectClass(mListener->get());
+    if (faces.empty()) {
+        LogUtil::logI(TAG, {"trackFace: no face detected"});
+        jmethodID method = env->GetMethodID(listenerClass, "onNoFaceDetect", "()V");
+        env->CallVoidMethod(mListener->get(), method);
+    } else {
+        dlib::rectangle dFaceRect;
+        jclass landMarkClass = static_cast<jclass>(JniUtil::find(&gClassMap, JAVA_CLASS_LANDMARK));
+        jmethodID constructMethod = env->GetMethodID(landMarkClass, "<init>", "()V");
+        jmethodID setDataMethod = env->GetMethodID(landMarkClass, "setPoint", "(IFF)V");
+        jmethodID notifyMethod = env->GetMethodID(listenerClass, "onLandmarkDetect", "([Lcom/render/engine/face/LandMark;)V");
+        jobjectArray detectedLandmarks = env->NewObjectArray(faces.size(), landMarkClass, nullptr);
+        for (int i = 0; i < faces.size(); i++) {
+            dFaceRect.set_left(faces[i].x);
+            dFaceRect.set_top(faces[i].y);
+            dFaceRect.set_right(faces[i].x + faces[i].width);
+            dFaceRect.set_bottom(faces[i].y + faces[i].height);
+            dlib::full_object_detection detection = mShapePredictor(bgrPixel, dFaceRect);
+            jobject landMark = env->NewObject(landMarkClass, constructMethod);
+            for (int j = 0; j < detection.num_parts(); ++j) {
+                env->CallVoidMethod(landMark, setDataMethod,
+                        j,
+                        (jfloat)(detection.part(j).x()),
+                        (jfloat)(detection.part(j).y()));
+            }
+            env->SetObjectArrayElement(detectedLandmarks, i, landMark);
+        }
+        env->CallVoidMethod(mListener->get(), notifyMethod, detectedLandmarks);
+        env->DeleteLocalRef(detectedLandmarks);
+    }
 }
+
 
 
 

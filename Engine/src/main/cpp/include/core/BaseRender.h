@@ -42,6 +42,7 @@ public:
     void setNativeWindow(ANativeWindow* window);
 
 protected:
+    virtual void handleEnvPrepare(JNIEnv* env) = 0;
     virtual void handleOtherMessage(JNIEnv* env, EventType what) = 0;
     virtual void handlePreDraw(JNIEnv* env) = 0;
     virtual void handlePostDraw(JNIEnv* env) = 0;

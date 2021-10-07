@@ -2,6 +2,8 @@ package com.render.engine.core;
 
 import android.graphics.RectF;
 
+import com.render.engine.face.LandMark;
+
 /**
  * Created on 2021/8/30
  * @author liuyuzhou
@@ -12,6 +14,12 @@ public interface IRenderListener {
      * @param faces RectF which contains faces
      */
     void onFaceDetect(RectF[] faces);
+
+    /**
+     * called when land marks are detected
+     * @param landMarks
+     */
+    void onLandmarkDetect(LandMark[] landMarks);
 
     /**
      * called when no faces are detected

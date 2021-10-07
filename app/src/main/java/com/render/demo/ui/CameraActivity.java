@@ -21,6 +21,7 @@ import com.render.engine.camera.CameraHelper;
 import com.render.engine.camera.RenderCamMetadata;
 import com.render.engine.camera.CamRenderEngine;
 import com.render.engine.core.RenderAdapter;
+import com.render.engine.face.LandMark;
 import com.render.engine.filter.ContrastFilter;
 import com.render.engine.filter.ExposureFilter;
 import com.render.engine.filter.FilterConst;
@@ -31,6 +32,8 @@ import com.render.engine.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
 
 import java.util.Arrays;
+
+// TODO: 2021/10/7 memory leaks when detecting faces 
 
 /**
  * @author lyzirving
@@ -321,6 +324,12 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 public void onNoFaceDetect() {
                     super.onNoFaceDetect();
                     mMainHandler.obtainMessage(MSG_RENDER_FOUND_NO_FACES).sendToTarget();
+                }
+
+                @Override
+                public void onLandmarkDetect(LandMark[] landMarks) {
+                    super.onLandmarkDetect(landMarks);
+                    LogUtil.i(TAG, "onLandmarkDetect");
                 }
 
                 @Override

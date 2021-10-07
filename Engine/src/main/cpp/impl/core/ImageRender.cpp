@@ -62,6 +62,8 @@ void ImageRender::drawFrame() {
     }
 }
 
+void ImageRender::handleEnvPrepare(JNIEnv *env) {}
+
 void ImageRender::handleOtherMessage(JNIEnv *env, EventType what) {}
 
 void ImageRender::handlePreDraw(JNIEnv *env) {

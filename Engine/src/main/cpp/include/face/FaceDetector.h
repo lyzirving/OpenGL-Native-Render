@@ -6,6 +6,7 @@
 
 #include <jni.h>
 
+#include "dlib/image_processing/shape_predictor.h"
 #include "ValidPtr.h"
 #include "CascadeDetectorAdapter.h"
 #include "CustomQueue.h"
@@ -23,16 +24,18 @@ public:
     static bool registerSelf(JNIEnv *env);
 
     void buildTracker();
+    void changeStatus(render::Status newState);
     void enqueueImg(unsigned char* data, int width, int height, int channel, EventType type);
     bool isRunning();
+    render::Status getStatus();
     void loop(JNIEnv* env);
-    void notifyFaceDetect(JNIEnv* env, const std::vector<cv::Rect>& faces);
     void notifyStartTrack(JNIEnv* env);
     void notifyStopTrackFace(JNIEnv* env);
+    void pause();
     void prepare(JNIEnv* env);
-    void quit();
     void quitAndWait();
     void releaseTracker();
+    void start();
 
 private:
     void trackFace(JNIEnv* env, unsigned char* data, int width, int height, int channel);
@@ -44,7 +47,10 @@ private:
     pthread_mutex_t mQuitMutexLock{};
     pthread_cond_t mQuitCondLock{};
 
+    pthread_mutex_t mStatusLock{};
+
     cv::Ptr<cv::DetectionBasedTracker> mFaceTracker{nullptr};
+    dlib::shape_predictor mShapePredictor{};
     ValidPtr<_jobject>* mListener{nullptr};
 };
 

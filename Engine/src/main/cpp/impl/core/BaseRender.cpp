@@ -279,6 +279,7 @@ void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARING;
     if (!mEglCore->initEglEnv()) { goto quit; }
     mStatus = render::Status::STATUS_PREPARED;
+    handleEnvPrepare(env);
     notifyEnvPrepare(env, GET_LISTENER);
     for (;;) {
         EventMessage message = mEventQueue->dequeue();

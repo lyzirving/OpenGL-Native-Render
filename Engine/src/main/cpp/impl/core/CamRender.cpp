@@ -108,7 +108,6 @@ void CamRender::buildOesTexture() {
 }
 
 void CamRender::detect(JNIEnv* env, bool start) {
-    if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector(mListener); }
     if (start) {
         if (mDownloadFilter == nullptr) {
             mDownloadFilter = new DownloadPixelFilter;
@@ -117,9 +116,9 @@ void CamRender::detect(JNIEnv* env, bool start) {
             task->setObj(mDownloadFilter);
             mWorkQueue->enqueue(task);
         }
-        mFaceDetector->prepare(env);
+        mFaceDetector->start();
     } else {
-        mFaceDetector->quit();
+        mFaceDetector->pause();
     }
 }
 
@@ -218,6 +217,11 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
 
     mDownloadFreeIndex = mDownloadFreeIndex == 0 ? 1 : 0;
+}
+
+void CamRender::handleEnvPrepare(JNIEnv *env) {
+    if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector(mListener); }
+    mFaceDetector->prepare(env);
 }
 
 void CamRender::handleDownloadPixel(GLuint inputTexture) {
@@ -339,9 +343,7 @@ void CamRender::pause(JNIEnv* env) {
     }
     mOesFilter = nullptr;
 
-    if (mDownloadFilter != nullptr) {
-        mDownloadFilter->onPause();
-    }
+    if (mDownloadFilter != nullptr) { mDownloadFilter->onPause(); }
 
     if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     mOesTexture = 0;
