@@ -8,7 +8,7 @@ import androidx.annotation.NonNull;
  * @author lyzirving
  */
 public class LandMark implements Cloneable {
-    private static final int POINT_NUM = 68;
+    public static final int POINT_NUM = 68;
 
     private PointF[] mPoints;
     public LandMark() { mPoints = new PointF[POINT_NUM]; }

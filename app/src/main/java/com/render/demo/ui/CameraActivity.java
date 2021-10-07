@@ -33,8 +33,6 @@ import com.render.engine.util.LogUtil;
 
 import java.util.Arrays;
 
-// TODO: 2021/10/7 memory leaks when detecting faces 
-
 /**
  * @author lyzirving
  */
@@ -63,8 +61,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private static final int MSG_RENDER_PREPARE = 1;
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 2;
     private static final int MSG_RENDER_FOUND_FACES = 3;
-    private static final int MSG_RENDER_FOUND_NO_FACES = 4;
-    private static final int MSG_RENDER_STOP_TRACK = 5;
+    private static final int MSG_RENDER_FOUND_LANDMARK = 4;
+    private static final int MSG_RENDER_FOUND_NO_FACES = 5;
+    private static final int MSG_RENDER_STOP_TRACK = 6;
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
@@ -78,9 +77,13 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                     mFaceRenderView.setFaces((RectF[]) msg.obj);
                     break;
                 }
+                case MSG_RENDER_FOUND_LANDMARK: {
+                    mFaceRenderView.setLandMarks((LandMark[]) msg.obj);
+                    break;
+                }
                 case MSG_RENDER_STOP_TRACK:
                 case MSG_RENDER_FOUND_NO_FACES: {
-                    mFaceRenderView.setFaces(null);
+                    mFaceRenderView.clear();
                     break;
                 }
                 case MSG_RENDER_PREPARE:
@@ -329,7 +332,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 @Override
                 public void onLandmarkDetect(LandMark[] landMarks) {
                     super.onLandmarkDetect(landMarks);
-                    LogUtil.i(TAG, "onLandmarkDetect");
+                    LandMark[] result = Arrays.copyOf(landMarks, landMarks.length);
+                    mMainHandler.obtainMessage(MSG_RENDER_FOUND_LANDMARK, result).sendToTarget();
                 }
 
                 @Override

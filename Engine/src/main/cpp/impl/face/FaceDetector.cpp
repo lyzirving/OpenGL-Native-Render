@@ -136,6 +136,12 @@ void FaceDetector::loop(JNIEnv *env) {
     LogUtil::logI(TAG, {"loop: prepared"});
     for (;;) {
         EventMessage msg = mMessageQueue->dequeue();
+        render::Status curState = getStatus();
+        if (msg.what != EventType::EVENT_CHANGE_STATUS && curState != render::Status::STATUS_RUN) {
+            LogUtil::logI(TAG, {"loop: state is not running, ignore msg ", std::to_string(static_cast<int>(msg.what))});
+            mImgQueue->clear();
+            continue;
+        }
         switch (msg.what) {
             case EventType::EVENT_WRITE_PNG: {
                 std::shared_ptr<Image> img = mImgQueue->dequeue();
@@ -155,8 +161,13 @@ void FaceDetector::loop(JNIEnv *env) {
             }
             case EventType::EVENT_CHANGE_STATUS: {
                 LogUtil::logI(TAG, {"loop: handle change status, new state = ", std::to_string(msg.arg0)});
-                changeStatus(static_cast<render::Status>(msg.arg0));
-                if (static_cast<render::Status>(msg.arg0) == render::Status::STATUS_RUN) { notifyStartTrack(env); }
+                auto newState = static_cast<render::Status>(msg.arg0);
+                changeStatus(newState);
+                if (newState == render::Status::STATUS_RUN) {
+                    notifyStartTrack(env);
+                } else if (newState == render::Status::STATUS_PAUSE) {
+                    notifyStopTrackFace(env);
+                }
                 break;
             }
             case EventType::EVENT_QUIT: {
@@ -347,6 +358,7 @@ void FaceDetector::trackFace(JNIEnv* env, unsigned char *data, int width, int he
                         (jfloat)(detection.part(j).y()));
             }
             env->SetObjectArrayElement(detectedLandmarks, i, landMark);
+            env->DeleteLocalRef(landMark);
         }
         env->CallVoidMethod(mListener->get(), notifyMethod, detectedLandmarks);
         env->DeleteLocalRef(detectedLandmarks);
