@@ -5,9 +5,12 @@
 #define ENGINE_CAMRENDER_H
 
 #include "BaseRender.h"
+#include "PlaceHolderFilter.h"
 #include "OesFilter.h"
+#include "FaceLiftFilter.h"
 #include "DownloadPixelFilter.h"
 #include "FaceDetector.h"
+#include "Point.h"
 
 class CamRender : public BaseRender {
 public:
@@ -16,14 +19,17 @@ public:
 
     void detect(JNIEnv* env, bool start);
     void drawFrame() override;
+    void handleLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
     void setCameraMetadata(JNIEnv* env, jobject data);
     void setPreview(GLint width, GLint height);
     void setSurfaceTexture(JNIEnv* env, jobject surfaceTexture);
 
 protected:
 
+    void handleDownloadPixel(GLuint* inputTexture, int drawCount);
     void handleEnvPrepare(JNIEnv *env) override;
-    void handleDownloadPixel(GLuint inputTexture);
+    void handleFaceTrackStart(JNIEnv *env);
+    void handleFaceTrackStop(JNIEnv *env);
     void handleOtherMessage(JNIEnv* env, EventType what) override;
     void handlePreDraw(JNIEnv *env) override;
     void handlePostDraw(JNIEnv *env) override;
@@ -48,8 +54,10 @@ private:
     jobject mSurfaceTexture{nullptr};
     render::CameraMetaData* mCamMetaData{nullptr};
 
+    PlaceHolderFilter* mPlaceHolderFilter{nullptr};
     OesFilter* mOesFilter{nullptr};
     DownloadPixelFilter* mDownloadFilter{nullptr};
+    FaceLiftFilter* mFaceLiftFilter{nullptr};
 
     FaceDetector* mFaceDetector{nullptr};
 

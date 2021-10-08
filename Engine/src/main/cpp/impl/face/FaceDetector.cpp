@@ -6,7 +6,7 @@
 #include <cstdio>
 
 #include "FaceDetector.h"
-#include "dlib/opencv/cv_image.h"
+#include "Point.h"
 #include "png.h"
 #include "JniUtil.h"
 #include "Common.h"
@@ -31,7 +31,7 @@ FaceDetector::FaceDetector() {
 
 FaceDetector::FaceDetector(ValidPtr<_jobject> *listener) {
     mMessageQueue = new ObjectQueue<EventMessage>;
-    mListener = (listener != nullptr && listener->alive()) ? listener : nullptr;
+    mJavaListener = (listener != nullptr && listener->alive()) ? listener : nullptr;
     pthread_mutex_init(&mQuitMutexLock, nullptr);
     pthread_cond_init(&mQuitCondLock, nullptr);
 
@@ -45,7 +45,11 @@ FaceDetector::~FaceDetector() {
     mMessageQueue = nullptr;
     mStatus = render::Status::STATUS_IDLE;
     //just set the listener null, it will be released outside of FaceDetector
-    mListener = nullptr;
+    mJavaListener = nullptr;
+    mTrackStopCallback = nullptr;
+    mTrackStartCallback = nullptr;
+    mFaceDetectCallback = nullptr;
+    mCallback = nullptr;
     pthread_mutex_destroy(&mQuitMutexLock);
     pthread_cond_destroy(&mQuitCondLock);
 
@@ -137,7 +141,7 @@ void FaceDetector::loop(JNIEnv *env) {
     for (;;) {
         EventMessage msg = mMessageQueue->dequeue();
         render::Status curState = getStatus();
-        if (msg.what != EventType::EVENT_CHANGE_STATUS && curState != render::Status::STATUS_RUN) {
+        if (msg.what != EventType::EVENT_CHANGE_STATUS && msg.what != EventType ::EVENT_QUIT && curState != render::Status::STATUS_RUN) {
             LogUtil::logI(TAG, {"loop: state is not running, ignore msg ", std::to_string(static_cast<int>(msg.what))});
             mImgQueue->clear();
             continue;
@@ -153,7 +157,7 @@ void FaceDetector::loop(JNIEnv *env) {
             case EventType::EVENT_FACE_TRACK: {
                 std::shared_ptr<Image> img = mImgQueue->dequeueNotWait();
                 if (img != nullptr && img->data != nullptr) {
-                    trackFace(env, img->data, img->width, img->height, img->channel);
+                    trackFaceNative(env, img->data, img->width, img->height, img->channel);
                 } else {
                     LogUtil::logI(TAG, {"loop: track face invalid data"});
                 }
@@ -191,23 +195,53 @@ void FaceDetector::loop(JNIEnv *env) {
 }
 
 void FaceDetector::notifyStartTrack(JNIEnv *env) {
-    if (mListener == nullptr || !mListener->alive()) {
-        LogUtil::logI(TAG, {"notifyStartTrack: invalid listener"});
-        return;
+    if (mTrackStartCallback != nullptr) {
+        mTrackStartCallback(mCallback);
     }
-    jclass clazz = env->GetObjectClass(mListener->get());
-    jmethodID method = env->GetMethodID(clazz, "onTrackStart", "()V");
-    env->CallVoidMethod(mListener->get(), method);
+    if (mJavaListener != nullptr && mJavaListener->alive()) {
+        jclass clazz = env->GetObjectClass(mJavaListener->get());
+        jmethodID method = env->GetMethodID(clazz, "onTrackStart", "()V");
+        env->CallVoidMethod(mJavaListener->get(), method);
+    }
 }
 
 void FaceDetector::notifyStopTrackFace(JNIEnv *env) {
-    if (mListener == nullptr || !mListener->alive()) {
-        LogUtil::logI(TAG, {"notifyStopTrackFace: invalid listener"});
-        return;
+    if (mTrackStopCallback != nullptr) {
+        mTrackStopCallback(mCallback);
     }
-    jclass clazz = env->GetObjectClass(mListener->get());
-    jmethodID method = env->GetMethodID(clazz, "onTrackStop", "()V");
-    env->CallVoidMethod(mListener->get(), method);
+    if (mJavaListener != nullptr && mJavaListener->alive()) {
+        jclass clazz = env->GetObjectClass(mJavaListener->get());
+        jmethodID method = env->GetMethodID(clazz, "onTrackStop", "()V");
+        env->CallVoidMethod(mJavaListener->get(), method);
+    }
+}
+
+void FaceDetector::notifyLandMarkDetect(JNIEnv *env, jclass listenerClass,
+        const std::vector<cv::Rect> &faces, const dlib::cv_image<dlib::bgr_pixel> &bgrPixel) {
+    dlib::rectangle dFaceRect;
+    jclass landMarkClass = static_cast<jclass>(JniUtil::find(&gClassMap, JAVA_CLASS_LANDMARK));
+    jmethodID constructMethod = env->GetMethodID(landMarkClass, "<init>", "()V");
+    jmethodID setDataMethod = env->GetMethodID(landMarkClass, "setPoint", "(IFF)V");
+    jmethodID notifyMethod = env->GetMethodID(listenerClass, "onLandmarkDetect", "([Lcom/render/engine/face/LandMark;)V");
+    jobjectArray detectedLandmarks = env->NewObjectArray(faces.size(), landMarkClass, nullptr);
+    for (int i = 0; i < faces.size(); i++) {
+        dFaceRect.set_left(faces[i].x);
+        dFaceRect.set_top(faces[i].y);
+        dFaceRect.set_right(faces[i].x + faces[i].width);
+        dFaceRect.set_bottom(faces[i].y + faces[i].height);
+        dlib::full_object_detection detection = mShapePredictor(bgrPixel, dFaceRect);
+        jobject landMark = env->NewObject(landMarkClass, constructMethod);
+        for (int j = 0; j < detection.num_parts(); ++j) {
+            env->CallVoidMethod(landMark, setDataMethod,
+                                j,
+                                (jfloat)(detection.part(j).x()),
+                                (jfloat)(detection.part(j).y()));
+        }
+        env->SetObjectArrayElement(detectedLandmarks, i, landMark);
+        env->DeleteLocalRef(landMark);
+    }
+    env->CallVoidMethod(mJavaListener->get(), notifyMethod, detectedLandmarks);
+    env->DeleteLocalRef(detectedLandmarks);
 }
 
 void FaceDetector::pause() {
@@ -317,7 +351,7 @@ void FaceDetector::start() {
 }
 
 void FaceDetector::trackFace(JNIEnv* env, unsigned char *data, int width, int height, int channel) {
-    if (mListener == nullptr || !mListener->alive()) {
+    if (mJavaListener == nullptr || !mJavaListener->alive()) {
         LogUtil::logI(TAG, {"trackFace: invalid listener"});
         return;
     }
@@ -332,37 +366,68 @@ void FaceDetector::trackFace(JNIEnv* env, unsigned char *data, int width, int he
     std::vector<cv::Rect> faces;
     mFaceTracker->getObjects(faces);
 
-    jclass listenerClass = env->GetObjectClass(mListener->get());
+    jclass listenerClass = env->GetObjectClass(mJavaListener->get());
     if (faces.empty()) {
         LogUtil::logI(TAG, {"trackFace: no face detected"});
         jmethodID method = env->GetMethodID(listenerClass, "onNoFaceDetect", "()V");
-        env->CallVoidMethod(mListener->get(), method);
+        env->CallVoidMethod(mJavaListener->get(), method);
     } else {
-        dlib::rectangle dFaceRect;
-        jclass landMarkClass = static_cast<jclass>(JniUtil::find(&gClassMap, JAVA_CLASS_LANDMARK));
-        jmethodID constructMethod = env->GetMethodID(landMarkClass, "<init>", "()V");
-        jmethodID setDataMethod = env->GetMethodID(landMarkClass, "setPoint", "(IFF)V");
-        jmethodID notifyMethod = env->GetMethodID(listenerClass, "onLandmarkDetect", "([Lcom/render/engine/face/LandMark;)V");
-        jobjectArray detectedLandmarks = env->NewObjectArray(faces.size(), landMarkClass, nullptr);
-        for (int i = 0; i < faces.size(); i++) {
-            dFaceRect.set_left(faces[i].x);
-            dFaceRect.set_top(faces[i].y);
-            dFaceRect.set_right(faces[i].x + faces[i].width);
-            dFaceRect.set_bottom(faces[i].y + faces[i].height);
-            dlib::full_object_detection detection = mShapePredictor(bgrPixel, dFaceRect);
-            jobject landMark = env->NewObject(landMarkClass, constructMethod);
-            for (int j = 0; j < detection.num_parts(); ++j) {
-                env->CallVoidMethod(landMark, setDataMethod,
-                        j,
-                        (jfloat)(detection.part(j).x()),
-                        (jfloat)(detection.part(j).y()));
-            }
-            env->SetObjectArrayElement(detectedLandmarks, i, landMark);
-            env->DeleteLocalRef(landMark);
-        }
-        env->CallVoidMethod(mListener->get(), notifyMethod, detectedLandmarks);
-        env->DeleteLocalRef(detectedLandmarks);
+        notifyLandMarkDetect(env, listenerClass, faces, bgrPixel);
     }
+}
+
+void FaceDetector::trackFaceNative(JNIEnv *env, unsigned char *data, int width, int height, int channel) {
+    cv::Mat src(height, width, CV_8UC4, data);
+    cv::Mat gray, bgrMat;
+    cv::cvtColor(src, gray, cv::COLOR_RGBA2GRAY);
+    cv::cvtColor(src, bgrMat, cv::COLOR_RGBA2BGR);
+    dlib::cv_image<dlib::bgr_pixel> bgrPixel(bgrMat);
+
+    cv::equalizeHist(gray, gray);
+    mFaceTracker->process(gray);
+    std::vector<cv::Rect> faces;
+    mFaceTracker->getObjects(faces);
+
+    if (faces.empty()) {
+        LogUtil::logI(TAG, {"trackFaceNative: no face detected"});
+    } else {
+        LogUtil::logI(TAG, {"trackFaceNative: face detected"});
+        //only support lift one face now
+        dlib::rectangle dFaceRect;
+        dFaceRect.set_left(faces[0].x);
+        dFaceRect.set_top(faces[0].y);
+        dFaceRect.set_right(faces[0].x + faces[0].width);
+        dFaceRect.set_bottom(faces[0].y + faces[0].height);
+        dlib::full_object_detection detection = mShapePredictor(bgrPixel, dFaceRect);
+        Point lhsDst;
+        Point lhsCtrl;
+        Point rhsDst;
+        Point rhsCtrl;
+        float divider = 15;
+        lhsDst.x = (float)(detection.part(0).x() + detection.part(8).x()) / 2;
+        lhsDst.y = (float)(detection.part(0).y() + detection.part(8).y()) / 2;
+
+        lhsCtrl.x = detection.part(0).x() - (float)(detection.part(27).x() - detection.part(0).x()) / divider;
+        lhsCtrl.y = lhsDst.y + (lhsDst.x - lhsCtrl.x) * (float)(detection.part(8).x() - detection.part(0).x()) / (float)(detection.part(8).y() - detection.part(0).y());
+
+        rhsDst.x = (float)(detection.part(8).x() + detection.part(16).x()) / 2;
+        rhsDst.y = (float)(detection.part(8).y() + detection.part(16).y()) / 2;
+
+        rhsCtrl.x = detection.part(16).x() + (float)(detection.part(16).x() - detection.part(27).x()) / divider;
+        rhsCtrl.y = rhsDst.y + (rhsDst.x - rhsCtrl.x) * (float)(detection.part(16).x() - detection.part(8).x()) / (float)(detection.part(16).y() - detection.part(8).y());
+
+        if (mFaceDetectCallback != nullptr) { mFaceDetectCallback(mCallback, &lhsDst, &lhsCtrl, &rhsDst, &rhsCtrl); }
+    }
+}
+
+void FaceDetector::setCallback(void* (*pCallbackStart)(void *argStart),
+        void* (*pCallbackStop)(void *argStop),
+        void*(*pCallbackFaceDetect)(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4),
+        void* callback) {
+    if (pCallbackStart != nullptr) { mTrackStartCallback = pCallbackStart; }
+    if (pCallbackStop != nullptr) { mTrackStopCallback = pCallbackStop; }
+    if (pCallbackFaceDetect != nullptr) { mFaceDetectCallback = pCallbackFaceDetect; }
+    mCallback = callback;
 }
 
 

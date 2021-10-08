@@ -45,6 +45,26 @@ static void nEnvSetSurfaceTexture(JNIEnv *env, jclass clazz, jlong ptr, jobject 
     pRender->setSurfaceTexture(env, surfaceTexture);
 }
 
+static void* envHandleTrackStart(void *args) {
+    auto *pRender = reinterpret_cast<CamRender *>(args);
+    pRender->enqueueMessage(EventType::EVENT_FACE_TRACK_START);
+    return nullptr;
+}
+
+static void* envHandleTrackStop(void *args) {
+    auto *pRender = reinterpret_cast<CamRender *>(args);
+    pRender->enqueueMessage(EventType::EVENT_FACE_TRACK_STOP);
+    return nullptr;
+}
+
+static void* envHandleLandMarkDetect(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4) {
+    auto *pRender = reinterpret_cast<CamRender *>(arg0);
+    pRender->handleLandMarkTrack(
+            static_cast<Point *>(arg1), static_cast<Point *>(arg2),
+            static_cast<Point *>(arg3), static_cast<Point *>(arg4));
+    return nullptr;
+}
+
 static JNINativeMethod sJniMethods[] = {
         {
                 "nBuildTexture",           "(J)V",
@@ -116,6 +136,13 @@ void CamRender::detect(JNIEnv* env, bool start) {
             task->setObj(mDownloadFilter);
             mWorkQueue->enqueue(task);
         }
+        if (mFaceLiftFilter == nullptr) {
+            mFaceLiftFilter = new FaceLiftFilter;
+            mFaceLiftFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+            std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
+            task->setObj(mFaceLiftFilter);
+            mWorkQueue->enqueue(task);
+        }
         mFaceDetector->start();
     } else {
         mFaceDetector->pause();
@@ -127,7 +154,7 @@ void CamRender::drawFrame() {
         int drawCount = 0;
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
-        handleDownloadPixel(lastTexture);
+        handleDownloadPixel(reinterpret_cast<GLuint *>(&lastTexture), drawCount);
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
@@ -145,6 +172,12 @@ void CamRender::destroy(JNIEnv* env) {
     }
     mScreenFilter = nullptr;
 
+    if (mPlaceHolderFilter != nullptr) {
+        mPlaceHolderFilter->destroy();
+        delete mPlaceHolderFilter;
+    }
+    mPlaceHolderFilter = nullptr;
+
     if (mOesFilter != nullptr) {
         mOesFilter->destroy();
         delete mOesFilter;
@@ -156,6 +189,12 @@ void CamRender::destroy(JNIEnv* env) {
         delete mDownloadFilter;
     }
     mDownloadFilter = nullptr;
+
+    if (mFaceLiftFilter != nullptr) {
+        mFaceLiftFilter->destroy();
+        delete mFaceLiftFilter;
+    }
+    mFaceLiftFilter = nullptr;
 
     if (mBeautyFilterGroup != nullptr) {
         mBeautyFilterGroup->destroy();
@@ -220,16 +259,35 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
 }
 
 void CamRender::handleEnvPrepare(JNIEnv *env) {
-    if (mFaceDetector == nullptr) { mFaceDetector = new FaceDetector(mListener); }
+    if (mFaceDetector == nullptr) {
+        mFaceDetector = new FaceDetector();
+        mFaceDetector->setCallback(envHandleTrackStart, envHandleTrackStop, envHandleLandMarkDetect, this);
+    }
     mFaceDetector->prepare(env);
 }
 
-void CamRender::handleDownloadPixel(GLuint inputTexture) {
+void CamRender::handleDownloadPixel(GLuint* inputTexture, int drawCount) {
     if (mFaceDetector != nullptr && mFaceDetector->isRunning() && mDownloadFilter != nullptr && mDownloadFilter->initialized()) {
-        //long startTime = render::getCurrentTimeMs();
-        mDownloadFilter->onDraw(inputTexture);
+        //the drawCount must be odd when DownloadFilter calls onDraw;
+        mDownloadFilter->onDraw(*inputTexture);
         downloadPreview(mDownloadFilter->getFrameBuffer());
+        if (mFaceLiftFilter != nullptr && mFaceLiftFilter->pointValid()) {
+            if (drawCount % 2 != 0) { *inputTexture = mPlaceHolderFilter->onDraw(*inputTexture); }
+            *inputTexture = mFaceLiftFilter->onDraw(*inputTexture);
+        }
         //LogUtil::logI(TAG, {"handleDownloadPixel: last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
+    }
+}
+
+void CamRender::handleFaceTrackStart(JNIEnv *env) {}
+
+void CamRender::handleFaceTrackStop(JNIEnv *env) {}
+
+void CamRender::handleLandMarkTrack(Point *lhsDst, Point *lhsCtrl, Point *rhsDst, Point *rhsCtrl) {
+    if (mFaceLiftFilter != nullptr) {
+        mFaceLiftFilter->setPts(lhsDst, lhsCtrl, rhsDst, rhsCtrl);
+    } else {
+        LogUtil::logI(TAG, {"handleLandMarkTrack: filter is nullptr"});
     }
 }
 
@@ -239,6 +297,16 @@ void CamRender::handleOtherMessage(JNIEnv* env, EventType what) {
             LogUtil::logI(TAG, {"handleOtherMessage: build oes texture"});
             buildOesTexture();
             notifyEnvOesTextureCreate(env, GET_LISTENER, mOesTexture);
+            break;
+        }
+        case EventType::EVENT_FACE_TRACK_START: {
+            LogUtil::logI(TAG, {"handleOtherMessage: face track start"});
+            handleFaceTrackStart(env);
+            break;
+        }
+        case EventType::EVENT_FACE_TRACK_STOP: {
+            LogUtil::logI(TAG, {"handleOtherMessage: face track stop"});
+            handleFaceTrackStop(env);
             break;
         }
         default: {
@@ -256,6 +324,12 @@ void CamRender::handlePreDraw(JNIEnv *env) {
         mScreenFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mScreenFilter->init();
     }
+    if (mPlaceHolderFilter == nullptr) {
+        LogUtil::logI(TAG, {"handlePreDraw: place holder filter init"});
+        mPlaceHolderFilter = new PlaceHolderFilter;
+        mPlaceHolderFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        mPlaceHolderFilter->init();
+    }
     if (mOesFilter == nullptr) {
         LogUtil::logI(TAG, {"handlePreDraw: oes filter init"});
         mOesFilter = new OesFilter;
@@ -272,6 +346,10 @@ void CamRender::handlePreDraw(JNIEnv *env) {
     if (mDownloadFilter != nullptr && !mDownloadFilter->initialized()) {
         mDownloadFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mDownloadFilter->init();
+    }
+    if (mFaceLiftFilter != nullptr && !mFaceLiftFilter->initialized()) {
+        mFaceLiftFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        mFaceLiftFilter->init();
     }
     updateTexImg(env);
     glClearColor(0.0, 0.0, 0.0, 1.0);
@@ -337,6 +415,12 @@ void CamRender::pause(JNIEnv* env) {
     }
     mScreenFilter = nullptr;
 
+    if (mPlaceHolderFilter != nullptr) {
+        mPlaceHolderFilter->destroy();
+        delete mPlaceHolderFilter;
+    }
+    mPlaceHolderFilter = nullptr;
+
     if (mOesFilter != nullptr) {
         mOesFilter->destroy();
         delete mOesFilter;
@@ -344,6 +428,8 @@ void CamRender::pause(JNIEnv* env) {
     mOesFilter = nullptr;
 
     if (mDownloadFilter != nullptr) { mDownloadFilter->onPause(); }
+
+    if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->onPause(); }
 
     if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     mOesTexture = 0;

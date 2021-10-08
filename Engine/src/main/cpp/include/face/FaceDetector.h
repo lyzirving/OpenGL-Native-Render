@@ -7,6 +7,7 @@
 #include <jni.h>
 
 #include "dlib/image_processing/shape_predictor.h"
+#include "dlib/opencv/cv_image.h"
 #include "ValidPtr.h"
 #include "CascadeDetectorAdapter.h"
 #include "CustomQueue.h"
@@ -31,14 +32,20 @@ public:
     void loop(JNIEnv* env);
     void notifyStartTrack(JNIEnv* env);
     void notifyStopTrackFace(JNIEnv* env);
+    void notifyLandMarkDetect(JNIEnv* env, jclass listenerClass, const std::vector<cv::Rect>& faces, const dlib::cv_image<dlib::bgr_pixel>& bgrPixel);
     void pause();
     void prepare(JNIEnv* env);
     void quitAndWait();
     void releaseTracker();
     void start();
+    void setCallback(void*(*pCallbackStart)(void *argStart),
+            void*(*pCallbackStop)(void *argStop),
+            void*(*pCallbackFaceDetect)(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4),
+            void* callback);
 
 private:
     void trackFace(JNIEnv* env, unsigned char* data, int width, int height, int channel);
+    void trackFaceNative(JNIEnv* env, unsigned char* data, int width, int height, int channel);
     void writePngImage(const unsigned char* data, int width, int height, int channel);
 
     ObjectQueue<EventMessage>* mMessageQueue{nullptr};
@@ -51,7 +58,12 @@ private:
 
     cv::Ptr<cv::DetectionBasedTracker> mFaceTracker{nullptr};
     dlib::shape_predictor mShapePredictor{};
-    ValidPtr<_jobject>* mListener{nullptr};
+    ValidPtr<_jobject>* mJavaListener{nullptr};
+
+    void*(*mTrackStartCallback)(void *args){nullptr};
+    void*(*mTrackStopCallback)(void *args){nullptr};
+    void*(*mFaceDetectCallback)(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4){nullptr};
+    void* mCallback{nullptr};
 };
 
 #endif //ENGINE_FACEDETECTOR_H
