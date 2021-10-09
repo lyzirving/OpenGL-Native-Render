@@ -115,6 +115,25 @@ bool CamRender::registerSelf(JNIEnv *env) {
     return true;
 }
 
+void CamRender::adjustProperty(const char *filterType, const char *property, int progress) {
+    BaseRender::adjustProperty(filterType, property, progress);
+    if (filterType == nullptr || std::strlen(filterType) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter type is invalid"});
+        return;
+    }
+    if (property == nullptr || std::strlen(property) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter prop is invalid"});
+        return;
+    }
+    if (std::strcmp(render::FILTER_FACE_LIFT, filterType) == 0) {
+        if (std::strcmp(render::FILTER_PROP_FACE_LIFT, property) == 0 && mFaceLiftFilter != nullptr && mFaceLiftFilter->initialized()) {
+            mFaceLiftFilter->adjust(progress);
+        }
+    } else {
+        LogUtil::logI(TAG, {"adjustProperty: unknown filter ", filterType});
+    }
+}
+
 void CamRender::buildOesTexture() {
     if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -490,4 +509,5 @@ void CamRender::updateTexImg(JNIEnv *env) {
         }
     }
 }
+
 

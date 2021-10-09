@@ -27,9 +27,9 @@ public:
 
     virtual void drawFrame() = 0;
     virtual void release(JNIEnv* env);
+    virtual void adjustProperty(const char *filterType, const char *property, int progress);
 
     void adjust(const char* filterType, int progress);
-    void adjustProperty(const char *filterType, const char *property, int progress);
     bool addBeautyFilter(const char* filterType, bool commit);
     void clearBeautyFilter();
     void enqueueMessage(EventType what);

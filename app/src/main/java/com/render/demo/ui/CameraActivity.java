@@ -46,10 +46,13 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private RenderAdapter mRenderAdapter;
     private int mSurfaceWidth, mSurfaceHeight;
 
-    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot;
+    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot, mAdjustFaceRoot;
     private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
     private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
     private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
+    private SeekBar mFaceLiftSeekBar;
+
+    private Switch mSwitchDetectFace;
 
     private ContrastFilter mContrastFilter;
     private SaturationFilter mSaturationFilter;
@@ -111,13 +114,16 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         findViewById(R.id.tab_beauty).setOnClickListener(this);
         findViewById(R.id.tab_brightness).setOnClickListener(this);
         findViewById(R.id.tab_blur).setOnClickListener(this);
+        findViewById(R.id.tab_face).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
 
-        ((Switch)(findViewById(R.id.switch_detect_face))).setOnCheckedChangeListener(this);
+        mSwitchDetectFace = findViewById(R.id.switch_detect_face);
+        mSwitchDetectFace.setOnCheckedChangeListener(this);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         mAdjustBrightnessRoot = findViewById(R.id.layout_adjust_brightness_root);
         mAdjustBlurRoot = findViewById(R.id.layout_adjust_blur_root);
+        mAdjustFaceRoot = findViewById(R.id.layout_adjust_face_root);
 
         mContrastSeekBar = findViewById(R.id.seek_bar_contrast);
         mSharpenSeekBar = findViewById(R.id.seek_bar_sharpen);
@@ -140,6 +146,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
         mHorBlurSeekBar.setOnSeekBarChangeListener(this);
         mVerBlurSeekBar.setOnSeekBarChangeListener(this);
+
+        mFaceLiftSeekBar = findViewById(R.id.seek_bar_face_lift_intensity);
+        mFaceLiftSeekBar.setOnSeekBarChangeListener(this);
     }
 
     @Override
@@ -192,6 +201,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
             case R.id.tab_blur: {
                 handleClickBlur();
+                break;
+            }
+            case R.id.tab_face: {
+                handleClickFace();
                 break;
             }
             case R.id.tab_clear: {
@@ -266,6 +279,11 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 mCameraRender.requestRender();
                 break;
             }
+            case R.id.seek_bar_face_lift_intensity: {
+                mCameraRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.FACE_LIFT_INTENSITY, seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
             default: {
                 break;
             }
@@ -310,7 +328,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private boolean anyTabShow() {
         return mAdjustBeautyRoot.getVisibility() == View.VISIBLE
                 || mAdjustBrightnessRoot.getVisibility() == View.VISIBLE
-                || mAdjustBlurRoot.getVisibility() == View.VISIBLE;
+                || mAdjustBlurRoot.getVisibility() == View.VISIBLE
+                || mAdjustFaceRoot.getVisibility() == View.VISIBLE;
     }
 
     private RenderAdapter getRenderAdapter() {
@@ -376,6 +395,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         mAdjustBeautyRoot.setVisibility(View.GONE);
         mAdjustBrightnessRoot.setVisibility(View.GONE);
         mAdjustBlurRoot.setVisibility(View.GONE);
+        mAdjustFaceRoot.setVisibility(View.GONE);
     }
 
     private void handleClickSwitchCamera() {
@@ -445,6 +465,18 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         }
     }
 
+    private void handleClickFace() {
+        if (anyTabShow()) {
+            hideAllTab();
+            return;
+        }
+        boolean show = mAdjustFaceRoot.getVisibility() == View.VISIBLE;
+        showTab(mAdjustFaceRoot, !show);
+        if (!show && !mSwitchDetectFace.isChecked()) {
+            mSwitchDetectFace.setChecked(true);
+        }
+    }
+
     private void handleClickClear() {
         if (anyTabShow()) {
             hideAllTab();
@@ -479,6 +511,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         if (mDecHighlightSeekBar != null) { mDecHighlightSeekBar.setProgress(0); }
         if (mHorBlurSeekBar != null) { mHorBlurSeekBar.setProgress(0); }
         if (mVerBlurSeekBar != null) { mVerBlurSeekBar.setProgress(0); }
+        if (mFaceLiftSeekBar != null) { mFaceLiftSeekBar.setProgress(50); }
     }
 
     private void showTab(View view, boolean show) {

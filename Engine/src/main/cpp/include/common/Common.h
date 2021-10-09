@@ -19,11 +19,13 @@ namespace render {
     static const char* FILTER_EXPOSURE = "EXPOSURE";
     static const char* FILTER_HIGHLIGHT_SHADOW = "HIGHLIGHT_SHADOW";
     static const char* FILTER_GAUSSIAN = "GAUSSIAN";
+    static const char* FILTER_FACE_LIFT = "FACE_LIFT";
 
     static const char* FILTER_PROP_HIGHLIGHT = "HIGHLIGHT";
     static const char* FILTER_PROP_SHADOW = "SHADOW";
     static const char* FILTER_PROP_HOR_GAUSSIAN = "HOR_GAUSSIAN";
     static const char* FILTER_PROP_VER_GAUSSIAN = "VER_GAUSSIAN";
+    static const char* FILTER_PROP_FACE_LIFT = "FACE_LIFT_INTENSITY";
 
     static void createClassMap() {
         if (gClassMap == nullptr) { gClassMap = new std::map<std::string, jobject>; }

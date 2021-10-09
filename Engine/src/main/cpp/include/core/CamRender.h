@@ -17,6 +17,8 @@ public:
 
     static bool registerSelf(JNIEnv *env);
 
+    void adjustProperty(const char *filterType, const char *property, int progress) override;
+
     void detect(JNIEnv* env, bool start);
     void drawFrame() override;
     void handleLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
