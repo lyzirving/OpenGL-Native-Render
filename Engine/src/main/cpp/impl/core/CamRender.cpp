@@ -16,6 +16,8 @@
 #define JAVA_CLASS_RENDER_CAM_META_DATA "com/render/engine/camera/RenderCamMetadata"
 #define JAVA_CLASS_SURFACE_TEXTURE "android/graphics/SurfaceTexture"
 
+#define NUM_FACE_CTRL_PT 4
+
 static void nEnvBuildTexture(JNIEnv *env, jclass clazz, jlong ptr) {
     auto *pRender = reinterpret_cast<CamRender *>(ptr);
     pRender->enqueueMessage(EventType::EVENT_BUILD_OES_TEXTURE);
@@ -57,11 +59,22 @@ static void* envHandleTrackStop(void *args) {
     return nullptr;
 }
 
-static void* envHandleLandMarkDetect(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4) {
+static void* envHandleLandMarkDetect(void* env, void* arg0, int argNum, ...) {
     auto *pRender = reinterpret_cast<CamRender *>(arg0);
-    pRender->handleLandMarkTrack(
-            static_cast<Point *>(arg1), static_cast<Point *>(arg2),
-            static_cast<Point *>(arg3), static_cast<Point *>(arg4));
+    if (argNum == NUM_FACE_CTRL_PT) {
+        Point* pts[NUM_FACE_CTRL_PT];
+        Point* pt = nullptr;
+        std::va_list args;
+        va_start(args, argNum);
+        while (argNum--) {
+            pt = va_arg(args, Point*);
+            pts[NUM_FACE_CTRL_PT - 1 - argNum] = pt;
+        }
+        va_end(args);
+        pRender->handleLandMarkTrack(pts[0], pts[1], pts[2], pts[3]);
+    } else {
+        LogUtil::logI(TAG, {"envHandleLandMarkDetect: invalid args num = ", std::to_string(argNum)});
+    }
     return nullptr;
 }
 
@@ -184,59 +197,6 @@ void CamRender::drawFrame() {
     }
 }
 
-void CamRender::destroy(JNIEnv* env) {
-    if (mScreenFilter != nullptr) {
-        mScreenFilter->destroy();
-        delete mScreenFilter;
-    }
-    mScreenFilter = nullptr;
-
-    if (mPlaceHolderFilter != nullptr) {
-        mPlaceHolderFilter->destroy();
-        delete mPlaceHolderFilter;
-    }
-    mPlaceHolderFilter = nullptr;
-
-    if (mOesFilter != nullptr) {
-        mOesFilter->destroy();
-        delete mOesFilter;
-    }
-    mOesFilter = nullptr;
-
-    if (mDownloadFilter != nullptr) {
-        mDownloadFilter->destroy();
-        delete mDownloadFilter;
-    }
-    mDownloadFilter = nullptr;
-
-    if (mFaceLiftFilter != nullptr) {
-        mFaceLiftFilter->destroy();
-        delete mFaceLiftFilter;
-    }
-    mFaceLiftFilter = nullptr;
-
-    if (mBeautyFilterGroup != nullptr) {
-        mBeautyFilterGroup->destroy();
-        delete mBeautyFilterGroup;
-    }
-    mBeautyFilterGroup = nullptr;
-
-    if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
-    mOesTexture = 0;
-
-    if (mSurfaceTexture != nullptr) { env->DeleteGlobalRef(mSurfaceTexture); }
-    mSurfaceTexture = nullptr;
-
-    if (mFaceDetector != nullptr) {
-        mFaceDetector->quitAndWait();
-    }
-    delete mFaceDetector;
-    mFaceDetector = nullptr;
-
-    delete mCamMetaData;
-    mCamMetaData = nullptr;
-}
-
 void CamRender::downloadPreview(GLuint frameBuffer) {
     if (frameBuffer == GL_NONE) {
         LogUtil::logI(TAG, {"downloadPreview: frame buffer is invalid"});
@@ -287,14 +247,12 @@ void CamRender::handleEnvPrepare(JNIEnv *env) {
 
 void CamRender::handleDownloadPixel(GLuint* inputTexture, int drawCount) {
     if (mFaceDetector != nullptr && mFaceDetector->isRunning() && mDownloadFilter != nullptr && mDownloadFilter->initialized()) {
-        //the drawCount must be odd when DownloadFilter calls onDraw;
         mDownloadFilter->onDraw(*inputTexture);
         downloadPreview(mDownloadFilter->getFrameBuffer());
         if (mFaceLiftFilter != nullptr && mFaceLiftFilter->pointValid()) {
             if (drawCount % 2 != 0) { *inputTexture = mPlaceHolderFilter->onDraw(*inputTexture); }
             *inputTexture = mFaceLiftFilter->onDraw(*inputTexture);
         }
-        //LogUtil::logI(TAG, {"handleDownloadPixel: last time = ", std::to_string(render::getCurrentTimeMs() - startTime)});
     }
 }
 
@@ -310,8 +268,8 @@ void CamRender::handleLandMarkTrack(Point *lhsDst, Point *lhsCtrl, Point *rhsDst
     }
 }
 
-void CamRender::handleOtherMessage(JNIEnv* env, EventType what) {
-    switch (what) {
+void CamRender::handleOtherMessage(JNIEnv* env, const EventMessage& msg) {
+    switch (msg.what) {
         case EventType::EVENT_BUILD_OES_TEXTURE: {
             LogUtil::logI(TAG, {"handleOtherMessage: build oes texture"});
             buildOesTexture();
@@ -383,45 +341,6 @@ void CamRender::handlePostDraw(JNIEnv *env) {
 
 void CamRender::handleRenderEnvPause(JNIEnv *env) {
     LogUtil::logI(TAG, {"handleRenderEnvPause"});
-    pause(env);
-}
-
-void CamRender::handleRenderEnvResume(JNIEnv *env) {}
-
-void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
-    LogUtil::logI(TAG, {"handleRenderEnvDestroy"});
-    destroy(env);
-}
-
-void CamRender::handleSurfaceChange(JNIEnv *env) {
-    if (mDownloadBuffer != nullptr) {
-        glDeleteBuffers(2, mDownloadBuffer);
-        delete[] mDownloadBuffer;
-    }
-    mDownloadBuffer = new GLuint[2];
-    glGenBuffers(2, mDownloadBuffer);
-
-    int bufSize = mSurfaceWidth * mSurfaceHeight * 4;
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[0]);
-    glBufferData(GL_PIXEL_PACK_BUFFER, bufSize, nullptr, GL_STREAM_READ);
-
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[1]);
-    glBufferData(GL_PIXEL_PACK_BUFFER, bufSize, nullptr, GL_STREAM_READ);
-
-    glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
-
-    mDownloadFreeIndex = 0;
-}
-
-void CamRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oesTexture) {
-    if (listener != nullptr) {
-        jclass listenerClass = env->GetObjectClass(listener);
-        jmethodID methodId = env->GetMethodID(listenerClass, "onRenderOesTextureCreate", "(I)V");
-        env->CallVoidMethod(listener, methodId, oesTexture);
-    }
-}
-
-void CamRender::pause(JNIEnv* env) {
     if (mBeautyFilterGroup != nullptr) {
         //should not destroy filter group when env is paused
         //because we should memorise the inner data, and resume
@@ -465,6 +384,90 @@ void CamRender::pause(JNIEnv* env) {
 
     delete mCamMetaData;
     mCamMetaData = nullptr;
+}
+
+void CamRender::handleRenderEnvResume(JNIEnv *env) {}
+
+void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
+    LogUtil::logI(TAG, {"handleRenderEnvDestroy"});
+    if (mScreenFilter != nullptr) {
+        mScreenFilter->destroy();
+        delete mScreenFilter;
+    }
+    mScreenFilter = nullptr;
+
+    if (mPlaceHolderFilter != nullptr) {
+        mPlaceHolderFilter->destroy();
+        delete mPlaceHolderFilter;
+    }
+    mPlaceHolderFilter = nullptr;
+
+    if (mOesFilter != nullptr) {
+        mOesFilter->destroy();
+        delete mOesFilter;
+    }
+    mOesFilter = nullptr;
+
+    if (mDownloadFilter != nullptr) {
+        mDownloadFilter->destroy();
+        delete mDownloadFilter;
+    }
+    mDownloadFilter = nullptr;
+
+    if (mFaceLiftFilter != nullptr) {
+        mFaceLiftFilter->destroy();
+        delete mFaceLiftFilter;
+    }
+    mFaceLiftFilter = nullptr;
+
+    if (mBeautyFilterGroup != nullptr) {
+        mBeautyFilterGroup->destroy();
+        delete mBeautyFilterGroup;
+    }
+    mBeautyFilterGroup = nullptr;
+
+    if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
+    mOesTexture = 0;
+
+    if (mSurfaceTexture != nullptr) { env->DeleteGlobalRef(mSurfaceTexture); }
+    mSurfaceTexture = nullptr;
+
+    if (mFaceDetector != nullptr) {
+        mFaceDetector->quitAndWait();
+    }
+    delete mFaceDetector;
+    mFaceDetector = nullptr;
+
+    delete mCamMetaData;
+    mCamMetaData = nullptr;
+}
+
+void CamRender::handleSurfaceChange(JNIEnv *env) {
+    if (mDownloadBuffer != nullptr) {
+        glDeleteBuffers(2, mDownloadBuffer);
+        delete[] mDownloadBuffer;
+    }
+    mDownloadBuffer = new GLuint[2];
+    glGenBuffers(2, mDownloadBuffer);
+
+    int bufSize = mSurfaceWidth * mSurfaceHeight * 4;
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[0]);
+    glBufferData(GL_PIXEL_PACK_BUFFER, bufSize, nullptr, GL_STREAM_READ);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, mDownloadBuffer[1]);
+    glBufferData(GL_PIXEL_PACK_BUFFER, bufSize, nullptr, GL_STREAM_READ);
+
+    glBindBuffer(GL_PIXEL_PACK_BUFFER, GL_NONE);
+
+    mDownloadFreeIndex = 0;
+}
+
+void CamRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oesTexture) {
+    if (listener != nullptr) {
+        jclass listenerClass = env->GetObjectClass(listener);
+        jmethodID methodId = env->GetMethodID(listenerClass, "onRenderOesTextureCreate", "(I)V");
+        env->CallVoidMethod(listener, methodId, oesTexture);
+    }
 }
 
 void CamRender::setCameraMetadata(JNIEnv *env, jobject data) {

@@ -5,7 +5,9 @@ import android.graphics.PixelFormat;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.SeekBar;
+import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 
@@ -24,7 +26,8 @@ import com.render.engine.util.LogUtil;
 /**
  * @author lyzirving
  */
-public class StillImageActivity extends BaseActivity implements View.OnClickListener, SurfaceHolder.Callback, SeekBar.OnSeekBarChangeListener {
+public class StillImageActivity extends BaseActivity implements View.OnClickListener, SurfaceHolder.Callback,
+        SeekBar.OnSeekBarChangeListener, CompoundButton.OnCheckedChangeListener {
     private static final String TAG = "StillImageActivity";
 
     private SurfaceView mSurfaceView;
@@ -43,6 +46,8 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     private ExposureFilter mExposureFilter;
     private HighlightShadowFilter mHighlightShadowFilter;
     private GaussianFilter mGaussianFilter;
+
+    private Switch mSwitchDetectFace;
 
     @Override
     protected int getLayoutId() {
@@ -69,6 +74,9 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mAdjustBlurRoot = findViewById(R.id.layout_adjust_blur_root);
         mHorBlurSeekBar = findViewById(R.id.seek_bar_hor_blur);
         mVerBlurSeekBar = findViewById(R.id.seek_bar_ver_blur);
+
+        mSwitchDetectFace = findViewById(R.id.switch_detect_face);
+        mSwitchDetectFace.setOnCheckedChangeListener(this);
 
         mContrastSeekBar.setOnSeekBarChangeListener(this);
         mSharpenSeekBar.setOnSeekBarChangeListener(this);
@@ -150,6 +158,16 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     }
 
     @Override
+    public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        switch (buttonView.getId()) {
+            case R.id.switch_detect_face: {
+                mImgRender.trackFace(isChecked);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {}
 
     @Override
@@ -220,7 +238,7 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         LogUtil.i(TAG, "surfaceChanged: width = " + width + ", height = " + height);
         if (mImgRender != null) {
             mImgRender.onSurfaceChange(width, height);
-            mImgRender.setResource(getApplicationContext(), R.drawable.lenna);
+            mImgRender.setResource(getApplicationContext(), R.drawable.test_portrait);
             //we should explicitly call requestRender() when surface size is changed
             mImgRender.requestRender();
         }

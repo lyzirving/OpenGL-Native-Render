@@ -9,15 +9,23 @@
 
 class BackgroundFilter : public BaseFilter {
 public:
+    BackgroundFilter();
+    ~BackgroundFilter();
+
     void destroy() override;
-    int getBitmapWidth();
-    int getBitmapHeight();
+    void flip(bool horizontal, bool vertical);
+    GLuint getFrameBuffer() override;
     void init() override;
     void initBuffer() override;
     void initFrameBuffer() override;
+    void initHandler() override;
     void initTexture() override;
+    void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
     void onPause() override;
+
+    int getBitmapWidth();
+    int getBitmapHeight();
     void setBitmap(JNIEnv* env, jobject bitmap);
 
 private:
@@ -25,6 +33,7 @@ private:
     int mBitmapWidth{0};
     int mBitmapHeight{0};
 
+    GLint mTransHandler{0};
     GLuint mFrameBufferId{0};
     GLuint mFrameBufferTextureId{0};
 };

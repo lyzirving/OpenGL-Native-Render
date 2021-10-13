@@ -171,6 +171,10 @@ void BaseRender::enqueueMessage(EventType what) {
     mEventQueue->enqueue(EventMessage(what));
 }
 
+void BaseRender::enqueueMessage(const EventMessage &msg) {
+    mEventQueue->enqueue(msg);
+}
+
 void BaseRender::adjust(const char *filterType, int progress) {
     if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
         std::shared_ptr<BaseFilter> filter = mBeautyFilterGroup->getFilter(filterType);
@@ -332,7 +336,7 @@ void BaseRender::render(JNIEnv *env) {
             }
             default: {
                 LogUtil::logI(TAG, {"render: handle default msg"});
-                handleOtherMessage(env, message.what);
+                handleOtherMessage(env, message);
                 break;
             }
         }

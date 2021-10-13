@@ -7,18 +7,27 @@
 #include "BaseRender.h"
 #include "BackgroundFilter.h"
 #include "MaskFilter.h"
+#include "FaceLiftFilter.h"
+#include "PlaceHolderFilter.h"
+#include "FaceDetector.h"
+#include "Point.h"
 
-class ImageRender : public BaseRender{
+class ImageRender : public BaseRender {
 public:
     static bool registerSelf(JNIEnv *env);
 
     void drawFrame() override;
+
+    void handleFaceLiftLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
+    void notifyTrackStart(JNIEnv* env);
+    void notifyTrackStop(JNIEnv* env);
     void setResource(JNIEnv* env, jobject bitmap);
+    void trackFace(bool trackFace);
 
 protected:
 
     void handleEnvPrepare(JNIEnv *env) override;
-    void handleOtherMessage(JNIEnv *env, EventType what) override;
+    void handleOtherMessage(JNIEnv *env, const EventMessage& msg) override;
     void handlePreDraw(JNIEnv *env) override;
     void handlePostDraw(JNIEnv *env) override;
     void handleRenderEnvPause(JNIEnv *env) override;
@@ -26,9 +35,19 @@ protected:
     void handleRenderEnvDestroy(JNIEnv *env) override;
     void handleSurfaceChange(JNIEnv *env) override;
 
+    void handleDownloadRawPreview();
+
 private:
+    void drawFaceLift(GLuint* inputTexture, int drawCount);
+
     MaskFilter* mMaskFilter{nullptr};
     BackgroundFilter* mBackgroundFilter{nullptr};
+    FaceLiftFilter* mFaceLiftFilter{nullptr};
+    PlaceHolderFilter* mPlaceHolderFilter{nullptr};
+    FaceDetector* mFaceDetector{nullptr};
+
+    GLuint mDownloadBuffer{0};
+    render::DownloadMode mDownloadMode{render::DownloadMode::MODE_FACE_DETECT};
 };
 
 #endif //ENGINE_IMAGERENDER_H

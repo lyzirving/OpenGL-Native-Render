@@ -23,7 +23,7 @@ public:
     static bool registerSelf(JNIEnv *env);
 
     BaseRender();
-    ~BaseRender();
+    virtual ~BaseRender();
 
     virtual void drawFrame() = 0;
     virtual void release(JNIEnv* env);
@@ -33,6 +33,7 @@ public:
     bool addBeautyFilter(const char* filterType, bool commit);
     void clearBeautyFilter();
     void enqueueMessage(EventType what);
+    void enqueueMessage(const EventMessage& msg);
     bool initialized();
     void notifyEnvPrepare(JNIEnv* env, jobject listener);
     void notifyEnvRelease(JNIEnv* env, jobject listener);
@@ -43,7 +44,7 @@ public:
 
 protected:
     virtual void handleEnvPrepare(JNIEnv* env) = 0;
-    virtual void handleOtherMessage(JNIEnv* env, EventType what) = 0;
+    virtual void handleOtherMessage(JNIEnv* env, const EventMessage& msg) = 0;
     virtual void handlePreDraw(JNIEnv* env) = 0;
     virtual void handlePostDraw(JNIEnv* env) = 0;
     virtual void handleRenderEnvPause(JNIEnv* env) = 0;
@@ -59,7 +60,6 @@ protected:
 
     RenderEglBase* mEglCore;
     ValidPtr<_jobject>* mListener{nullptr};
-    jobject mJavaListener{nullptr};
     ObjectQueue<EventMessage>* mEventQueue{nullptr};
     PointerQueue<WorkTask>* mWorkQueue{nullptr};
     render::Status mStatus = render::Status::STATUS_IDLE;

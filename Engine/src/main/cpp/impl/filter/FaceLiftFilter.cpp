@@ -3,6 +3,7 @@
 //
 #include "FaceLiftFilter.h"
 #include "GlUtil.h"
+#include "MatrixUtil.h"
 #include "LogUtil.h"
 
 #define TAG "FaceLiftFilter"
@@ -12,6 +13,8 @@ FaceLiftFilter::FaceLiftFilter() {
     mLhsCtrlPt = new GLfloat[2]{0, 0};
     mRhsDstPt = new GLfloat[2]{0, 0};
     mRhsCtrlPt = new GLfloat[2]{0, 0};
+    mMatrix = new GLfloat[16];
+    MatrixUtil::setIdentityM(mMatrix, 0);
     pthread_mutex_init(&mMutex, nullptr);
 }
 
@@ -20,6 +23,7 @@ FaceLiftFilter::~FaceLiftFilter() {
     delete[] mLhsDstPt;
     delete[] mRhsCtrlPt;
     delete[] mRhsDstPt;
+    delete[] mMatrix;
     pthread_mutex_destroy(&mMutex);
 }
 
@@ -41,10 +45,14 @@ void FaceLiftFilter::destroy() {
     }
 }
 
+void FaceLiftFilter::flip(bool horizontal, bool vertical) {
+    MatrixUtil::flip(mMatrix, horizontal, vertical);
+}
+
 void FaceLiftFilter::loadShader() {
     auto gUtil = GlUtil::self();
+    if (mVertexShader == nullptr) { mVertexShader = gUtil->readAssets("shader/trans_vertex_shader.glsl"); }
     if (mTextureShader == nullptr) { mTextureShader = gUtil->readAssets("shader/face_lift_fragment_shader.glsl"); }
-    BaseFilter::loadShader();
 }
 
 void FaceLiftFilter::initFrameBuffer() {
@@ -80,6 +88,7 @@ void FaceLiftFilter::initHandler() {
     mLhsCtrlHandler = glGetUniformLocation(mProgram, "uLhsCtrlPt");
     mRhsDstHandler = glGetUniformLocation(mProgram, "uRhsDstPt");
     mRhsCtrlHandler = glGetUniformLocation(mProgram, "uRhsCtrlPt");
+    mTransHandler = glGetUniformLocation(mProgram, "uMatrix");
 }
 
 GLint FaceLiftFilter::onDraw(GLint inputTextureId) {
@@ -103,6 +112,8 @@ GLint FaceLiftFilter::onDraw(GLint inputTextureId) {
     glUniform2fv(mRhsDstHandler, 1, mRhsDstPt);
     glUniform2fv(mRhsCtrlHandler, 1, mRhsCtrlPt);
 
+    glUniformMatrix4fv(mTransHandler, 1, false, mMatrix);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, inputTextureId);
     glUniform1i(mTextureSamplerHandler, 0);
@@ -111,6 +122,7 @@ GLint FaceLiftFilter::onDraw(GLint inputTextureId) {
 
     glDisableVertexAttribArray(mVertexPosHandler);
     glDisableVertexAttribArray(mTextureCoordinateHandler);
+    MatrixUtil::setIdentityM(mMatrix, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

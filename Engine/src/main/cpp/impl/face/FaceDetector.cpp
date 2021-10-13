@@ -141,7 +141,8 @@ void FaceDetector::loop(JNIEnv *env) {
     for (;;) {
         EventMessage msg = mMessageQueue->dequeue();
         render::Status curState = getStatus();
-        if (msg.what != EventType::EVENT_CHANGE_STATUS && msg.what != EventType ::EVENT_QUIT && curState != render::Status::STATUS_RUN) {
+        if (msg.what != EventType::EVENT_CHANGE_STATUS && msg.what != EventType::EVENT_QUIT
+            && curState != render::Status::STATUS_RUN) {
             LogUtil::logI(TAG, {"loop: state is not running, ignore msg ", std::to_string(static_cast<int>(msg.what))});
             mImgQueue->clear();
             continue;
@@ -416,14 +417,14 @@ void FaceDetector::trackFaceNative(JNIEnv *env, unsigned char *data, int width, 
         rhsCtrl.x = detection.part(16).x() + (float)(detection.part(16).x() - detection.part(27).x()) / divider;
         rhsCtrl.y = rhsDst.y + (rhsDst.x - rhsCtrl.x) * (float)(detection.part(16).x() - detection.part(8).x()) / (float)(detection.part(16).y() - detection.part(8).y());
 
-        if (mFaceDetectCallback != nullptr) { mFaceDetectCallback(mCallback, &lhsDst, &lhsCtrl, &rhsDst, &rhsCtrl); }
+        if (mFaceDetectCallback != nullptr) { mFaceDetectCallback(env, mCallback, 4, &lhsDst, &lhsCtrl, &rhsDst, &rhsCtrl); }
     }
 }
 
-void FaceDetector::setCallback(void* (*pCallbackStart)(void *argStart),
-        void* (*pCallbackStop)(void *argStop),
-        void*(*pCallbackFaceDetect)(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4),
-        void* callback) {
+void FaceDetector::setCallback(void *(*pCallbackStart)(void *),
+        void *(*pCallbackStop)(void *),
+        void *(*pCallbackFaceDetect)(void*, void *, int, ...),
+        void *callback) {
     if (pCallbackStart != nullptr) { mTrackStartCallback = pCallbackStart; }
     if (pCallbackStop != nullptr) { mTrackStopCallback = pCallbackStop; }
     if (pCallbackFaceDetect != nullptr) { mFaceDetectCallback = pCallbackFaceDetect; }

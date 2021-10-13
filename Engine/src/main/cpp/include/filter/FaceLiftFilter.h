@@ -20,6 +20,7 @@ public:
     ~FaceLiftFilter();
     void adjust(int progress) override;
     void destroy() override;
+    void flip(bool horizontal, bool vertical);
     void initFrameBuffer() override;
     void initHandler() override;
     void loadShader() override;
@@ -52,6 +53,7 @@ private:
 
     GLfloat mIntensity{0.5};
     pthread_mutex_t mMutex{};
+    int mTransHandler{0};
 };
 
 #endif //RENDERDEMO_FACELIFTFILTER_H

@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory;
 
 import com.render.engine.core.BaseRenderEngine;
 import com.render.engine.util.BitmapUtil;
-import com.render.engine.util.LogUtil;
 
 import androidx.annotation.DrawableRes;
 
@@ -31,6 +30,12 @@ public class ImageRenderEngine extends BaseRenderEngine {
         }
     }
 
+    public void trackFace(boolean track) {
+        if (!isInitialized()) { throw new RuntimeException("trackFace: env is not initialized"); }
+        nTrackFace(mNativePtr, track);
+    }
+
     private static native long nCreate();
+    private static native void nTrackFace(long ptr, boolean track);
     private static native void nSetResource(long ptr, Bitmap bmp);
 }

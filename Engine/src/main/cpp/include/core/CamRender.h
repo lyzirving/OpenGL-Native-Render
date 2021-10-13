@@ -18,9 +18,9 @@ public:
     static bool registerSelf(JNIEnv *env);
 
     void adjustProperty(const char *filterType, const char *property, int progress) override;
+    void drawFrame() override;
 
     void detect(JNIEnv* env, bool start);
-    void drawFrame() override;
     void handleLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
     void setCameraMetadata(JNIEnv* env, jobject data);
     void setPreview(GLint width, GLint height);
@@ -32,7 +32,7 @@ protected:
     void handleEnvPrepare(JNIEnv *env) override;
     void handleFaceTrackStart(JNIEnv *env);
     void handleFaceTrackStop(JNIEnv *env);
-    void handleOtherMessage(JNIEnv* env, EventType what) override;
+    void handleOtherMessage(JNIEnv* env, const EventMessage& msg) override;
     void handlePreDraw(JNIEnv *env) override;
     void handlePostDraw(JNIEnv *env) override;
     void handleRenderEnvPause(JNIEnv *env) override;
@@ -41,10 +41,8 @@ protected:
     void handleSurfaceChange(JNIEnv *env) override;
 
     void buildOesTexture();
-    void destroy(JNIEnv* env);
     void downloadPreview(GLuint frameBuffer);
     void notifyEnvOesTextureCreate(JNIEnv* env, jobject listener, int oesTexture);
-    void pause(JNIEnv* env);
     void updateTexImg(JNIEnv* env);
 
 private:

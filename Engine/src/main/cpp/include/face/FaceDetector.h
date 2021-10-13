@@ -39,9 +39,9 @@ public:
     void releaseTracker();
     void start();
     void setCallback(void*(*pCallbackStart)(void *argStart),
-            void*(*pCallbackStop)(void *argStop),
-            void*(*pCallbackFaceDetect)(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4),
-            void* callback);
+                     void*(*pCallbackStop)(void *argStop),
+                     void*(*pCallbackFaceDetect)(void* env, void* arg0, int argNum, ...),
+                     void* callback);
 
 private:
     void trackFace(JNIEnv* env, unsigned char* data, int width, int height, int channel);
@@ -62,7 +62,7 @@ private:
 
     void*(*mTrackStartCallback)(void *args){nullptr};
     void*(*mTrackStopCallback)(void *args){nullptr};
-    void*(*mFaceDetectCallback)(void* arg0, void* arg1, void* arg2, void* arg3, void* arg4){nullptr};
+    void*(*mFaceDetectCallback)(void* env, void* arg0, int argNum, ...){nullptr};
     void* mCallback{nullptr};
 };
 

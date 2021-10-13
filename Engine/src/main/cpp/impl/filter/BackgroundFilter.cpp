@@ -4,10 +4,20 @@
 #include <android/bitmap.h>
 
 #include "BackgroundFilter.h"
+#include "MatrixUtil.h"
 #include "GlUtil.h"
 #include "LogUtil.h"
 
 #define TAG "BackgroundFilter"
+
+BackgroundFilter::BackgroundFilter() {
+    mMatrix = new GLfloat[16];
+    MatrixUtil::setIdentityM(mMatrix, 0);
+}
+
+BackgroundFilter::~BackgroundFilter() {
+    delete[] mMatrix;
+}
 
 void BackgroundFilter::destroy() {
     if (mFrameBufferTextureId != 0) {
@@ -24,6 +34,12 @@ void BackgroundFilter::destroy() {
     }
     BaseFilter::destroy();
 }
+
+void BackgroundFilter::flip(bool horizontal, bool vertical) {
+    MatrixUtil::flip(mMatrix, horizontal, vertical);
+}
+
+GLuint BackgroundFilter::getFrameBuffer() { return mFrameBufferId; }
 
 int BackgroundFilter::getBitmapWidth() {
     return mBitmapWidth;
@@ -80,6 +96,11 @@ void BackgroundFilter::initFrameBuffer() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+void BackgroundFilter::initHandler() {
+    BaseFilter::initHandler();
+    mTransHandler = glGetUniformLocation(mProgram, "uMatrix");
+}
+
 void BackgroundFilter::initTexture() {
     if (mPixel == nullptr) {
         LogUtil::logI(TAG, {"initTexture: no pixel data yet"});
@@ -94,6 +115,13 @@ void BackgroundFilter::initTexture() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mBitmapWidth, mBitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, mPixel);
 }
+
+void BackgroundFilter::loadShader() {
+    auto gUtil = GlUtil::self();
+    if (mVertexShader == nullptr) { mVertexShader = gUtil->readAssets("shader/trans_vertex_shader.glsl"); }
+    BaseFilter::loadShader();
+}
+
 
 GLint BackgroundFilter::onDraw(GLint inputTextureId) {
     glBindFramebuffer(GL_FRAMEBUFFER, mFrameBufferId);
@@ -113,12 +141,15 @@ GLint BackgroundFilter::onDraw(GLint inputTextureId) {
     glBindTexture(GL_TEXTURE_2D, mTextureId);
     glUniform1i(mTextureSamplerHandler, 0);
 
+    glUniformMatrix4fv(mTransHandler, 1, false, mMatrix);
+
     glDrawArrays(GL_TRIANGLES, 0, BaseFilter::DEFAULT_VERTEX_COUNT);
 
     glDisableVertexAttribArray(mVertexPosHandler);
     glDisableVertexAttribArray(mTextureCoordinateHandler);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
+    MatrixUtil::setIdentityM(mMatrix, 0);
 
     return mFrameBufferTextureId;
 }
