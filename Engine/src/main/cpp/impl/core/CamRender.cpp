@@ -47,18 +47,6 @@ static void nEnvSetSurfaceTexture(JNIEnv *env, jclass clazz, jlong ptr, jobject 
     pRender->setSurfaceTexture(env, surfaceTexture);
 }
 
-static void* envHandleTrackStart(void *args) {
-    auto *pRender = reinterpret_cast<CamRender *>(args);
-    pRender->enqueueMessage(EventType::EVENT_FACE_TRACK_START);
-    return nullptr;
-}
-
-static void* envHandleTrackStop(void *args) {
-    auto *pRender = reinterpret_cast<CamRender *>(args);
-    pRender->enqueueMessage(EventType::EVENT_FACE_TRACK_STOP);
-    return nullptr;
-}
-
 static void* envHandleLandMarkDetect(void* env, void* arg0, int argNum, ...) {
     auto *pRender = reinterpret_cast<CamRender *>(arg0);
     if (argNum == NUM_FACE_CTRL_PT) {
@@ -175,10 +163,8 @@ void CamRender::detect(JNIEnv* env, bool start) {
             task->setObj(mFaceLiftFilter);
             mWorkQueue->enqueue(task);
         }
-        mFaceDetector->start();
-    } else {
-        mFaceDetector->pause();
     }
+    mCamFaceDetector->execute(start);
 }
 
 void CamRender::drawFrame() {
@@ -217,11 +203,11 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
     if (pixelData) {
         switch (mDownloadMode) {
             case render::DownloadMode::MODE_FACE_DETECT: {
-                mFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_FACE_TRACK);
+                mCamFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_FACE_LAND_MARK_TRACK);
                 break;
             }
             case render::DownloadMode::MODE_WRITE_PNG: {
-                mFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_WRITE_PNG);
+                mCamFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_WRITE_PNG);
                 break;
             }
             case render::DownloadMode::MODE_NONE:
@@ -238,15 +224,16 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
 }
 
 void CamRender::handleEnvPrepare(JNIEnv *env) {
-    if (mFaceDetector == nullptr) {
-        mFaceDetector = new FaceDetector();
-        mFaceDetector->setCallback(envHandleTrackStart, envHandleTrackStop, envHandleLandMarkDetect, this);
+    if (mCamFaceDetector == nullptr) {
+        mCamFaceDetector = new CamFaceDetector();
+        mCamFaceDetector->setLandMarkDetectCallback(envHandleLandMarkDetect);
+        mCamFaceDetector->setFaceListener(this);
     }
-    mFaceDetector->prepare(env);
+    mCamFaceDetector->prepare(env);
 }
 
 void CamRender::handleDownloadPixel(GLuint* inputTexture, int drawCount) {
-    if (mFaceDetector != nullptr && mFaceDetector->isRunning() && mDownloadFilter != nullptr && mDownloadFilter->initialized()) {
+    if (mCamFaceDetector != nullptr && mCamFaceDetector->isRunning() && mDownloadFilter != nullptr && mDownloadFilter->initialized()) {
         mDownloadFilter->onDraw(*inputTexture);
         downloadPreview(mDownloadFilter->getFrameBuffer());
         if (mFaceLiftFilter != nullptr && mFaceLiftFilter->pointValid()) {
@@ -432,11 +419,11 @@ void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
     if (mSurfaceTexture != nullptr) { env->DeleteGlobalRef(mSurfaceTexture); }
     mSurfaceTexture = nullptr;
 
-    if (mFaceDetector != nullptr) {
-        mFaceDetector->quitAndWait();
+    if (mCamFaceDetector != nullptr) {
+        mCamFaceDetector->quitAndWait();
     }
-    delete mFaceDetector;
-    mFaceDetector = nullptr;
+    delete mCamFaceDetector;
+    mCamFaceDetector = nullptr;
 
     delete mCamMetaData;
     mCamMetaData = nullptr;

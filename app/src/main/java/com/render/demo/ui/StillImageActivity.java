@@ -2,6 +2,9 @@ package com.render.demo.ui;
 
 import android.content.Intent;
 import android.graphics.PixelFormat;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -11,6 +14,7 @@ import android.widget.Switch;
 
 import androidx.annotation.NonNull;
 
+import com.airbnb.lottie.LottieAnimationView;
 import com.render.demo.R;
 import com.render.engine.core.RenderAdapter;
 import com.render.engine.filter.ContrastFilter;
@@ -34,10 +38,11 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     private ImageRenderEngine mImgRender;
     private RenderAdapter mRenderAdapter;
 
-    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot;
+    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot, mAdjustFaceRoot;
     private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
     private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
     private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
+    private SeekBar mFaceLiftSeekBar;
 
     private ContrastFilter mContrastFilter;
     private SharpenFilter mSharpenFilter;
@@ -48,6 +53,24 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     private GaussianFilter mGaussianFilter;
 
     private Switch mSwitchDetectFace;
+    private LottieAnimationView mLottieLoading;
+
+    private static final int MSG_SHOW_LOADING_ANI = 1;
+    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+            switch (msg.what) {
+                case MSG_SHOW_LOADING_ANI: {
+                    showLoadingView(msg.arg1 > 0);
+                    break;
+                }
+                default: {
+                    break;
+                }
+            }
+        }
+    };
 
     @Override
     protected int getLayoutId() {
@@ -60,6 +83,8 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mSurfaceView.setZOrderOnTop(false);
         mSurfaceView.getHolder().setFormat(PixelFormat.TRANSPARENT);
         mSurfaceView.getHolder().addCallback(this);
+
+        mLottieLoading = findViewById(R.id.lottie_loading);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         mContrastSeekBar = findViewById(R.id.seek_bar_contrast);
@@ -75,6 +100,9 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mHorBlurSeekBar = findViewById(R.id.seek_bar_hor_blur);
         mVerBlurSeekBar = findViewById(R.id.seek_bar_ver_blur);
 
+        mAdjustFaceRoot = findViewById(R.id.layout_adjust_face_root);
+        mFaceLiftSeekBar = findViewById(R.id.seek_bar_face_lift_intensity);
+
         mSwitchDetectFace = findViewById(R.id.switch_detect_face);
         mSwitchDetectFace.setOnCheckedChangeListener(this);
 
@@ -86,9 +114,11 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mDecHighlightSeekBar.setOnSeekBarChangeListener(this);
         mHorBlurSeekBar.setOnSeekBarChangeListener(this);
         mVerBlurSeekBar.setOnSeekBarChangeListener(this);
+        mFaceLiftSeekBar.setOnSeekBarChangeListener(this);
         findViewById(R.id.tab_beauty).setOnClickListener(this);
         findViewById(R.id.tab_brightness).setOnClickListener(this);
         findViewById(R.id.tab_blur).setOnClickListener(this);
+        findViewById(R.id.tab_face).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
     }
 
@@ -145,6 +175,10 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
             }
             case R.id.tab_blur: {
                 handleClickBlur();
+                break;
+            }
+            case R.id.tab_face: {
+                handleClickFace();
                 break;
             }
             case R.id.tab_clear: {
@@ -216,6 +250,11 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
                 mImgRender.requestRender();
                 break;
             }
+            case R.id.seek_bar_face_lift_intensity: {
+                mImgRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.FACE_LIFT_INTENSITY, seekBar.getProgress());
+                mImgRender.requestRender();
+                break;
+            }
             default: {
                 break;
             }
@@ -268,6 +307,20 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
                 public void onRenderEnvRelease() {
                     super.onRenderEnvRelease();
                     LogUtil.i(TAG, "onRenderEnvRelease");
+                }
+
+                @Override
+                public void onTrackImageLandMarkStart() {
+                    super.onTrackImageLandMarkStart();
+                    LogUtil.i(TAG, "onTrackImageLandMarkStart");
+                    mMainHandler.obtainMessage(MSG_SHOW_LOADING_ANI, 1, 0).sendToTarget();
+                }
+
+                @Override
+                public void onTrackImageLandMarkFinish() {
+                    super.onTrackImageLandMarkFinish();
+                    LogUtil.i(TAG, "onTrackImageLandMarkFinish");
+                    mMainHandler.obtainMessage(MSG_SHOW_LOADING_ANI, 0, 0).sendToTarget();
                 }
             };
         }
@@ -328,6 +381,18 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         }
     }
 
+    private void handleClickFace() {
+        if (anyTabShow()) {
+            hideAllTab();
+            return;
+        }
+        boolean show = mAdjustFaceRoot.getVisibility() == View.VISIBLE;
+        showTab(mAdjustFaceRoot, !show);
+        if (!show && !mSwitchDetectFace.isChecked()) {
+            mSwitchDetectFace.setChecked(true);
+        }
+    }
+
     private void handleClickClear() {
         if (anyTabShow()) {
             hideAllTab();
@@ -356,6 +421,16 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         if (mDecHighlightSeekBar != null) { mDecHighlightSeekBar.setProgress(0); }
         if (mHorBlurSeekBar != null) { mHorBlurSeekBar.setProgress(0); }
         if (mVerBlurSeekBar != null) { mVerBlurSeekBar.setProgress(0); }
+        if (mFaceLiftSeekBar != null) { mFaceLiftSeekBar.setProgress(50); }
+    }
+
+    private void showLoadingView(boolean show) {
+        mLottieLoading.setVisibility(show ? View.VISIBLE : View.GONE);
+        if (show) {
+            mLottieLoading.playAnimation();
+        } else {
+            mLottieLoading.pauseAnimation();
+        }
     }
 
     private void showTab(View view, boolean show) {

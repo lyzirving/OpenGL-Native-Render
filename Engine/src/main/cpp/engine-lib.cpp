@@ -19,6 +19,5 @@ JNIEXPORT int JNICALL JNI_OnLoad(JavaVM *vm,void *reserved) {
     if (!BaseRender::registerSelf(env)) { return JNI_ERR; }
     if (!CamRender::registerSelf(env)) { return JNI_ERR; }
     if (!ImageRender::registerSelf(env)) { return JNI_ERR; }
-    if (!FaceDetector::registerSelf(env)) { return JNI_ERR; }
     return JNI_VERSION_1_6;
 }

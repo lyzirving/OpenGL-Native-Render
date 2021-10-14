@@ -43,12 +43,12 @@ public interface IRenderListener {
     void onRenderOesTextureCreate(int oesTexture);
 
     /**
-     * called when the render starts to track
+     * called when the render starts to track landmark of image
      */
-    void onTrackStart();
+    void onTrackImageLandMarkStart();
 
     /**
-     * called when the render stop to track
+     * called when the render finishes tracking landmark of image
      */
-    void onTrackStop();
+    void onTrackImageLandMarkFinish();
 }

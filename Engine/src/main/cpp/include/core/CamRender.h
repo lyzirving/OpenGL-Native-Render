@@ -9,7 +9,7 @@
 #include "OesFilter.h"
 #include "FaceLiftFilter.h"
 #include "DownloadPixelFilter.h"
-#include "FaceDetector.h"
+#include "CamFaceDetector.h"
 #include "Point.h"
 
 class CamRender : public BaseRender {
@@ -59,7 +59,7 @@ private:
     DownloadPixelFilter* mDownloadFilter{nullptr};
     FaceLiftFilter* mFaceLiftFilter{nullptr};
 
-    FaceDetector* mFaceDetector{nullptr};
+    CamFaceDetector* mCamFaceDetector{nullptr};
 
     int mDownloadFreeIndex{0};
     render::DownloadMode mDownloadMode{render::DownloadMode::MODE_FACE_DETECT};

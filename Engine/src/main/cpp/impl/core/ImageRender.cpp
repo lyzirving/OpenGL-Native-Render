@@ -26,7 +26,7 @@ static void nEnvSetResource(JNIEnv *env, jclass clazz, jlong ptr, jobject bitmap
 
 static void nEnvTrackFace(JNIEnv *env, jclass clazz, jlong ptr, jboolean track) {
     auto *pRender = reinterpret_cast<ImageRender *>(ptr);
-    if (track) { pRender->notifyTrackStart(env); }
+    if (track) { pRender->notifyImageLandMarkTrackStart(env); }
     pRender->trackFace(track);
 }
 
@@ -43,11 +43,18 @@ static void* envHandleLandMarkDetect(void* env, void* arg0, int argNum, ...) {
         }
         va_end(args);
         pRender->handleFaceLiftLandMarkTrack(pts[0], pts[1], pts[2], pts[3]);
-        pRender->notifyTrackStop(static_cast<JNIEnv *>(env));
         pRender->enqueueMessage(EventType::EVENT_DRAW);
+        pRender->notifyImageLandMarkTrackFinish(static_cast<JNIEnv *>(env));
     } else {
         LogUtil::logI(TAG, {"envHandleLandMarkDetect: invalid feature pt num = ", std::to_string(argNum)});
     }
+    return nullptr;
+}
+
+static void* envHandleTrackPause(void* env, void* arg0) {
+    LogUtil::logI(TAG, {"envHandleTrackPause"});
+    auto *pRender = reinterpret_cast<ImageRender *>(arg0);
+    pRender->enqueueMessage(EventType::EVENT_DRAW);
     return nullptr;
 }
 
@@ -80,6 +87,25 @@ bool ImageRender::registerSelf(JNIEnv *env) {
     return true;
 }
 
+void ImageRender::adjustProperty(const char *filterType, const char *property, int progress) {
+    BaseRender::adjustProperty(filterType, property, progress);
+    if (filterType == nullptr || std::strlen(filterType) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter type is invalid"});
+        return;
+    }
+    if (property == nullptr || std::strlen(property) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter prop is invalid"});
+        return;
+    }
+    if (std::strcmp(render::FILTER_FACE_LIFT, filterType) == 0) {
+        if (std::strcmp(render::FILTER_PROP_FACE_LIFT, property) == 0 && mFaceLiftFilter != nullptr && mFaceLiftFilter->initialized()) {
+            mFaceLiftFilter->adjust(progress);
+        }
+    } else {
+        LogUtil::logI(TAG, {"adjustProperty: unknown filter ", filterType});
+    }
+}
+
 void ImageRender::drawFrame() {
     if (mBackgroundFilter != nullptr) {
         LogUtil::logI(TAG, {"drawFrame"});
@@ -104,18 +130,21 @@ void ImageRender::drawFrame() {
 }
 
 void ImageRender::drawFaceLift(GLuint *inputTexture, int drawCount) {
-    if (mFaceLiftFilter != nullptr && mFaceLiftFilter->pointValid()) {
+    if (mFaceLiftFilter != nullptr && mFaceLiftFilter->pointValid()
+        && mImageFaceDetector != nullptr && mImageFaceDetector->isRunning()) {
         if (drawCount % 2 != 0) { *inputTexture = mPlaceHolderFilter->onDraw(*inputTexture); }
         *inputTexture = mFaceLiftFilter->onDraw(*inputTexture);
     }
 }
 
 void ImageRender::handleEnvPrepare(JNIEnv *env) {
-    if (mFaceDetector == nullptr) {
-        mFaceDetector = new FaceDetector;
-        mFaceDetector->setCallback(nullptr, nullptr, envHandleLandMarkDetect, this);
+    if (mImageFaceDetector == nullptr) {
+        mImageFaceDetector = new ImageFaceDetector;
+        mImageFaceDetector->setLandMarkDetectCallback(envHandleLandMarkDetect);
+        mImageFaceDetector->setTrackPauseCallback(envHandleTrackPause);
+        mImageFaceDetector->setFaceListener(this);
     }
-    mFaceDetector->prepare(env);
+    mImageFaceDetector->prepare(env);
 }
 
 void ImageRender::handleFaceLiftLandMarkTrack(Point *lhsDst, Point *lhsCtrl, Point *rhsDst, Point *rhsCtrl) {
@@ -174,7 +203,7 @@ void ImageRender::handleRenderEnvPause(JNIEnv *env) {
     if (mMaskFilter != nullptr) { mMaskFilter->onPause(); }
     if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->onPause(); }
     if (mPlaceHolderFilter != nullptr) { mPlaceHolderFilter->onPause(); }
-    if (mFaceDetector != nullptr) { mFaceDetector->pause(); }
+    if (mImageFaceDetector != nullptr) { mImageFaceDetector->execute(false); }
     if (mDownloadBuffer != 0) {
         glDeleteBuffers(1, &mDownloadBuffer);
         mDownloadBuffer = 0;
@@ -182,7 +211,7 @@ void ImageRender::handleRenderEnvPause(JNIEnv *env) {
 }
 
 void ImageRender::handleRenderEnvResume(JNIEnv *env) {
-    if (mFaceDetector != nullptr) { mFaceDetector->start(); }
+    if (mImageFaceDetector != nullptr) { mImageFaceDetector->execute(true); }
     if (mPlaceHolderFilter != nullptr && !mPlaceHolderFilter->initialized()) {
         mPlaceHolderFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mPlaceHolderFilter->init();
@@ -200,7 +229,7 @@ void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
     if (mScreenFilter != nullptr) { mScreenFilter->destroy(); }
     if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->destroy(); }
     if (mPlaceHolderFilter != nullptr) { mPlaceHolderFilter->destroy(); }
-    if (mFaceDetector != nullptr) { mFaceDetector->quitAndWait(); }
+    if (mImageFaceDetector != nullptr) { mImageFaceDetector->quitAndWait(); }
     if (mDownloadBuffer != 0) {
         glDeleteBuffers(1, &mDownloadBuffer);
         mDownloadBuffer = 0;
@@ -217,8 +246,8 @@ void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
     mPlaceHolderFilter = nullptr;
     delete mFaceLiftFilter;
     mFaceLiftFilter = nullptr;
-    delete mFaceDetector;
-    mFaceDetector = nullptr;
+    delete mImageFaceDetector;
+    mImageFaceDetector = nullptr;
 }
 
 void ImageRender::handleSurfaceChange(JNIEnv *env) {
@@ -233,7 +262,7 @@ void ImageRender::handleSurfaceChange(JNIEnv *env) {
 }
 
 void ImageRender::handleDownloadRawPreview() {
-    if (mFaceDetector != nullptr && mFaceDetector->isRunning()) {
+    if (mImageFaceDetector != nullptr && mImageFaceDetector->isRunning()) {
         mBackgroundFilter->flip(false, true);
         mBackgroundFilter->onDraw(RENDER_NO_TEXTURE);
 
@@ -249,11 +278,11 @@ void ImageRender::handleDownloadRawPreview() {
             LogUtil::logI(TAG, {"handleDownloadRawPreview: get framebuffer data"});
             switch (mDownloadMode) {
                 case render::DownloadMode::MODE_FACE_DETECT: {
-                    mFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_FACE_TRACK);
+                    mImageFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_FACE_LAND_MARK_TRACK);
                     break;
                 }
                 case render::DownloadMode::MODE_WRITE_PNG: {
-                    mFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_WRITE_PNG);
+                    mImageFaceDetector->enqueueImg(pixelData, mSurfaceWidth, mSurfaceHeight, 4, EventType::EVENT_WRITE_PNG);
                     break;
                 }
                 case render::DownloadMode::MODE_NONE:
@@ -272,20 +301,20 @@ void ImageRender::handleDownloadRawPreview() {
     }
 }
 
-void ImageRender::notifyTrackStart(JNIEnv *env) {
+void ImageRender::notifyImageLandMarkTrackStart(JNIEnv *env) {
     jobject listener = GET_LISTENER;
     if (listener) {
         jclass listenerClass = env->GetObjectClass(listener);
-        jmethodID methodId = env->GetMethodID(listenerClass, "onTrackStart", "()V");
+        jmethodID methodId = env->GetMethodID(listenerClass, "onTrackImageLandMarkStart", "()V");
         env->CallVoidMethod(listener, methodId);
     }
 }
 
-void ImageRender::notifyTrackStop(JNIEnv *env) {
+void ImageRender::notifyImageLandMarkTrackFinish(JNIEnv *env) {
     jobject listener = GET_LISTENER;
     if (listener) {
         jclass listenerClass = env->GetObjectClass(listener);
-        jmethodID methodId = env->GetMethodID(listenerClass, "onTrackStop", "()V");
+        jmethodID methodId = env->GetMethodID(listenerClass, "onTrackImageLandMarkFinish", "()V");
         env->CallVoidMethod(listener, methodId);
     }
 }
@@ -327,12 +356,14 @@ void ImageRender::setResource(JNIEnv *env, jobject bitmap) {
 }
 
 void ImageRender::trackFace(bool trackFace) {
-    if (mFaceDetector == nullptr) {
+    if (mImageFaceDetector == nullptr) {
         throw EnvNotPreparedException{};
     }
     if (trackFace) {
-        mFaceDetector->start();
+        mImageFaceDetector->execute(true);
         enqueueMessage(EventType::EVENT_FACE_TRACK_START);
+    } else {
+        mImageFaceDetector->execute(false);
     }
 }
 

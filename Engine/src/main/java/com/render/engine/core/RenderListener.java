@@ -28,8 +28,8 @@ class RenderListener implements IRenderListener {
     public void onRenderOesTextureCreate(int oesTexture) {}
 
     @Override
-    public void onTrackStart() {}
+    public void onTrackImageLandMarkStart() {}
 
     @Override
-    public void onTrackStop() {}
+    public void onTrackImageLandMarkFinish() {}
 }

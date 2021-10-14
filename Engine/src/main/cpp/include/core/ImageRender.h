@@ -5,22 +5,23 @@
 #define ENGINE_IMAGERENDER_H
 
 #include "BaseRender.h"
+#include "ImageFaceDetector.h"
 #include "BackgroundFilter.h"
 #include "MaskFilter.h"
 #include "FaceLiftFilter.h"
 #include "PlaceHolderFilter.h"
-#include "FaceDetector.h"
 #include "Point.h"
 
 class ImageRender : public BaseRender {
 public:
     static bool registerSelf(JNIEnv *env);
 
+    void adjustProperty(const char *filterType, const char *property, int progress) override;
     void drawFrame() override;
 
     void handleFaceLiftLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
-    void notifyTrackStart(JNIEnv* env);
-    void notifyTrackStop(JNIEnv* env);
+    void notifyImageLandMarkTrackStart(JNIEnv* env);
+    void notifyImageLandMarkTrackFinish(JNIEnv* env);
     void setResource(JNIEnv* env, jobject bitmap);
     void trackFace(bool trackFace);
 
@@ -44,7 +45,7 @@ private:
     BackgroundFilter* mBackgroundFilter{nullptr};
     FaceLiftFilter* mFaceLiftFilter{nullptr};
     PlaceHolderFilter* mPlaceHolderFilter{nullptr};
-    FaceDetector* mFaceDetector{nullptr};
+    ImageFaceDetector* mImageFaceDetector{nullptr};
 
     GLuint mDownloadBuffer{0};
     render::DownloadMode mDownloadMode{render::DownloadMode::MODE_FACE_DETECT};

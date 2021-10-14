@@ -66,7 +66,6 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private static final int MSG_RENDER_FOUND_FACES = 3;
     private static final int MSG_RENDER_FOUND_LANDMARK = 4;
     private static final int MSG_RENDER_FOUND_NO_FACES = 5;
-    private static final int MSG_RENDER_STOP_TRACK = 6;
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
@@ -84,7 +83,6 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                     mFaceRenderView.setLandMarks((LandMark[]) msg.obj);
                     break;
                 }
-                case MSG_RENDER_STOP_TRACK:
                 case MSG_RENDER_FOUND_NO_FACES: {
                     mFaceRenderView.clear();
                     break;
@@ -372,19 +370,6 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                     super.onRenderOesTextureCreate(oesTexture);
                     LogUtil.i(TAG, "onRenderOesTextureCreate: " + oesTexture);
                     mMainHandler.obtainMessage(MSG_RENDER_OES_TEXTURE_CREATE, oesTexture, 0).sendToTarget();
-                }
-
-                @Override
-                public void onTrackStart() {
-                    super.onTrackStart();
-                    LogUtil.i(TAG, "onTrackStart");
-                }
-
-                @Override
-                public void onTrackStop() {
-                    super.onTrackStop();
-                    LogUtil.i(TAG, "onTrackStop");
-                    mMainHandler.obtainMessage(MSG_RENDER_STOP_TRACK).sendToTarget();
                 }
             };
         }
