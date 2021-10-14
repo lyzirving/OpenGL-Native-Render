@@ -11,8 +11,7 @@ public:
     GaussianFilter();
     ~GaussianFilter();
 
-    void adjustHorBlur(int progress);
-    void adjustVerBlur(int progress);
+    void adjustProperty(const char *property, int progress) override;
     void destroy() override;
     void init() override;
     void initFrameBuffer() override;

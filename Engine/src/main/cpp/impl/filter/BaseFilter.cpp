@@ -15,6 +15,8 @@ BaseFilter::~BaseFilter() {
 
 void BaseFilter::adjust(int progress) {}
 
+void BaseFilter::adjustProperty(const char *property, int progress) {}
+
 void BaseFilter::destroy() {
     if (mVertexShader != nullptr) {
         delete mVertexShader;

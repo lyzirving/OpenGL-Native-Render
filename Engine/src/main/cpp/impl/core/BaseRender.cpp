@@ -8,6 +8,7 @@
 
 #include "HighlightShadowFilter.h"
 #include "GaussianFilter.h"
+#include "ColorAdjustFilter.h"
 
 #define TAG "BaseRender"
 #define JAVA_CLASS_BASE_RENDER "com/render/engine/core/BaseRenderEngine"
@@ -191,29 +192,12 @@ void BaseRender::adjustProperty(const char *filterType, const char *property, in
         LogUtil::logI(TAG, {"adjustProperty: filter prop is invalid"});
         return;
     }
-    if (std::strcmp(render::FILTER_HIGHLIGHT_SHADOW, filterType) == 0) {
+    if (std::strcmp(render::FILTER_HIGHLIGHT_SHADOW, filterType) == 0
+        || std::strcmp(render::FILTER_GAUSSIAN, filterType) == 0
+        || std::strcmp(render::FILTER_COLOR_ADJUST, filterType) == 0) {
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
             std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
-            //do not delete filter pointer here, it should be kept alive in map;
-            BaseFilter* baseFilter = tmp.get();
-            auto* target = dynamic_cast<HighlightShadowFilter *>(baseFilter);
-            if (std::strcmp(render::FILTER_PROP_HIGHLIGHT, property) == 0) {
-                target->adjustHighlight(progress);
-            } else if (std::strcmp(render::FILTER_PROP_SHADOW, property) == 0) {
-                target->adjustShadow(progress);
-            }
-        }
-    } else if (std::strcmp(render::FILTER_GAUSSIAN, filterType) == 0) {
-        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
-            std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
-            //do not delete filter pointer here, it should be kept alive in map;
-            BaseFilter* baseFilter = tmp.get();
-            auto* target = dynamic_cast<GaussianFilter *>(baseFilter);
-            if (std::strcmp(render::FILTER_PROP_HOR_GAUSSIAN, property) == 0) {
-                target->adjustHorBlur(progress);
-            } else if (std::strcmp(render::FILTER_PROP_VER_GAUSSIAN, property) == 0) {
-                target->adjustVerBlur(progress);
-            }
+            tmp->adjustProperty(property, progress);
         }
     } else {
         LogUtil::logI(TAG, {"adjustProperty: unknown filter ", filterType});

@@ -26,24 +26,21 @@ GaussianFilter::~GaussianFilter() {
     }
 }
 
-void GaussianFilter::adjustHorBlur(int progress) {
+void GaussianFilter::adjustProperty(const char *property, int progress) {
     if (progress < 0) {
         progress = 0;
-    } else if(progress > 100) {
+    } else if (progress > 100) {
         progress = 100;
     }
-    mHorBlurSize = ((float)progress) / 100 * 3;
-    LogUtil::logI(TAG, {"adjustHorBlur: progress = ", std::to_string(progress), ", bluer size = ", std::to_string(mHorBlurSize)});
-}
-
-void GaussianFilter::adjustVerBlur(int progress) {
-    if (progress < 0) {
-        progress = 0;
-    } else if(progress > 100) {
-        progress = 100;
+    if (property == nullptr || std::strlen(property) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter prop is invalid"});
+    } else if (std::strcmp(render::FILTER_PROP_HOR_GAUSSIAN, property) == 0) {
+        mHorBlurSize = ((float)progress) / 100 * 3;
+        LogUtil::logI(TAG, {"adjustProperty: hor blur, progress = ", std::to_string(progress), ", bluer size = ", std::to_string(mHorBlurSize)});
+    } else if (std::strcmp(render::FILTER_PROP_VER_GAUSSIAN, property) == 0) {
+        mVerBlurSize = ((float)progress) / 100 * 3;
+        LogUtil::logI(TAG, {"adjustProperty: ver blur, progress = ", std::to_string(progress), ", bluer size = ", std::to_string(mVerBlurSize)});
     }
-    mVerBlurSize = ((float)progress) / 100 * 3;
-    LogUtil::logI(TAG, {"adjustVerBlur: progress = ", std::to_string(progress), ", bluer size = ", std::to_string(mVerBlurSize)});
 }
 
 void GaussianFilter::init() {
@@ -131,3 +128,5 @@ void GaussianFilter::setOutputSize(GLint width, GLint height) {
     mHorFilter->setOutputSize(width, height);
     mVerFilter->setOutputSize(width, height);
 }
+
+

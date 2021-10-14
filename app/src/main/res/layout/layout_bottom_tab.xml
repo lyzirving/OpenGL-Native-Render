@@ -151,6 +151,20 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <Button
+        android:id="@+id/btn_test"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAllCaps="false"
+        android:textColor="#000000"
+        android:gravity="center"
+        android:textSize="@dimen/bottom_icon_text_size"
+        android:text="测试"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/tab_face"
+        android:layout_marginStart="@dimen/sub_border_margin"/>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/tab_clear"
         android:layout_width="wrap_content"
@@ -186,6 +200,5 @@
             app:layout_constraintBottom_toBottomOf="parent"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

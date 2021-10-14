@@ -14,6 +14,7 @@ public:
     ~BaseFilter();
 
     virtual void adjust(int progress);
+    virtual void adjustProperty(const char* property, int progress);
     virtual void destroy();
     virtual const char* getType();
     virtual GLuint getFrameBuffer();

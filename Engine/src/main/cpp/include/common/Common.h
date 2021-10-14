@@ -13,14 +13,15 @@ namespace render {
     static std::map<std::string, jobject>* gClassMap = nullptr;
 
     static const char* FILTER_TYPE_GROUP = "GROUP";
-    static const char* FILTER_CONTRAST = "CONTRAST";
-    static const char* FILTER_SHARPEN = "SHARPEN";
-    static const char* FILTER_SATURATION = "SATURATION";
     static const char* FILTER_EXPOSURE = "EXPOSURE";
     static const char* FILTER_HIGHLIGHT_SHADOW = "HIGHLIGHT_SHADOW";
     static const char* FILTER_GAUSSIAN = "GAUSSIAN";
     static const char* FILTER_FACE_LIFT = "FACE_LIFT";
+    static const char* FILTER_COLOR_ADJUST = "COLOR_ADJUST";
 
+    static const char* FILTER_PROP_SHARPEN = "SHARPEN";
+    static const char* FILTER_PROP_CONTRAST = "CONTRAST";
+    static const char* FILTER_PROP_SATURATION = "SATURATION";
     static const char* FILTER_PROP_HIGHLIGHT = "HIGHLIGHT";
     static const char* FILTER_PROP_SHADOW = "SHADOW";
     static const char* FILTER_PROP_HOR_GAUSSIAN = "HOR_GAUSSIAN";

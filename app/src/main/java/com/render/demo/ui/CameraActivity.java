@@ -22,13 +22,11 @@ import com.render.engine.camera.RenderCamMetadata;
 import com.render.engine.camera.CamRenderEngine;
 import com.render.engine.core.RenderAdapter;
 import com.render.engine.face.LandMark;
-import com.render.engine.filter.ContrastFilter;
+import com.render.engine.filter.ColorAdjustFilter;
 import com.render.engine.filter.ExposureFilter;
 import com.render.engine.filter.FilterConst;
 import com.render.engine.filter.GaussianFilter;
 import com.render.engine.filter.HighlightShadowFilter;
-import com.render.engine.filter.SaturationFilter;
-import com.render.engine.filter.SharpenFilter;
 import com.render.engine.util.LogUtil;
 
 import java.util.Arrays;
@@ -54,9 +52,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
     private Switch mSwitchDetectFace;
 
-    private ContrastFilter mContrastFilter;
-    private SaturationFilter mSaturationFilter;
-    private SharpenFilter mSharpenFilter;
+    private ColorAdjustFilter mColorAdjustFilter;
     private ExposureFilter mExposureFilter;
     private HighlightShadowFilter mHighlightShadowFilter;
     private GaussianFilter mGaussianFilter;
@@ -238,17 +234,17 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     public void onStopTrackingTouch(SeekBar seekBar) {
         switch (seekBar.getId()) {
             case R.id.seek_bar_contrast: {
-                mContrastFilter.adjust(seekBar.getProgress());
+                mColorAdjustFilter.adjustProperty(FilterConst.PROP_CONTRAST, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
             case R.id.seek_bar_sharpen: {
-                mSharpenFilter.adjust(seekBar.getProgress());
+                mColorAdjustFilter.adjustProperty(FilterConst.PROP_SHARPEN, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
             case R.id.seek_bar_saturation: {
-                mSaturationFilter.adjust(seekBar.getProgress());
+                mColorAdjustFilter.adjustProperty(FilterConst.PROP_SATURATION, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
@@ -409,13 +405,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         }
         boolean show = mAdjustBeautyRoot.getVisibility() == View.VISIBLE;
         showTab(mAdjustBeautyRoot, !show);
-        if (!show && mContrastFilter == null) {
-            mContrastFilter = new ContrastFilter();
-            mSharpenFilter = new SharpenFilter();
-            mSaturationFilter = new SaturationFilter();
-            mCameraRender.addBeautyFilter(mContrastFilter, false);
-            mCameraRender.addBeautyFilter(mSaturationFilter, false);
-            mCameraRender.addBeautyFilter(mSharpenFilter, true);
+        if (!show && mColorAdjustFilter == null) {
+            mColorAdjustFilter = new ColorAdjustFilter();
+            mCameraRender.addBeautyFilter(mColorAdjustFilter, true);
             mCameraRender.requestRender();
         }
     }
@@ -467,10 +459,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             hideAllTab();
         }
         initDefaultVal();
-        //beauty filter related
-        mContrastFilter = null;
-        mSharpenFilter = null;
-        mSaturationFilter = null;
+        mColorAdjustFilter = null;
         mExposureFilter = null;
         mHighlightShadowFilter = null;
         mGaussianFilter = null;

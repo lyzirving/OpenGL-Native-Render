@@ -2,29 +2,27 @@
 // Created by liuyuzhou on 2021/9/14.
 //
 #include "HighlightShadowFilter.h"
+#include "Common.h"
 #include "GlUtil.h"
 #include "LogUtil.h"
 
 #define TAG "HighlightShadowFilter"
 
-void HighlightShadowFilter::adjustHighlight(int progress) {
+void HighlightShadowFilter::adjustProperty(const char *property, int progress) {
     if (progress < 0) {
         progress = 0;
     } else if (progress > 100) {
         progress = 100;
     }
-    mHighlight = ((float)(100 - progress)) / 100;
-    LogUtil::logI(TAG, {"adjustHighlight: progress = ", std::to_string(progress), ", highlight = ", std::to_string(mHighlight)});
-}
-
-void HighlightShadowFilter::adjustShadow(int progress) {
-    if (progress < 0) {
-        progress = 0;
-    } else if (progress > 100) {
-        progress = 100;
+    if (property == nullptr || std::strlen(property) == 0) {
+        LogUtil::logI(TAG, {"adjustProperty: filter prop is invalid"});
+    } else if (std::strcmp(render::FILTER_PROP_HIGHLIGHT, property) == 0) {
+        mHighlight = ((float)(100 - progress)) / 100;
+        LogUtil::logI(TAG, {"adjustProperty: highlight, progress = ", std::to_string(progress), ", highlight = ", std::to_string(mHighlight)});
+    } else if (std::strcmp(render::FILTER_PROP_SHADOW, property) == 0) {
+        mShadow = ((float)progress) / 100;
+        LogUtil::logI(TAG, {"adjustProperty: shadow, progress = ", std::to_string(progress), ", shadow = ", std::to_string(mShadow)});
     }
-    mShadow = ((float)progress) / 100;
-    LogUtil::logI(TAG, {"adjustShadow: progress = ", std::to_string(progress), ", shadow = ", std::to_string(mShadow)});
 }
 
 void HighlightShadowFilter::init() {

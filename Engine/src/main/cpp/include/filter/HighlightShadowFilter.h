@@ -13,8 +13,7 @@
 class HighlightShadowFilter : public BaseFilter {
 public:
 
-    void adjustHighlight(int progress);
-    void adjustShadow(int progress);
+    void adjustProperty(const char *property, int progress) override;
     void init() override;
     void initHandler() override;
     void loadShader() override;
