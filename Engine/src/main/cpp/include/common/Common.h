@@ -18,6 +18,7 @@ namespace render {
     static const char* FILTER_GAUSSIAN = "GAUSSIAN";
     static const char* FILTER_FACE_LIFT = "FACE_LIFT";
     static const char* FILTER_COLOR_ADJUST = "COLOR_ADJUST";
+    static const char* FILTER_BEAUTIFY_FACE = "BEAUTIFY_FACE";
 
     static const char* FILTER_PROP_SHARPEN = "SHARPEN";
     static const char* FILTER_PROP_CONTRAST = "CONTRAST";
@@ -27,6 +28,8 @@ namespace render {
     static const char* FILTER_PROP_HOR_GAUSSIAN = "HOR_GAUSSIAN";
     static const char* FILTER_PROP_VER_GAUSSIAN = "VER_GAUSSIAN";
     static const char* FILTER_PROP_FACE_LIFT = "FACE_LIFT_INTENSITY";
+    static const char* FILTER_PROP_BEAUTIFY_SKIN = "BEAUTIFY_SKIN";
+    static const char* FILTER_PROP_SKIN_BUFF = "SKIN_BUFF";
 
     static void createClassMap() {
         if (gClassMap == nullptr) { gClassMap = new std::map<std::string, jobject>; }

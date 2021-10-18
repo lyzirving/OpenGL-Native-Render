@@ -49,12 +49,6 @@ void GaussianFilter::init() {
         preInit();
         mHorFilter->init();
         mVerFilter->init();
-        if (!mHorFilter->initialized() || !mVerFilter->initialized()) {
-            mHorFilter->destroy();
-            mVerFilter->destroy();
-            LogUtil::logI(TAG, {"init: failed"});
-            return;
-        }
         initFrameBuffer();
         initTexture();
         postInit();
@@ -87,6 +81,7 @@ void GaussianFilter::initTexture() {
 }
 
 GLint GaussianFilter::onDraw(GLint inputFrameBufferId, GLint inputTextureId) {
+    //should draw twice in two direction, so we have to use two framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, mFrameBufferId);
     mHorFilter->adjustHorBlur(mHorBlurSize);
     mHorFilter->onDraw(inputTextureId);
@@ -127,6 +122,11 @@ void GaussianFilter::setOutputSize(GLint width, GLint height) {
     BaseFilter::setOutputSize(width, height);
     mHorFilter->setOutputSize(width, height);
     mVerFilter->setOutputSize(width, height);
+}
+
+void GaussianFilter::setBlurSize(float horBlur, float verBlur) {
+    mHorFilter->setBlurSize(render::FILTER_PROP_HOR_GAUSSIAN, horBlur);
+    mVerFilter->setBlurSize(render::FILTER_PROP_VER_GAUSSIAN, verBlur);
 }
 
 

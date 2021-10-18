@@ -25,6 +25,7 @@ public:
     virtual void initFrameBuffer();
 
     virtual void loadShader();
+    virtual bool needResume();
     virtual GLint onDraw(GLint inputTextureId);
     virtual GLint onDraw(GLint inputFrameBufferId, GLint inputTextureId);
     virtual void onPause();
@@ -76,6 +77,8 @@ protected:
 
     GLuint mBufferId[2]{0, 0};
     GLuint mTextureId{0};
+
+    bool mNeedResume{false};
 private:
 };
 

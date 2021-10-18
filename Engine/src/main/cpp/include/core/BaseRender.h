@@ -14,6 +14,7 @@
 #include "CustomQueue.h"
 
 #include "ScreenFilter.h"
+#include "BeautifyFaceFilter.h"
 #include "BaseFilterGroup.h"
 
 #define GET_LISTENER (mListener != nullptr ? mListener->get() : nullptr)
@@ -26,12 +27,14 @@ public:
     virtual ~BaseRender();
 
     virtual void drawFrame() = 0;
+    virtual void trackFace(bool start) = 0;
     virtual void release(JNIEnv* env);
     virtual void adjustProperty(const char *filterType, const char *property, int progress);
 
     void adjust(const char* filterType, int progress);
     bool addBeautyFilter(const char* filterType, bool commit);
     void clearBeautyFilter();
+    void beautifyFace(bool start);
     void enqueueMessage(EventType what);
     void enqueueMessage(const EventMessage& msg);
     bool initialized();
@@ -68,6 +71,7 @@ protected:
     GLint mSurfaceHeight{0};
 
     ScreenFilter* mScreenFilter{nullptr};
+    BeautifyFaceFilter* mBeautifyFaceFilter{nullptr};
     BaseFilterGroup* mBeautyFilterGroup{nullptr};
 };
 #endif //ENGINE_BASERENDER_H

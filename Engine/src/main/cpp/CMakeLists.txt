@@ -8,6 +8,7 @@ set(PNG_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_png)
 set(ZIP_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_zip)
 set(OPENCV_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/opencv_include)
 set(DLIB_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_dlib)
+set(STD_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_std)
 
 set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/third_party)
 
@@ -19,6 +20,7 @@ include_directories(${PNG_HEAD})
 include_directories(${ZIP_HEAD})
 include_directories(${OPENCV_HEAD})
 include_directories(${DLIB_HEAD})
+include_directories(${STD_HEAD})
 
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/common CPP_COMMON)
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/core CPP_CORE)

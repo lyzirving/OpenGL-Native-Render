@@ -16,6 +16,7 @@ public:
     static bool registerSelf(JNIEnv *env);
     static GlUtil* self();
 
+    GLuint generateTextureFromAssets(const char* path);
     GLuint loadProgram(const char* vertexShader, const char* fragmentShader);
     GLuint loadShader(GLenum shaderType, const char* source);
     char* readAssets(const char* path);

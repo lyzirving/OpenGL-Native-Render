@@ -23,7 +23,7 @@ public:
     void notifyImageLandMarkTrackStart(JNIEnv* env);
     void notifyImageLandMarkTrackFinish(JNIEnv* env);
     void setResource(JNIEnv* env, jobject bitmap);
-    void trackFace(bool trackFace);
+    void trackFace(bool start) override;
 
 protected:
 

@@ -43,4 +43,72 @@
 
     </RelativeLayout>
 
+    <RelativeLayout
+        android:id="@+id/rl_face_beautify_intensity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/rl_face_lift_intensity"
+        android:layout_marginStart="@dimen/border_margin"
+        android:layout_marginEnd="@dimen/border_margin"
+        android:layout_marginTop="@dimen/sub_border_margin">
+
+        <TextView
+            android:id="@+id/tv_face_beautify_intensity"
+            android:layout_width="@dimen/adjust_text_width"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_face_beautify_intensity"
+            tools:ignore="SmallSp" />
+
+        <SeekBar
+            android:id="@+id/seek_bar_face_beautify_intensity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/tv_face_beautify_intensity"
+            android:layout_centerVertical="true"
+            android:max="100"
+            android:maxHeight="@dimen/seek_bar_max_height" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/rl_skin_buff_intensity"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/rl_face_beautify_intensity"
+        android:layout_marginStart="@dimen/border_margin"
+        android:layout_marginEnd="@dimen/border_margin"
+        android:layout_marginTop="@dimen/sub_border_margin">
+
+        <TextView
+            android:id="@+id/tv_skin_buff_intensity"
+            android:layout_width="@dimen/adjust_text_width"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:textAllCaps="false"
+            android:textColor="#000000"
+            android:gravity="center"
+            android:textSize="@dimen/bottom_icon_text_size"
+            android:text="@string/tip_skin_buf_intensity"
+            tools:ignore="SmallSp" />
+
+        <SeekBar
+            android:id="@+id/seek_bar_skin_buff_intensity"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@+id/tv_skin_buff_intensity"
+            android:layout_centerVertical="true"
+            android:max="100"
+            android:maxHeight="@dimen/seek_bar_max_height" />
+
+    </RelativeLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

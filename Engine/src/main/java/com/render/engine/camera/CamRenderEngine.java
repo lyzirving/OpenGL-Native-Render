@@ -26,14 +26,6 @@ public class CamRenderEngine extends BaseRenderEngine {
         nBuildTexture(mNativePtr);
     }
 
-    public void detect(boolean start) {
-        if (!isInitialized()) {
-            LogUtil.e(TAG, "detect: invalid state");
-            return;
-        }
-        nDetect(mNativePtr, start);
-    }
-
     public void onPreviewChange(int previewWidth, int previewHeight) {
         if (mNativePtr == INVALID_PTR) {
             LogUtil.e(TAG, "onPreviewChange: invalid native pointer");
@@ -66,7 +58,6 @@ public class CamRenderEngine extends BaseRenderEngine {
 
     private static native void nBuildTexture(long ptr);
     private static native long nCreate();
-    private static native void nDetect(long ptr, boolean start);
     private static native void nPreviewChange(long ptr, int previewWidth, int previewHeight);
     private static native void nSetRenderCamMetadata(long ptr, RenderCamMetadata data);
     private static native void nSetSurfaceTexture(long ptr, SurfaceTexture surfaceTexture);

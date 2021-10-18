@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/14.
 //
 #include "GaussianOnePassFilter.h"
+#include "Common.h"
 #include "GlUtil.h"
 #include "MatrixUtil.h"
 #include "LogUtil.h"
@@ -76,5 +77,15 @@ GLint GaussianOnePassFilter::onDraw(GLint inputTextureId) {
     MatrixUtil::setIdentityM(mMatrix, 0);
 
     return inputTextureId;
+}
+
+void GaussianOnePassFilter::setBlurSize(const char *prop, float blur) {
+    if (prop == nullptr || std::strlen(prop) == 0) {
+        LogUtil::logI(TAG, {"setBlurSize: filter prop is invalid"});
+    } else if (std::strcmp(render::FILTER_PROP_HOR_GAUSSIAN, prop) == 0) {
+        mHorBlurSize = blur;
+    } else if (std::strcmp(render::FILTER_PROP_VER_GAUSSIAN, prop) == 0) {
+        mVerBlurSize = blur;
+    }
 }
 

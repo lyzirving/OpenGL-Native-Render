@@ -4,13 +4,25 @@
 #include "GlUtil.h"
 #include "LogUtil.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <pthread.h>
 
 #define JAVA_CLASS "com/render/engine/core/EngineEnv"
 #define TAG "GlUtil"
+#define NO_TEXTURE 0
 
 static GlUtil *gGlUtil = nullptr;
 static pthread_mutex_t gMutex;
+
+GlUtil::GlUtil() {
+    LogUtil::logI(TAG, {"construct"});
+}
+
+GlUtil::~GlUtil() {
+    LogUtil::logI(TAG, {"deconstruct"});
+}
 
 static void nInitUtilEnv(JNIEnv *env, jclass clazz, jobject assetManager) {
     auto pGlUtil = GlUtil::self();
@@ -26,6 +38,45 @@ static JNINativeMethod sJniMethods[] = {
 
 void GlUtil::destroy() {
     pthread_mutex_destroy(&gMutex);
+}
+
+GLuint GlUtil::generateTextureFromAssets(const char *path) {
+    if (mAssetManager == nullptr) {
+        LogUtil::logI(TAG, {"generateTextureFromAssets: path = ", path, {", assets manager is null"}});
+        return NO_TEXTURE;
+    }
+    if (path == nullptr || strlen(path) == 0) {
+        LogUtil::logI(TAG, {"generateTextureFromAssets: invalid input path"});
+        return NO_TEXTURE;
+    }
+    AAsset *asset = AAssetManager_open(mAssetManager, path, AASSET_MODE_UNKNOWN);
+    if (asset == nullptr) {
+        LogUtil::logI(TAG, {"generateTextureFromAssets: failed to open asset, path = ", path});
+        return NO_TEXTURE;
+    }
+    off_t len = AAsset_getLength(asset);
+    auto*fileData = (unsigned char*) AAsset_getBuffer(asset);
+    int width;
+    int height;
+    int channel;
+    unsigned char* content = stbi_load_from_memory(fileData, len, &width, &height, &channel, 0);
+    if (content == nullptr) {
+        LogUtil::logI(TAG, {"generateTextureFromAssets: failed to load image from assets, path = ", path});
+        return NO_TEXTURE;
+    }
+    GLuint textureId;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, content);
+
+    LogUtil::logI(TAG, {"generateTextureFromAssets: path = ", path, ", width = ", std::to_string(width),
+                        ", height = ", std::to_string(height), ", channel = ", std::to_string(channel),
+                        ", texture = ", std::to_string(textureId)});
+    return textureId;
 }
 
 void GlUtil::init() {
@@ -44,14 +95,6 @@ bool GlUtil::registerSelf(JNIEnv *env) {
         return false;
     }
     return true;
-}
-
-GlUtil::GlUtil() {
-    LogUtil::logI(TAG, {"construct"});
-}
-
-GlUtil::~GlUtil() {
-    LogUtil::logI(TAG, {"deconstruct"});
 }
 
 GLuint GlUtil::loadShader(GLenum shaderType, const char *source) {
@@ -125,7 +168,7 @@ GLuint GlUtil::loadProgram(const char *vertexShader, const char *fragmentShader)
 
 void GlUtil::release() {}
 
-char *GlUtil::readAssets(const char *path) {
+char* GlUtil::readAssets(const char *path) {
     if (mAssetManager == nullptr) {
         LogUtil::logI(TAG, {"readAssets: path = ", path, {", assets manager is null"}});
         return nullptr;

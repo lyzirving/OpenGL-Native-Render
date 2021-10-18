@@ -19,6 +19,7 @@ public:
     GLint onDraw(GLint inputFrameBufferId, GLint inputTextureId) override;
     void onPause() override;
     void setOutputSize(GLint width, GLint height) override;
+    void setBlurSize(float horBlur, float verBlur);
 
 private:
     GaussianOnePassFilter* mHorFilter = nullptr;

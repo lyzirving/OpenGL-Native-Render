@@ -22,6 +22,7 @@ public:
     void initTexture() override;
     GLint onDraw(GLint inputTextureId) override;
     void onPause() override;
+    void onResume() override;
     std::shared_ptr<BaseFilter> removeFilter(const std::string& key);
     void setOutputSize(GLint width, GLint height) override;
 

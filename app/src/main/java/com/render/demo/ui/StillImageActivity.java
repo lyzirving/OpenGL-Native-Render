@@ -36,20 +36,19 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
     private ImageRenderEngine mImgRender;
     private RenderAdapter mRenderAdapter;
 
-    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot, mAdjustFaceRoot, mTestRoot;
+    private View mAdjustBeautyRoot, mAdjustBrightnessRoot, mAdjustBlurRoot, mAdjustFaceRoot;
     private SeekBar mContrastSeekBar, mSharpenSeekBar, mSaturationSeekBar;
     private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
     private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
     private SeekBar mFaceLiftSeekBar;
-    private SeekBar mSharpenTestSeekBar, mContrastTestSeekBar, mSaturationTestSeekBar;
+    private SeekBar mFaceBeautifySeekBar, mSkinBuffSeekBar;
 
     private ColorAdjustFilter mColorAdjustFilter;
-
     private ExposureFilter mExposureFilter;
     private HighlightShadowFilter mHighlightShadowFilter;
     private GaussianFilter mGaussianFilter;
 
-    private Switch mSwitchDetectFace;
+    private Switch mSwitchDetectFace, mSwitchBeautifyFace;
     private LottieAnimationView mLottieLoading;
 
     private static final int MSG_SHOW_LOADING_ANI = 1;
@@ -100,13 +99,13 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mAdjustFaceRoot = findViewById(R.id.layout_adjust_face_root);
         mFaceLiftSeekBar = findViewById(R.id.seek_bar_face_lift_intensity);
 
-        mTestRoot = findViewById(R.id.layout_adjust_beauty_root_test);
-        mSharpenTestSeekBar = findViewById(R.id.seek_bar_sharpen_test);
-        mContrastTestSeekBar = findViewById(R.id.seek_bar_contrast_test);
-        mSaturationTestSeekBar = findViewById(R.id.seek_bar_saturation_test);
+        mFaceBeautifySeekBar = findViewById(R.id.seek_bar_face_beautify_intensity);
+        mSkinBuffSeekBar = findViewById(R.id.seek_bar_skin_buff_intensity);
 
         mSwitchDetectFace = findViewById(R.id.switch_detect_face);
+        mSwitchBeautifyFace = findViewById(R.id.switch_beautify_face);
         mSwitchDetectFace.setOnCheckedChangeListener(this);
+        mSwitchBeautifyFace.setOnCheckedChangeListener(this);
 
         mContrastSeekBar.setOnSeekBarChangeListener(this);
         mSharpenSeekBar.setOnSeekBarChangeListener(this);
@@ -117,15 +116,13 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mHorBlurSeekBar.setOnSeekBarChangeListener(this);
         mVerBlurSeekBar.setOnSeekBarChangeListener(this);
         mFaceLiftSeekBar.setOnSeekBarChangeListener(this);
-        mSharpenTestSeekBar.setOnSeekBarChangeListener(this);
-        mContrastTestSeekBar.setOnSeekBarChangeListener(this);
-        mSaturationTestSeekBar.setOnSeekBarChangeListener(this);
+        mFaceBeautifySeekBar.setOnSeekBarChangeListener(this);
+        mSkinBuffSeekBar.setOnSeekBarChangeListener(this);
         findViewById(R.id.tab_beauty).setOnClickListener(this);
         findViewById(R.id.tab_brightness).setOnClickListener(this);
         findViewById(R.id.tab_blur).setOnClickListener(this);
         findViewById(R.id.tab_face).setOnClickListener(this);
         findViewById(R.id.tab_clear).setOnClickListener(this);
-        findViewById(R.id.btn_test).setOnClickListener(this);
     }
 
     @Override
@@ -187,10 +184,6 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
                 handleClickFace();
                 break;
             }
-            case R.id.btn_test: {
-                handleClickTest();
-                break;
-            }
             case R.id.tab_clear: {
                 handleClickClear();
                 break;
@@ -206,6 +199,10 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         switch (buttonView.getId()) {
             case R.id.switch_detect_face: {
                 mImgRender.trackFace(isChecked);
+                break;
+            }
+            case R.id.switch_beautify_face: {
+                mImgRender.beautifyFace(isChecked);
                 break;
             }
         }
@@ -241,27 +238,37 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
                 break;
             }
             case R.id.seek_bar_inc_shadow: {
-                mHighlightShadowFilter.adjustProperty(FilterConst.SHADOW, seekBar.getProgress());
+                mHighlightShadowFilter.adjustProperty(FilterConst.PROP_SHADOW, seekBar.getProgress());
                 mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_dec_highlight: {
-                mHighlightShadowFilter.adjustProperty(FilterConst.HIGHLIGHT, seekBar.getProgress());
+                mHighlightShadowFilter.adjustProperty(FilterConst.PROP_HIGHLIGHT, seekBar.getProgress());
                 mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_hor_blur: {
-                mGaussianFilter.adjustProperty(FilterConst.HOR_GAUSSIAN, seekBar.getProgress());
+                mGaussianFilter.adjustProperty(FilterConst.PROP_HOR_GAUSSIAN, seekBar.getProgress());
                 mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_ver_blur: {
-                mGaussianFilter.adjustProperty(FilterConst.VER_GAUSSIAN, seekBar.getProgress());
+                mGaussianFilter.adjustProperty(FilterConst.PROP_VER_GAUSSIAN, seekBar.getProgress());
                 mImgRender.requestRender();
                 break;
             }
             case R.id.seek_bar_face_lift_intensity: {
-                mImgRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.FACE_LIFT_INTENSITY, seekBar.getProgress());
+                mImgRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.PROP_FACE_LIFT_INTENSITY, seekBar.getProgress());
+                mImgRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_face_beautify_intensity: {
+                mImgRender.adjustProperty(FilterConst.BEAUTIFY_FACE, FilterConst.PROP_BEAUTIFY_SKIN, seekBar.getProgress());
+                mImgRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_skin_buff_intensity: {
+                mImgRender.adjustProperty(FilterConst.BEAUTIFY_FACE, FilterConst.PROP_SKIN_BUFF, seekBar.getProgress());
                 mImgRender.requestRender();
                 break;
             }
@@ -301,7 +308,7 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
 
     private boolean anyTabShow() {
         return mAdjustBeautyRoot.getVisibility() == View.VISIBLE || mAdjustBrightnessRoot.getVisibility() == View.VISIBLE
-                || mAdjustBlurRoot.getVisibility() == View.VISIBLE || mTestRoot.getVisibility() == View.VISIBLE;
+                || mAdjustBlurRoot.getVisibility() == View.VISIBLE;
     }
 
     private RenderAdapter getRenderAdapter() {
@@ -342,7 +349,6 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         mAdjustBrightnessRoot.setVisibility(View.GONE);
         mAdjustBlurRoot.setVisibility(View.GONE);
         mAdjustFaceRoot.setVisibility(View.GONE);
-        mTestRoot.setVisibility(View.GONE);
     }
 
     private void handleClickBeauty() {
@@ -401,15 +407,6 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         }
     }
 
-    private void handleClickTest() {
-        if (anyTabShow()) {
-            hideAllTab();
-        } else {
-            boolean show = mTestRoot.getVisibility() == View.VISIBLE;
-            showTab(mTestRoot, !show);
-        }
-    }
-
     private void handleClickClear() {
         if (anyTabShow()) {
             hideAllTab();
@@ -417,7 +414,6 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         initDefaultVal();
         mExposureFilter = null;
         mHighlightShadowFilter = null;
-
         mGaussianFilter = null;
         mColorAdjustFilter = null;
 
@@ -435,9 +431,8 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
         if (mHorBlurSeekBar != null) { mHorBlurSeekBar.setProgress(0); }
         if (mVerBlurSeekBar != null) { mVerBlurSeekBar.setProgress(0); }
         if (mFaceLiftSeekBar != null) { mFaceLiftSeekBar.setProgress(50); }
-        if (mSharpenTestSeekBar != null) { mSharpenTestSeekBar.setProgress(50); }
-        if (mContrastTestSeekBar != null) { mContrastTestSeekBar.setProgress(50); }
-        if (mSaturationTestSeekBar != null) { mSaturationTestSeekBar.setProgress(50); }
+        if (mSkinBuffSeekBar != null) { mSkinBuffSeekBar.setProgress(50); }
+        if (mFaceBeautifySeekBar != null) { mFaceBeautifySeekBar.setProgress(50); }
     }
 
     private void showLoadingView(boolean show) {

@@ -6,10 +6,6 @@
 #include "JniUtil.h"
 #include "LogUtil.h"
 
-#include "HighlightShadowFilter.h"
-#include "GaussianFilter.h"
-#include "ColorAdjustFilter.h"
-
 #define TAG "BaseRender"
 #define JAVA_CLASS_BASE_RENDER "com/render/engine/core/BaseRenderEngine"
 
@@ -107,6 +103,16 @@ static void nEnvSurfaceChange(JNIEnv *env, jclass clazz, jlong ptr, jint width, 
     pRender->enqueueMessage(EventType::EVENT_SURFACE_CHANGE);
 }
 
+static void nEnvBeautifyFace(JNIEnv *env, jclass clazz, jlong ptr, jboolean start) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->beautifyFace(start);
+}
+
+static void nEnvTrackFace(JNIEnv *env, jclass clazz, jlong ptr, jboolean start) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->trackFace(start);
+}
+
 static JNINativeMethod sJniMethods[] = {
         {
                 "nAddBeautyFilter", "(JLjava/lang/String;Z)Z",
@@ -152,6 +158,14 @@ static JNINativeMethod sJniMethods[] = {
                 "nSurfaceChange", "(JII)V",
                 (void *) nEnvSurfaceChange
         },
+        {
+                "nBeautifyFace", "(JZ)V",
+                (void *) nEnvBeautifyFace
+        },
+        {
+                "nTrackFace", "(JZ)V",
+                (void *) nEnvTrackFace
+        }
 };
 
 bool BaseRender::registerSelf(JNIEnv *env) {
@@ -166,6 +180,19 @@ bool BaseRender::registerSelf(JNIEnv *env) {
         return false;
     }
     return true;
+}
+
+void BaseRender::beautifyFace(bool start) {
+    if (start) {
+        if (mBeautifyFaceFilter == nullptr) { mBeautifyFaceFilter = new BeautifyFaceFilter; }
+        mBeautifyFaceFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
+        task->setObj(mBeautifyFaceFilter);
+        mWorkQueue->enqueue(task);
+    } else {
+        if (mBeautifyFaceFilter != nullptr) { mBeautifyFaceFilter->onPause(); }
+    }
+    enqueueMessage(EventType::EVENT_DRAW);
 }
 
 void BaseRender::enqueueMessage(EventType what) {
@@ -198,6 +225,12 @@ void BaseRender::adjustProperty(const char *filterType, const char *property, in
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->containsFilter(filterType)) {
             std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
             tmp->adjustProperty(property, progress);
+        }
+    } if (std::strcmp(render::FILTER_BEAUTIFY_FACE, filterType) == 0) {
+        if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
+            mBeautifyFaceFilter->adjustProperty(property, progress);
+        } else {
+            LogUtil::logI(TAG, {"adjustProperty: beautify face filter is not prepared"});
         }
     } else {
         LogUtil::logI(TAG, {"adjustProperty: unknown filter ", filterType});
@@ -348,16 +381,39 @@ void BaseRender::release(JNIEnv *env) {
 }
 
 void BaseRender::renderEnvPause() {
+    if (mBeautifyFaceFilter != nullptr) { mBeautifyFaceFilter->onPause(); }
+    if (mScreenFilter != nullptr) { mScreenFilter->onPause(); }
+    if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->onPause(); }
+
     mWorkQueue->clear();
     mEventQueue->clear();
     mEglCore->release();
 }
 
 bool BaseRender::renderEnvResume() {
-    return mEglCore->initEglEnv();
+    bool res = mEglCore->initEglEnv();
+    if (res) {
+        if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->needResume()) {
+            mBeautifyFaceFilter->onResume();
+        }
+        if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->needResume()) {
+            mBeautyFilterGroup->onResume();
+        }
+    }
+    return res;
 }
 
 void BaseRender::renderEnvDestroy() {
+    if (mBeautifyFaceFilter != nullptr) { mBeautifyFaceFilter->destroy(); }
+    delete mBeautifyFaceFilter;
+    mBeautifyFaceFilter = nullptr;
+    if (mScreenFilter != nullptr) { mScreenFilter->destroy(); }
+    delete mScreenFilter;
+    mScreenFilter = nullptr;
+    if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->destroy(); }
+    delete mBeautyFilterGroup;
+    mBeautyFilterGroup = nullptr;
+
     mWorkQueue->clear();
     mEventQueue->clear();
     mEglCore->release();
@@ -393,4 +449,10 @@ void BaseRender::setSurfaceSize(GLint surfaceWidth, GLint surfaceHeight) {
 void BaseRender::surfaceChange() {
     glViewport(0, 0, mSurfaceWidth, mSurfaceHeight);
     if (!mEglCore->swapBuffer()) { LogUtil::logI(TAG, {"surfaceChange: failed to swap buffer"}); }
+
+    if (mScreenFilter == nullptr) { mScreenFilter = new ScreenFilter; }
+    mScreenFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+    mScreenFilter->init();
+    if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight); }
+    if (mBeautifyFaceFilter != nullptr) { mBeautifyFaceFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight); }
 }

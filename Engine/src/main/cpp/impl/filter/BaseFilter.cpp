@@ -42,6 +42,7 @@ void BaseFilter::destroy() {
         glDeleteProgram(mProgram);
         mProgram = 0;
     }
+    mNeedResume = false;
     mInitialized = false;
 }
 
@@ -139,6 +140,8 @@ void BaseFilter::loadShader() {
     if (mTextureShader == nullptr) { mTextureShader = gUtil->readAssets("shader/default_fragment_shader.glsl"); }
 }
 
+bool BaseFilter::needResume() { return mNeedResume; }
+
 GLint BaseFilter::onDraw(GLint inputTextureId) {
     glUseProgram(mProgram);
 
@@ -167,6 +170,7 @@ GLint BaseFilter::onDraw(GLint inputTextureId) {
 GLint BaseFilter::onDraw(GLint inputFrameBufferId, GLint inputTextureId) {}
 
 void BaseFilter::onPause() {
+    if (mInitialized) { mNeedResume = true; }
     mInitialized = false;
     if (mProgram != 0) {
         glDeleteProgram(mProgram);
@@ -183,7 +187,9 @@ void BaseFilter::onPause() {
     }
 }
 
-void BaseFilter::onResume() {}
+void BaseFilter::onResume() {
+    mNeedResume = false;
+}
 
 void BaseFilter::preInit() {}
 

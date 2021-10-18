@@ -29,7 +29,6 @@ static jlong nEnvCreate(JNIEnv *env, jclass clazz) {
 
 static void nEnvDetect(JNIEnv *env, jclass clazz, jlong ptr, jboolean start) {
     auto *pRender = reinterpret_cast<CamRender *>(ptr);
-    pRender->detect(env, start);
 }
 
 static void nEnvPreviewChange(JNIEnv *env, jclass clazz, jlong ptr, jint previewWidth, jint previewHeight) {
@@ -74,10 +73,6 @@ static JNINativeMethod sJniMethods[] = {
         {
                 "nCreate",           "()J",
                 (void *) nEnvCreate
-        },
-        {
-                "nDetect", "(JZ)V",
-                (void *) nEnvDetect
         },
         {
                 "nPreviewChange", "(JII)V",
@@ -145,26 +140,6 @@ void CamRender::buildOesTexture() {
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_EXTERNAL_OES, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glBindTexture(GL_TEXTURE_2D, 0);
-}
-
-void CamRender::detect(JNIEnv* env, bool start) {
-    if (start) {
-        if (mDownloadFilter == nullptr) {
-            mDownloadFilter = new DownloadPixelFilter;
-            mDownloadFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-            std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
-            task->setObj(mDownloadFilter);
-            mWorkQueue->enqueue(task);
-        }
-        if (mFaceLiftFilter == nullptr) {
-            mFaceLiftFilter = new FaceLiftFilter;
-            mFaceLiftFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-            std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
-            task->setObj(mFaceLiftFilter);
-            mWorkQueue->enqueue(task);
-        }
-    }
-    mCamFaceDetector->execute(start);
 }
 
 void CamRender::drawFrame() {
@@ -282,12 +257,6 @@ void CamRender::handleOtherMessage(JNIEnv* env, const EventMessage& msg) {
 
 void CamRender::handlePreDraw(JNIEnv *env) {
     updateTexImg(env);
-    if (mScreenFilter == nullptr) {
-        LogUtil::logI(TAG, {"handlePreDraw: screen filter init"});
-        mScreenFilter = new ScreenFilter;
-        mScreenFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-        mScreenFilter->init();
-    }
     if (mPlaceHolderFilter == nullptr) {
         LogUtil::logI(TAG, {"handlePreDraw: place holder filter init"});
         mPlaceHolderFilter = new PlaceHolderFilter;
@@ -302,10 +271,6 @@ void CamRender::handlePreDraw(JNIEnv *env) {
         mOesFilter->setCameraFaceFront(mCamMetaData->frontType);
         mOesFilter->calculateMatrix();
         mOesFilter->init();
-    }
-    if (mBeautyFilterGroup != nullptr && !mBeautyFilterGroup->initialized()) {
-        mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-        mBeautyFilterGroup->init();
     }
     if (mDownloadFilter != nullptr && !mDownloadFilter->initialized()) {
         mDownloadFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
@@ -328,17 +293,6 @@ void CamRender::handlePostDraw(JNIEnv *env) {
 
 void CamRender::handleRenderEnvPause(JNIEnv *env) {
     LogUtil::logI(TAG, {"handleRenderEnvPause"});
-    if (mBeautyFilterGroup != nullptr) {
-        //should not destroy filter group when env is paused
-        //because we should memorise the inner data, and resume
-        mBeautyFilterGroup->onPause();
-    }
-
-    if (mScreenFilter != nullptr) {
-        mScreenFilter->destroy();
-        delete mScreenFilter;
-    }
-    mScreenFilter = nullptr;
 
     if (mPlaceHolderFilter != nullptr) {
         mPlaceHolderFilter->destroy();
@@ -377,11 +331,6 @@ void CamRender::handleRenderEnvResume(JNIEnv *env) {}
 
 void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
     LogUtil::logI(TAG, {"handleRenderEnvDestroy"});
-    if (mScreenFilter != nullptr) {
-        mScreenFilter->destroy();
-        delete mScreenFilter;
-    }
-    mScreenFilter = nullptr;
 
     if (mPlaceHolderFilter != nullptr) {
         mPlaceHolderFilter->destroy();
@@ -406,12 +355,6 @@ void CamRender::handleRenderEnvDestroy(JNIEnv *env) {
         delete mFaceLiftFilter;
     }
     mFaceLiftFilter = nullptr;
-
-    if (mBeautyFilterGroup != nullptr) {
-        mBeautyFilterGroup->destroy();
-        delete mBeautyFilterGroup;
-    }
-    mBeautyFilterGroup = nullptr;
 
     if (mOesTexture != 0) { glDeleteTextures(1, &mOesTexture); }
     mOesTexture = 0;
@@ -486,6 +429,26 @@ void CamRender::setSurfaceTexture(JNIEnv *env, jobject surfaceTexture) {
     //the life cycle of mSurfaceTexture is the same as surfaceTexture java object
     //if the java object dies, mSurfaceTexture will be invalid, but that situation will not let the program terminate
     mSurfaceTexture = env->NewGlobalRef(surfaceTexture);
+}
+
+void CamRender::trackFace(bool start) {
+    if (start) {
+        if (mDownloadFilter == nullptr) {
+            mDownloadFilter = new DownloadPixelFilter;
+            mDownloadFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+            std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
+            task->setObj(mDownloadFilter);
+            mWorkQueue->enqueue(task);
+        }
+        if (mFaceLiftFilter == nullptr) {
+            mFaceLiftFilter = new FaceLiftFilter;
+            mFaceLiftFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+            std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
+            task->setObj(mFaceLiftFilter);
+            mWorkQueue->enqueue(task);
+        }
+    }
+    mCamFaceDetector->execute(start);
 }
 
 void CamRender::updateTexImg(JNIEnv *env) {

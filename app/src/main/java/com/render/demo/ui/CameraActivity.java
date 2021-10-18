@@ -215,7 +215,7 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
         switch (buttonView.getId()) {
             case R.id.switch_detect_face: {
-                mCameraRender.detect(isChecked);
+                mCameraRender.trackFace(isChecked);
                 break;
             }
             default: {
@@ -254,27 +254,27 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 break;
             }
             case R.id.seek_bar_inc_shadow: {
-                mHighlightShadowFilter.adjustProperty(FilterConst.SHADOW, seekBar.getProgress());
+                mHighlightShadowFilter.adjustProperty(FilterConst.PROP_SHADOW, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
             case R.id.seek_bar_dec_highlight: {
-                mHighlightShadowFilter.adjustProperty(FilterConst.HIGHLIGHT, seekBar.getProgress());
+                mHighlightShadowFilter.adjustProperty(FilterConst.PROP_HIGHLIGHT, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
             case R.id.seek_bar_hor_blur: {
-                mGaussianFilter.adjustProperty(FilterConst.HOR_GAUSSIAN, seekBar.getProgress());
+                mGaussianFilter.adjustProperty(FilterConst.PROP_HOR_GAUSSIAN, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
             case R.id.seek_bar_ver_blur: {
-                mGaussianFilter.adjustProperty(FilterConst.VER_GAUSSIAN, seekBar.getProgress());
+                mGaussianFilter.adjustProperty(FilterConst.PROP_VER_GAUSSIAN, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
             case R.id.seek_bar_face_lift_intensity: {
-                mCameraRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.FACE_LIFT_INTENSITY, seekBar.getProgress());
+                mCameraRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.PROP_FACE_LIFT_INTENSITY, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }

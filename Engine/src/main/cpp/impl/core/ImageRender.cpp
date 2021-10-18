@@ -24,12 +24,6 @@ static void nEnvSetResource(JNIEnv *env, jclass clazz, jlong ptr, jobject bitmap
     pRender->setResource(env, bitmap);
 }
 
-static void nEnvTrackFace(JNIEnv *env, jclass clazz, jlong ptr, jboolean track) {
-    auto *pRender = reinterpret_cast<ImageRender *>(ptr);
-    if (track) { pRender->notifyImageLandMarkTrackStart(env); }
-    pRender->trackFace(track);
-}
-
 static void* envHandleLandMarkDetect(void* env, void* arg0, int argNum, ...) {
     auto *pRender = reinterpret_cast<ImageRender *>(arg0);
     if (argNum == NUM_FACE_CTRL_PT) {
@@ -66,10 +60,6 @@ static JNINativeMethod sJniMethods[] = {
         {
                 "nSetResource",    "(JLandroid/graphics/Bitmap;)V",
                 (void *) nEnvSetResource
-        },
-        {
-                "nTrackFace",    "(JZ)V",
-                (void *) nEnvTrackFace
         }
 };
 
@@ -117,6 +107,9 @@ void ImageRender::drawFrame() {
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
+        }
+        if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
+            lastTexture = mBeautifyFaceFilter->onDraw(lastTexture);
         }
         lastTexture = mMaskFilter->onDraw(lastTexture);
         drawCount++;
@@ -192,14 +185,12 @@ void ImageRender::handlePreDraw(JNIEnv *env) {
 
 void ImageRender::handlePostDraw(JNIEnv *env) {
     if (!mEglCore->swapBuffer()) {
-        LogUtil::logI(TAG, {"drawFrame: failed to swap buffer"});
+        LogUtil::logI(TAG, {"handlePostDraw: failed to swap buffer"});
     }
 }
 
 void ImageRender::handleRenderEnvPause(JNIEnv *env) {
-    if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->onPause(); }
     if (mBackgroundFilter != nullptr) { mBackgroundFilter->onPause(); }
-    if (mScreenFilter != nullptr) { mScreenFilter->onPause(); }
     if (mMaskFilter != nullptr) { mMaskFilter->onPause(); }
     if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->onPause(); }
     if (mPlaceHolderFilter != nullptr) { mPlaceHolderFilter->onPause(); }
@@ -223,10 +214,8 @@ void ImageRender::handleRenderEnvResume(JNIEnv *env) {
 }
 
 void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
-    if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->destroy(); }
     if (mMaskFilter != nullptr) { mMaskFilter->destroy(); }
     if (mBackgroundFilter != nullptr) { mBackgroundFilter->destroy(); }
-    if (mScreenFilter != nullptr) { mScreenFilter->destroy(); }
     if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->destroy(); }
     if (mPlaceHolderFilter != nullptr) { mPlaceHolderFilter->destroy(); }
     if (mImageFaceDetector != nullptr) { mImageFaceDetector->quitAndWait(); }
@@ -234,14 +223,10 @@ void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
         glDeleteBuffers(1, &mDownloadBuffer);
         mDownloadBuffer = 0;
     }
-    delete mBeautyFilterGroup;
-    mBeautyFilterGroup = nullptr;
     delete mMaskFilter;
     mMaskFilter = nullptr;
     delete mBackgroundFilter;
     mBackgroundFilter = nullptr;
-    delete mScreenFilter;
-    mScreenFilter = nullptr;
     delete mPlaceHolderFilter;
     mPlaceHolderFilter = nullptr;
     delete mFaceLiftFilter;
@@ -338,28 +323,13 @@ void ImageRender::setResource(JNIEnv *env, jobject bitmap) {
         task->setObj(mMaskFilter);
         mWorkQueue->enqueue(task);
     }
-
-    if (mScreenFilter == nullptr) { mScreenFilter = new ScreenFilter; }
-    mScreenFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-    if (!mScreenFilter->initialized()) {
-        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
-        task->setObj(mScreenFilter);
-        mWorkQueue->enqueue(task);
-    }
-
-    if (mBeautyFilterGroup != nullptr) {
-        mBeautyFilterGroup->setOutputSize(mSurfaceWidth, mSurfaceHeight);
-        std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
-        task->setObj(mBeautyFilterGroup);
-        mWorkQueue->enqueue(task);
-    }
 }
 
-void ImageRender::trackFace(bool trackFace) {
+void ImageRender::trackFace(bool start) {
     if (mImageFaceDetector == nullptr) {
         throw EnvNotPreparedException{};
     }
-    if (trackFace) {
+    if (start) {
         mImageFaceDetector->execute(true);
         enqueueMessage(EventType::EVENT_FACE_TRACK_START);
     } else {

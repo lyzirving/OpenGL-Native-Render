@@ -2,7 +2,6 @@
 // Created by liuyuzhou on 2021/9/8.
 //
 #include "BaseFilterGroup.h"
-#include "GaussianFilter.h"
 #include "Common.h"
 #include "LogUtil.h"
 
@@ -144,11 +143,17 @@ GLint BaseFilterGroup::onDraw(GLint inputTextureId) {
 }
 
 void BaseFilterGroup::onPause() {
+    if (mInitialized) { mNeedResume = true; }
     mInitialized = false;
     std::map<std::string, std::shared_ptr<BaseFilter>>::iterator iterator;
     for (iterator = mFilters->begin(); iterator != mFilters->end(); iterator++) {
         iterator->second->onPause();
     }
+}
+
+void BaseFilterGroup::onResume() {
+    BaseFilter::onResume();
+    init();
 }
 
 std::shared_ptr<BaseFilter> BaseFilterGroup::removeFilter(const std::string& key) {

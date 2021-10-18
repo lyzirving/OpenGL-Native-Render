@@ -23,6 +23,7 @@ public:
     void initHandler() override;
     void loadShader() override;
     GLint onDraw(GLint inputTextureId) override;
+    void setBlurSize(const char* prop, float blur);
 
 private:
     Orientation mOrientation{Orientation::HORIZONTAL};

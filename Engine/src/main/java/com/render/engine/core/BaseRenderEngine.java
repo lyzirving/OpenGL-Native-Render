@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * @author lyzirving
  */
-public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAvailableListener {
+public class BaseRenderEngine implements IRenderEngine, IFace, SurfaceTexture.OnFrameAvailableListener {
     private static final String TAG = "BaseRenderEngine";
     protected static final long INVALID_PTR = -1;
 
@@ -45,6 +45,15 @@ public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAv
             return;
         }
         nAdjustProperty(mNativePtr, filterType, property, progress);
+    }
+
+    @Override
+    public void beautifyFace(boolean start) {
+        if (!isInitialized()) {
+            LogUtil.i(TAG, "beautifyFace: env is not initialized");
+        } else {
+            nBeautifyFace(mNativePtr, start);
+        }
     }
 
     @Override
@@ -146,9 +155,16 @@ public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAv
         mNativePtr = INVALID_PTR;
     }
 
+    @Override
+    public void trackFace(boolean start) {
+        if (!isInitialized()) { throw new RuntimeException("trackFace: env is not initialized"); }
+        nTrackFace(mNativePtr, start);
+    }
+
     private static native boolean nAddBeautyFilter(long ptr, String filterType, boolean commit);
     private static native void nAdjust(long ptr, String filterType, int progress);
     private static native void nAdjustProperty(long ptr, String filterType, String property, int progress);
+    private static native void nBeautifyFace(long ptr, boolean start);
     private static native void nClearBeautyFilter(long ptr);
     private static native boolean nInitialized(long ptr);
     private static native void nOnPause(long ptr);
@@ -157,4 +173,5 @@ public class BaseRenderEngine implements IRenderEngine, SurfaceTexture.OnFrameAv
     private static native void nRelease(long ptr);
     private static native void nSurfaceCreate(long ptr, Surface surface, RenderAdapter adapter);
     private static native void nSurfaceChange(long ptr, int width, int height);
+    private static native void nTrackFace(long ptr, boolean start);
 }

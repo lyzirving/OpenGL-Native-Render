@@ -14,13 +14,12 @@
 
 class CamRender : public BaseRender {
 public:
-
     static bool registerSelf(JNIEnv *env);
 
     void adjustProperty(const char *filterType, const char *property, int progress) override;
     void drawFrame() override;
+    void trackFace(bool start) override;
 
-    void detect(JNIEnv* env, bool start);
     void handleLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
     void setCameraMetadata(JNIEnv* env, jobject data);
     void setPreview(GLint width, GLint height);
