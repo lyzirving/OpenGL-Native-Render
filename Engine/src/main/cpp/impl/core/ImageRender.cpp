@@ -104,12 +104,12 @@ void ImageRender::drawFrame() {
         int lastTexture = mBackgroundFilter->onDraw(RENDER_NO_TEXTURE);
         drawCount++;
         drawFaceLift(reinterpret_cast<GLuint *>(&lastTexture), drawCount);
+        if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
+            lastTexture = mBeautifyFaceFilter->onDraw(lastTexture);
+        }
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();
-        }
-        if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
-            lastTexture = mBeautifyFaceFilter->onDraw(lastTexture);
         }
         lastTexture = mMaskFilter->onDraw(lastTexture);
         drawCount++;

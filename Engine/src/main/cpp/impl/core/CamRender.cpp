@@ -148,6 +148,9 @@ void CamRender::drawFrame() {
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
         handleDownloadPixel(reinterpret_cast<GLuint *>(&lastTexture), drawCount);
+        if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
+            lastTexture = mBeautifyFaceFilter->onDraw(lastTexture);
+        }
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
             drawCount += mBeautyFilterGroup->filterSize();

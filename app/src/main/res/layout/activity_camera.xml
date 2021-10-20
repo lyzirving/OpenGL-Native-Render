@@ -32,6 +32,7 @@
         android:clipChildren="false">
 
         <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/switch_root_detect_face"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             app:layout_constraintTop_toTopOf="parent"
@@ -58,6 +59,36 @@
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@+id/tv_detect_face" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/switch_root_beautify_face"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintStart_toStartOf="@+id/switch_root_detect_face"
+            app:layout_constraintTop_toBottomOf="@+id/switch_root_detect_face"
+            android:layout_marginTop="@dimen/sub_border_margin">
+
+            <TextView
+                android:id="@+id/tv_beautify_face"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textAllCaps="false"
+                android:textColor="#000000"
+                android:gravity="center"
+                android:textSize="@dimen/bottom_icon_text_size"
+                android:text="@string/tip_beautify_face"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent" />
+
+            <Switch
+                android:id="@+id/switch_beautify_face"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/tv_beautify_face" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

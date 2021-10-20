@@ -205,6 +205,9 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
                 mImgRender.beautifyFace(isChecked);
                 break;
             }
+            default: {
+                break;
+            }
         }
     }
 

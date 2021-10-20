@@ -49,8 +49,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
     private SeekBar mExposureSeekBar, mIncShadowSeekBar, mDecHighlightSeekBar;
     private SeekBar mHorBlurSeekBar, mVerBlurSeekBar;
     private SeekBar mFaceLiftSeekBar;
+    private SeekBar mFaceBeautifySeekBar, mSkinBuffSeekBar;
 
-    private Switch mSwitchDetectFace;
+    private Switch mSwitchDetectFace, mSwitchBeautifyFace;
 
     private ColorAdjustFilter mColorAdjustFilter;
     private ExposureFilter mExposureFilter;
@@ -112,7 +113,9 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         findViewById(R.id.tab_clear).setOnClickListener(this);
 
         mSwitchDetectFace = findViewById(R.id.switch_detect_face);
+        mSwitchBeautifyFace = findViewById(R.id.switch_beautify_face);
         mSwitchDetectFace.setOnCheckedChangeListener(this);
+        mSwitchBeautifyFace.setOnCheckedChangeListener(this);
 
         mAdjustBeautyRoot = findViewById(R.id.layout_adjust_beauty_root);
         mAdjustBrightnessRoot = findViewById(R.id.layout_adjust_brightness_root);
@@ -143,6 +146,11 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
 
         mFaceLiftSeekBar = findViewById(R.id.seek_bar_face_lift_intensity);
         mFaceLiftSeekBar.setOnSeekBarChangeListener(this);
+
+        mFaceBeautifySeekBar = findViewById(R.id.seek_bar_face_beautify_intensity);
+        mSkinBuffSeekBar = findViewById(R.id.seek_bar_skin_buff_intensity);
+        mFaceBeautifySeekBar.setOnSeekBarChangeListener(this);
+        mSkinBuffSeekBar.setOnSeekBarChangeListener(this);
     }
 
     @Override
@@ -218,6 +226,10 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 mCameraRender.trackFace(isChecked);
                 break;
             }
+            case R.id.switch_beautify_face: {
+                mCameraRender.beautifyFace(isChecked);
+                break;
+            }
             default: {
                 break;
             }
@@ -275,6 +287,16 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
             }
             case R.id.seek_bar_face_lift_intensity: {
                 mCameraRender.adjustProperty(FilterConst.FACE_LIFT, FilterConst.PROP_FACE_LIFT_INTENSITY, seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_face_beautify_intensity: {
+                mCameraRender.adjustProperty(FilterConst.BEAUTIFY_FACE, FilterConst.PROP_BEAUTIFY_SKIN, seekBar.getProgress());
+                mCameraRender.requestRender();
+                break;
+            }
+            case R.id.seek_bar_skin_buff_intensity: {
+                mCameraRender.adjustProperty(FilterConst.BEAUTIFY_FACE, FilterConst.PROP_SKIN_BUFF, seekBar.getProgress());
                 mCameraRender.requestRender();
                 break;
             }
@@ -486,6 +508,8 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
         if (mHorBlurSeekBar != null) { mHorBlurSeekBar.setProgress(0); }
         if (mVerBlurSeekBar != null) { mVerBlurSeekBar.setProgress(0); }
         if (mFaceLiftSeekBar != null) { mFaceLiftSeekBar.setProgress(50); }
+        if (mSkinBuffSeekBar != null) { mSkinBuffSeekBar.setProgress(50); }
+        if (mFaceBeautifySeekBar != null) { mFaceBeautifySeekBar.setProgress(50); }
     }
 
     private void showTab(View view, boolean show) {
