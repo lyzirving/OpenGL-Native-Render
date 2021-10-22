@@ -9,7 +9,6 @@
 
 namespace render {
     //the static filed's work scope is only in it's cpp
-    static JavaVM *gJvm = nullptr;
     static std::map<std::string, jobject>* gClassMap = nullptr;
 
     static const char* FILTER_TYPE_GROUP = "GROUP";
@@ -33,10 +32,6 @@ namespace render {
 
     static void createClassMap() {
         if (gClassMap == nullptr) { gClassMap = new std::map<std::string, jobject>; }
-    }
-
-    static void getJvm(JNIEnv* env) {
-        if (gJvm == nullptr) { env->GetJavaVM(&gJvm); }
     }
 
     static long long getCurrentTimeMs() {

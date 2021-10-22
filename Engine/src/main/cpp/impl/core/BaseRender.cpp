@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/24.
 //
 #include "BaseRender.h"
+#include "ModelLoader.h"
 #include "FilterFactory.h"
 #include "JniUtil.h"
 #include "LogUtil.h"
@@ -20,12 +21,12 @@ BaseRender::~BaseRender() = default;
 void *envRenderLoop(void *args) {
     auto *pRender = static_cast<BaseRender *>(args);
     JNIEnv *env = nullptr;
-    if (!JniUtil::threadAttachJvm(render::gJvm, &env)) {
+    if (!JniUtil::self()->attachJvm(&env)) {
         LogUtil::logI(TAG, {"renderLoop: failed to attach thread to jvm"});
         return nullptr;
     }
     pRender->render(env);
-    JniUtil::detachThread(render::gJvm);
+    JniUtil::self()->detachThread();
     return nullptr;
 }
 
@@ -88,7 +89,6 @@ static void nEnvRelease(JNIEnv *env, jclass clazz, jlong ptr) {
 static void nEnvSurfaceCreate(JNIEnv *env, jclass clazz, jlong ptr, jobject surface, jobject adapter) {
     auto *pRender = reinterpret_cast<BaseRender*>(ptr);
     pRender->setJavaListener(env, adapter);
-    render::getJvm(env);
     if (!pRender->initialized()) {
         ANativeWindow *nativeWindow = ANativeWindow_fromSurface(env, surface);
         pRender->setNativeWindow(nativeWindow);
@@ -302,6 +302,8 @@ void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARED;
     handleEnvPrepare(env);
     notifyEnvPrepare(env, GET_LISTENER);
+    /*ModelLoader loader;
+    loader.loadObj("tiger_nose");*/
     for (;;) {
         EventMessage message = mEventQueue->dequeue();
         switch (message.what) {

@@ -38,12 +38,12 @@ BaseFaceDetector::~BaseFaceDetector() {
 void *detectLoop(void *args) {
     auto *detector = static_cast<BaseFaceDetector *>(args);
     JNIEnv *env = nullptr;
-    if (!JniUtil::threadAttachJvm(render::gJvm, &env)) {
+    if (!JniUtil::self()->attachJvm(&env)) {
         LogUtil::logI(TAG, {"renderLoop: failed to attach thread to jvm"});
         return nullptr;
     }
     detector->loop(env);
-    JniUtil::detachThread(render::gJvm);
+    JniUtil::self()->detachThread();
     return nullptr;
 }
 
@@ -231,7 +231,6 @@ void BaseFaceDetector::notifyRunTrack(JNIEnv *env) {}
 void BaseFaceDetector::notifyQuitTrack(JNIEnv *env) {}
 
 void BaseFaceDetector::prepare(JNIEnv* env) {
-    render::getJvm(env);
     if (isRunning()) {
         LogUtil::logI(TAG, {"prepare: still run status"});
     } else {

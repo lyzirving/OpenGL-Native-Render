@@ -3,6 +3,8 @@
 //
 #include "GlUtil.h"
 #include "LogUtil.h"
+#include "JniUtil.h"
+#include "ModelLoader.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -14,6 +16,7 @@
 #define NO_TEXTURE 0
 
 static GlUtil *gGlUtil = nullptr;
+static JavaVM *gJvm{nullptr};
 static pthread_mutex_t gMutex;
 
 GlUtil::GlUtil() {
@@ -24,9 +27,26 @@ GlUtil::~GlUtil() {
     LogUtil::logI(TAG, {"deconstruct"});
 }
 
+void *envInitTask(void *args) {
+    JNIEnv *env = nullptr;
+    if (!JniUtil::self()->attachJvm(&env)) {
+        LogUtil::logI(TAG, {"envInitTask: failed to attach thread to jvm"});
+        return nullptr;
+    }
+    ModelLoader loader;
+    std::string modelName("tiger_nose");
+    bool modelExist = loader.buildLocalSource(ResourceType::OBJ, modelName.c_str());
+    bool mtlExist = loader.buildLocalSource(ResourceType::MTL, modelName.c_str());
+    LogUtil::logI(TAG, {"envInitTask: load model, name = ", modelName, ", model = ", std::to_string(modelExist), ", mtl = ", std::to_string(mtlExist)});
+    JniUtil::self()->detachThread();
+    return nullptr;
+}
+
 static void nInitUtilEnv(JNIEnv *env, jclass clazz, jobject assetManager) {
     auto pGlUtil = GlUtil::self();
     pGlUtil->setAssetsManager(env, assetManager);
+    pthread_t thread;
+    pthread_create(&thread, nullptr, envInitTask, nullptr);
 }
 
 static JNINativeMethod sJniMethods[] = {
@@ -79,7 +99,8 @@ GLuint GlUtil::generateTextureFromAssets(const char *path) {
     return textureId;
 }
 
-void GlUtil::init() {
+void GlUtil::init(JNIEnv* env) {
+    env->GetJavaVM(&gJvm);
     pthread_mutex_init(&gMutex, nullptr);
 }
 
@@ -186,6 +207,32 @@ char* GlUtil::readAssets(const char *path) {
     char *result = static_cast<char *>(malloc(len + 1));
     result[len] = 0;
     AAsset_read(asset, result, len);
+    AAsset_close(asset);
+
+    return result;
+}
+
+char * GlUtil::readAssets(const char *path, int* size) {
+    if (mAssetManager == nullptr) {
+        LogUtil::logI(TAG, {"readAssets: path = ", path, {", assets manager is null"}});
+        *size = 0;
+        return nullptr;
+    }
+    if (path == nullptr || strlen(path) == 0) {
+        LogUtil::logI(TAG, {"readAssets: invalid input path"});
+        *size = 0;
+        return nullptr;
+    }
+    AAsset *asset = AAssetManager_open(mAssetManager, path, AASSET_MODE_BUFFER);
+    if (asset == nullptr) {
+        LogUtil::logI(TAG, {"readAssets: failed to open asset, path = ", path});
+        *size = 0;
+        return nullptr;
+    }
+    *size = AAsset_getLength(asset);
+    char *result = static_cast<char *>(malloc(*size + 1));
+    result[*size] = 0;
+    AAsset_read(asset, result, *size);
     AAsset_close(asset);
 
     return result;

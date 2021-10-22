@@ -9,12 +9,18 @@
 
 class JniUtil {
 public:
-    static void detachThread(JavaVM* vm);
-    static jobject find(std::map<std::string, jobject>* pMap, const std::string& key);
-    static jobject findListener(std::map<jlong, jobject>* pMap, jlong key);
-    static jobject removeListener(std::map<jlong, jobject>* pMap, jlong key);
-    static bool threadAttachJvm(JavaVM* vm, JNIEnv **ppEnv);
+    static JniUtil* self();
+
+    ~JniUtil();
+
+    bool attachJvm(JNIEnv **ppEnv);
+    void detachThread();
+    void init(JNIEnv* env);
+    jobject find(std::map<std::string, jobject>* pMap, const std::string& key);
+    jobject findListener(std::map<jlong, jobject>* pMap, jlong key);
+    jobject removeListener(std::map<jlong, jobject>* pMap, jlong key);
 private:
+    JniUtil();
 };
 
 #endif //ENGINE_JNIUTIL_H

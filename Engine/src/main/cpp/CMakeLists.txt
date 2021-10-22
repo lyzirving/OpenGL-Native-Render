@@ -4,6 +4,7 @@ set(CORE_HEAD ${CMAKE_SOURCE_DIR}/include/core)
 set(COMMON_HEAD ${CMAKE_SOURCE_DIR}/include/common)
 set(FILTER_HEAD ${CMAKE_SOURCE_DIR}/include/filter)
 set(FACE_HEAD ${CMAKE_SOURCE_DIR}/include/face)
+set(MODEL_HEAD ${CMAKE_SOURCE_DIR}/include/model)
 set(PNG_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_png)
 set(ZIP_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/include_zip)
 set(OPENCV_HEAD ${CMAKE_SOURCE_DIR}/third_party/include/opencv_include)
@@ -16,6 +17,7 @@ include_directories(${CORE_HEAD})
 include_directories(${COMMON_HEAD})
 include_directories(${FILTER_HEAD})
 include_directories(${FACE_HEAD})
+include_directories(${MODEL_HEAD})
 include_directories(${PNG_HEAD})
 include_directories(${ZIP_HEAD})
 include_directories(${OPENCV_HEAD})
@@ -26,6 +28,7 @@ aux_source_directory(${CMAKE_SOURCE_DIR}/impl/common CPP_COMMON)
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/core CPP_CORE)
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/filter CPP_FILTER)
 aux_source_directory(${CMAKE_SOURCE_DIR}/impl/face CPP_FACE)
+aux_source_directory(${CMAKE_SOURCE_DIR}/impl/model CPP_MODEL)
 
 add_library(
         lib-zip
@@ -73,6 +76,7 @@ add_library(engine
         ${CPP_CORE}
         ${CPP_FILTER}
         ${CPP_FACE}
+        ${CPP_MODEL}
         ${DLIB_HEAD}/dlib/all/source.cpp )
 
 find_library( # name of the lib

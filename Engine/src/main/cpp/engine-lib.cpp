@@ -2,6 +2,7 @@
 // Created by liuyuzhou on 2021/9/7.
 //
 #include "GlUtil.h"
+#include "JniUtil.h"
 #include "CamRender.h"
 #include "ImageRender.h"
 #include "LogUtil.h"
@@ -15,7 +16,8 @@ JNIEXPORT int JNICALL JNI_OnLoad(JavaVM *vm,void *reserved) {
         return JNI_ERR;
     }
     if (!GlUtil::registerSelf(env)) { return JNI_ERR; }
-    GlUtil::init();
+    GlUtil::init(env);
+    JniUtil::self()->init(env);
     if (!BaseRender::registerSelf(env)) { return JNI_ERR; }
     if (!CamRender::registerSelf(env)) { return JNI_ERR; }
     if (!ImageRender::registerSelf(env)) { return JNI_ERR; }

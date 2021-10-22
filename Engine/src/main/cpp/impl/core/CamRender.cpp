@@ -405,7 +405,7 @@ void CamRender::notifyEnvOesTextureCreate(JNIEnv *env, jobject listener, int oes
 
 void CamRender::setCameraMetadata(JNIEnv *env, jobject data) {
     delete mCamMetaData;
-    auto javaClazz = JniUtil::find(render::gClassMap, JAVA_CLASS_RENDER_CAM_META_DATA);
+    auto javaClazz = JniUtil::self()->find(render::gClassMap, JAVA_CLASS_RENDER_CAM_META_DATA);
     if (javaClazz != nullptr) {
         jmethodID  method = env->GetMethodID(static_cast<jclass>(javaClazz), "getPreviewWidth", "()I");
         int previewWidth = env->CallIntMethod(data, method);
@@ -456,7 +456,7 @@ void CamRender::trackFace(bool start) {
 
 void CamRender::updateTexImg(JNIEnv *env) {
     if (mSurfaceTexture != nullptr) {
-        auto clazz = JniUtil::find(render::gClassMap, JAVA_CLASS_SURFACE_TEXTURE);
+        auto clazz = JniUtil::self()->find(render::gClassMap, JAVA_CLASS_SURFACE_TEXTURE);
         if (clazz != nullptr) {
             jmethodID methodId = env->GetMethodID(static_cast<jclass>(clazz), "updateTexImage", "()V");
             env->CallVoidMethod(mSurfaceTexture, methodId);
