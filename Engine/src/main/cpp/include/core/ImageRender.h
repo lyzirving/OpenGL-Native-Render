@@ -10,6 +10,7 @@
 #include "MaskFilter.h"
 #include "FaceLiftFilter.h"
 #include "PlaceHolderFilter.h"
+#include "ModelFilter.h"
 #include "Point.h"
 
 class ImageRender : public BaseRender {
@@ -46,6 +47,7 @@ private:
     FaceLiftFilter* mFaceLiftFilter{nullptr};
     PlaceHolderFilter* mPlaceHolderFilter{nullptr};
     ImageFaceDetector* mImageFaceDetector{nullptr};
+    ModelFilter* mModelFilter{nullptr};
 
     GLuint mDownloadBuffer{0};
     render::DownloadMode mDownloadMode{render::DownloadMode::MODE_FACE_DETECT};

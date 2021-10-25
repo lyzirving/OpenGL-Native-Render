@@ -91,17 +91,43 @@ void Obj3D::buildVertexNormalArray(int count) {
     mVertexNormalArray = new float[3 * count];
 }
 
-void Obj3D::setVertexArray(int index, double val) {
+std::string Obj3D::getMtlSource() {
+    return mMtlSrcName;
+}
+
+int Obj3D::getVertexCount() {
+    return mVertexCount;
+}
+
+int Obj3D::getTextureCoordCount() {
+    return mTextureCount;
+}
+
+int Obj3D::getVertexNormalCount() {
+    return mVertexNormalCount;
+}
+
+MtlLib * Obj3D::getMtlLib() { return mMtlLib; }
+
+float * Obj3D::getVertexArray() { return mVertexArray; }
+
+float * Obj3D::getTextureArray() { return mTextureArray; }
+
+float * Obj3D::getVertexNormalArray() { return mVertexNormalArray; }
+
+void Obj3D::setVertexArray(int index, float val) {
     mVertexArray[index] = val;
 }
 
-void Obj3D::setTextureArray(int index, double val) {
+void Obj3D::setTextureArray(int index, float val) {
     mTextureArray[index] = val;
 }
 
-void Obj3D::setVertexNormalArray(int index, double val) {
+void Obj3D::setVertexNormalArray(int index, float val) {
     mVertexNormalArray[index] = val;
 }
 
 void Obj3D::setMtlSrc(const std::string &name) { mMtlSrcName = name; }
+
+void Obj3D::setMtlLib(MtlLib *lib) { mMtlLib = lib; }
 

@@ -5,7 +5,6 @@
 #define ENGINE_OBJGROUP_H
 
 #include "Obj3D.h"
-#include "MtlLib.h"
 
 class ObjGroup {
 public:
@@ -13,11 +12,10 @@ public:
     ~ObjGroup();
 
     Obj3D* getObj(int index);
-    void setMtlLib(MtlLib* lib);
+    int getObjSize();
     void pushBackObj(Obj3D* obj);
 private:
     std::vector<Obj3D*>* mObjs;
-    MtlLib* mMtlLib{nullptr};
 };
 
 #endif //ENGINE_OBJGROUP_H

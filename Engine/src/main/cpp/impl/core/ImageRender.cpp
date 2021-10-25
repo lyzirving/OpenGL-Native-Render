@@ -3,6 +3,7 @@
 //
 #include "ImageRender.h"
 #include "LogUtil.h"
+#include "ModelLoader.h"
 
 #define TAG "ImageRender"
 #define JAVA_CLASS_IMAGE_RENDER "com/render/engine/img/ImageRenderEngine"
@@ -138,6 +139,14 @@ void ImageRender::handleEnvPrepare(JNIEnv *env) {
         mImageFaceDetector->setFaceListener(this);
     }
     mImageFaceDetector->prepare(env);
+
+    ModelLoader loader;
+    mModelFilter = new ModelFilter;
+    mModelFilter->setObjGroup(loader.buildModel("tiger_nose"));
+
+    std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
+    task->setObj(mModelFilter);
+    mWorkQueue->enqueue(task);
 }
 
 void ImageRender::handleFaceLiftLandMarkTrack(Point *lhsDst, Point *lhsCtrl, Point *rhsDst, Point *rhsCtrl) {
@@ -218,6 +227,7 @@ void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
     if (mBackgroundFilter != nullptr) { mBackgroundFilter->destroy(); }
     if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->destroy(); }
     if (mPlaceHolderFilter != nullptr) { mPlaceHolderFilter->destroy(); }
+    if (mModelFilter != nullptr) { mModelFilter->destroy(); }
     if (mImageFaceDetector != nullptr) { mImageFaceDetector->quitAndWait(); }
     if (mDownloadBuffer != 0) {
         glDeleteBuffers(1, &mDownloadBuffer);
@@ -225,6 +235,8 @@ void ImageRender::handleRenderEnvDestroy(JNIEnv *env) {
     }
     delete mMaskFilter;
     mMaskFilter = nullptr;
+    delete mModelFilter;
+    mModelFilter = nullptr;
     delete mBackgroundFilter;
     mBackgroundFilter = nullptr;
     delete mPlaceHolderFilter;

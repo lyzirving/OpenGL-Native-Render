@@ -6,6 +6,7 @@
 
 #include <vector>
 #include <string>
+#include "MtlLib.h"
 
 class Vertex {
 public:
@@ -60,10 +61,21 @@ public:
     void buildTextureArray(int count);
     void buildVertexNormalArray(int count);
 
-    void setVertexArray(int index, double val);
-    void setTextureArray(int index, double val);
-    void setVertexNormalArray(int index, double val);
+    std::string getMtlSource();
+    MtlLib* getMtlLib();
+    int getVertexCount();
+    int getTextureCoordCount();
+    int getVertexNormalCount();
+
+    float* getVertexArray();
+    float* getTextureArray();
+    float* getVertexNormalArray();
+
+    void setVertexArray(int index, float val);
+    void setTextureArray(int index, float val);
+    void setVertexNormalArray(int index, float val);
     void setMtlSrc(const std::string& name);
+    void setMtlLib(MtlLib* lib);
 
 private:
     int mVertexCount{0};
@@ -72,6 +84,7 @@ private:
     float* mVertexArray{nullptr};
     float* mTextureArray{nullptr};
     float* mVertexNormalArray{nullptr};
+    MtlLib* mMtlLib{nullptr};
 
     std::string mMtlSrcName{""};
 };

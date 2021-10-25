@@ -14,12 +14,17 @@ ObjGroup::~ObjGroup() {
         delete obj;
     }
     delete mObjs;
-    delete mMtlLib;
 }
 
 Obj3D* ObjGroup::getObj(int index) { return mObjs->at(index); }
 
-void ObjGroup::pushBackObj(Obj3D *obj) { mObjs->push_back(obj); }
+int ObjGroup::getObjSize() {
+    if (mObjs == nullptr || mObjs->empty()) {
+        return 0;
+    } else {
+        return mObjs->size();
+    }
+}
 
-void ObjGroup::setMtlLib(MtlLib *lib) { mMtlLib = lib; }
+void ObjGroup::pushBackObj(Obj3D *obj) { mObjs->push_back(obj); }
 

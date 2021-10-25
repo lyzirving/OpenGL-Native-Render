@@ -2,7 +2,6 @@
 // Created by liuyuzhou on 2021/9/24.
 //
 #include "BaseRender.h"
-#include "ModelLoader.h"
 #include "FilterFactory.h"
 #include "JniUtil.h"
 #include "LogUtil.h"
@@ -302,8 +301,6 @@ void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARED;
     handleEnvPrepare(env);
     notifyEnvPrepare(env, GET_LISTENER);
-    /*ModelLoader loader;
-    loader.loadObj("tiger_nose");*/
     for (;;) {
         EventMessage message = mEventQueue->dequeue();
         switch (message.what) {

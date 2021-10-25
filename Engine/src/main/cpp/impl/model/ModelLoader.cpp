@@ -78,9 +78,10 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
         std::string pattern(" ");
         std::vector<std::string> subStr;
 
-        std::vector<double> vertex;
-        std::vector<double> textureCoordinate;
-        std::vector<double> vertexNormal;
+        std::vector<float> vertex;
+        std::vector<float> textureCoordinate;
+        std::vector<float> vertexNormal;
+        std::vector<MtlLib*> mtlLibs;
         MtlObj* mtlObj{nullptr};
         //remember the MtlObj should be explicitly deconstructed
         std::vector<MtlObj*> mtlGroup;
@@ -100,19 +101,19 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
                 } else {
                     std::string mtlLibName(subStr[1].substr(0, pos));
                     LogUtil::logI(TAG, {"buildModel: mtl lib name = ", mtlLibName});
-                    objGroup->setMtlLib(parseMtlLib(mtlLibName));
+                    mtlLibs.push_back(parseMtlLib(mtlLibName));
                 }
             } else if ("v" == type) {
-                vertex.push_back(transToDouble(subStr[1]));
-                vertex.push_back(transToDouble(subStr[2]));
-                vertex.push_back(transToDouble(subStr[3]));
+                vertex.push_back(transToFloat(subStr[1]));
+                vertex.push_back(transToFloat(subStr[2]));
+                vertex.push_back(transToFloat(subStr[3]));
             } else if ("vt" == type) {
-                textureCoordinate.push_back(transToDouble(subStr[1]));
-                textureCoordinate.push_back(transToDouble(subStr[2]));
+                textureCoordinate.push_back(transToFloat(subStr[1]));
+                textureCoordinate.push_back(transToFloat(subStr[2]));
             } else if ("vn" == type) {
-                vertexNormal.push_back(transToDouble(subStr[1]));
-                vertexNormal.push_back(transToDouble(subStr[2]));
-                vertexNormal.push_back(transToDouble(subStr[3]));
+                vertexNormal.push_back(transToFloat(subStr[1]));
+                vertexNormal.push_back(transToFloat(subStr[2]));
+                vertexNormal.push_back(transToFloat(subStr[3]));
             } else if ("usemtl" == type) {
                 mtlObj = new MtlObj;
                 mtlObj->setMtlSrcName(subStr[1]);
@@ -148,7 +149,6 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
                 }
             }
         }
-
         for (int i = 0; i < mtlGroup.size(); ++i) {
             mtlObj = mtlGroup[i];
             auto* obj = new Obj3D;
@@ -168,32 +168,31 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
                 obj->setVertexArray(3 * j + 1, vertex.at(3 * index + 1));
                 obj->setVertexArray(3 * j + 2, vertex.at(3 * index + 2));
             }
-
             for (int j = 0; j < textureIndCount; ++j) {
                 index = mtlObj->getTextureIndex(j);
-                obj->setTextureArray(3 * j, textureCoordinate.at(3 * index));
-                obj->setTextureArray(3 * j + 1, textureCoordinate.at(3 * index + 1));
-                obj->setTextureArray(3 * j + 2, textureCoordinate.at(3 * index + 2));
+                obj->setTextureArray(2 * j, textureCoordinate.at(2 * index));
+                obj->setTextureArray(2 * j + 1, textureCoordinate.at(2 * index + 1));
             }
-
             for (int j = 0; j < vertexNormalCount; ++j) {
                 index = mtlObj->getVertexNormalIndex(j);
                 obj->setVertexNormalArray(3 * j, vertexNormal.at(3 * index));
                 obj->setVertexNormalArray(3 * j + 1, vertexNormal.at(3 * index + 1));
                 obj->setVertexNormalArray(3 * j + 2, vertexNormal.at(3 * index + 2));
             }
+            for (auto tmpLib : mtlLibs) {
+                if (tmpLib->getNewMtl() == obj->getMtlSource()) {
+                    obj->setMtlLib(tmpLib);
+                }
+            }
             objGroup->pushBackObj(obj);
             delete mtlObj;
         }
         mtlGroup.clear();
+        LogUtil::logI(TAG, {"buildModel: obj size = ", std::to_string(objGroup->getObjSize())});
     }
     input.clear();
     input.close();
     return objGroup;
-}
-
-void ModelLoader::loadObj(const char *modelName) {
-
 }
 
 MtlLib* ModelLoader::parseMtlLib(const std::string &name) {
@@ -217,19 +216,19 @@ MtlLib* ModelLoader::parseMtlLib(const std::string &name) {
             if ("newmtl" == type) {
                 lib->setNewMtl(subStr[1]);
             } else if ("Ns" == type) {
-                lib->setNs(transToDouble(subStr[1]));
+                lib->setNs(transToFloat(subStr[1]));
             } else if ("Ka" == type) {
-                lib->setKa(transToDouble(subStr[1]), transToDouble(subStr[2]), transToDouble(subStr[3]));
+                lib->setKa(transToFloat(subStr[1]), transToFloat(subStr[2]), transToFloat(subStr[3]));
             } else if ("Kd" == type) {
-                lib->setKd(transToDouble(subStr[1]), transToDouble(subStr[2]), transToDouble(subStr[3]));
+                lib->setKd(transToFloat(subStr[1]), transToFloat(subStr[2]), transToFloat(subStr[3]));
             } else if("Ks" == type) {
-                lib->setKs(transToDouble(subStr[1]), transToDouble(subStr[2]), transToDouble(subStr[3]));
+                lib->setKs(transToFloat(subStr[1]), transToFloat(subStr[2]), transToFloat(subStr[3]));
             } else if("Ke" == type) {
-                lib->setKe(transToDouble(subStr[1]), transToDouble(subStr[2]), transToDouble(subStr[3]));
+                lib->setKe(transToFloat(subStr[1]), transToFloat(subStr[2]), transToFloat(subStr[3]));
             } else if ("Ni" == type) {
-                lib->setNi(transToDouble(subStr[1]));
+                lib->setNi(transToFloat(subStr[1]));
             } else if ("d" == type) {
-                lib->setD(transToDouble(subStr[1]));
+                lib->setD(transToFloat(subStr[1]));
             } else if ("illum" == type) {
                 lib->setIllm(transToInt(subStr[1]));
             } else if ("map_Kd" == type) {
@@ -260,6 +259,10 @@ void ModelLoader::split(const std::string &src, std::string &pattern,
 
 double ModelLoader::transToDouble(const std::string &src) {
     return strtod(src.c_str(), nullptr);
+}
+
+float ModelLoader::transToFloat(const std::string &src) {
+    return strtof(src.c_str(), nullptr);
 }
 
 int ModelLoader::transToInt(const std::string &src) {
