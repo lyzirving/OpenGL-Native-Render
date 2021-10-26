@@ -8,20 +8,55 @@
 
 #define TAG "ModelFilter"
 
+ModelFilter::ModelFilter() {
+    mMvpMatrix = new GLfloat[16];
+    mProjectionMatrix = new GLfloat[16];
+    mModelMatrix = new GLfloat[16];
+    mViewMatrix = new GLfloat[16];
+    MatrixUtil::setIdentityM(mMvpMatrix, 0);
+    MatrixUtil::setIdentityM(mProjectionMatrix, 0);
+    MatrixUtil::setIdentityM(mModelMatrix, 0);
+    MatrixUtil::setIdentityM(mViewMatrix, 0);
+}
+
+ModelFilter::~ModelFilter() {
+    delete mMvpMatrix;
+    delete mProjectionMatrix;
+    delete mModelMatrix;
+    delete mViewMatrix;
+}
+
+void ModelFilter::destroy() {
+    BaseFilter::destroy();
+    int count = 0;
+    if (mObjGroup == nullptr || (count = mObjGroup->getObjSize()) == 0) {
+        LogUtil::logI(TAG, {"destroy: no obj"});
+    } else {
+        if (mVertexBufferId != nullptr) { glDeleteBuffers(count, mVertexBufferId); }
+        if (mTextureCoordBufferId != nullptr) { glDeleteBuffers(count, mTextureCoordBufferId); }
+        if (mVertexNormalBufferId != nullptr) { glDeleteBuffers(count, mVertexNormalBufferId); }
+
+        delete mVertexBufferId;
+        delete mTextureCoordBufferId;
+        delete mVertexNormalBufferId;
+
+        mVertexBufferId = nullptr;
+        mTextureCoordBufferId = nullptr;
+        mVertexNormalBufferId = nullptr;
+
+        if (mModelTexture != nullptr) { glDeleteTextures(count, mModelTexture); }
+        delete mModelTexture;
+        mModelTexture = nullptr;
+
+        mObjGroup->clearObj();
+        delete mObjGroup;
+    }
+}
+
 void ModelFilter::initBuffer() {
     if (mObjGroup == nullptr) {
         LogUtil::logI(TAG, {"initBuffer: obj group is null"});
     } else {
-        delete mMvpMatrix;
-        delete mModelMatrix;
-        delete mProjectionMatrix;
-        mMvpMatrix = new GLfloat[16];
-        mProjectionMatrix = new GLfloat[16];
-        mModelMatrix = new GLfloat[16];
-        MatrixUtil::setIdentityM(mMvpMatrix, 0);
-        MatrixUtil::setIdentityM(mProjectionMatrix, 0);
-        MatrixUtil::setIdentityM(mModelMatrix, 0);
-
         int objSize = mObjGroup->getObjSize();
         LogUtil::logI(TAG, {"initBuffer: obj group size = ", std::to_string(objSize)});
 
@@ -38,15 +73,12 @@ void ModelFilter::initBuffer() {
         for (int i = 0; i < objSize; ++i) {
             obj = mObjGroup->getObj(i);
 
-            LogUtil::logI(TAG, {"initBuffer: vertex 1 = ", std::to_string(obj->getVertexArray()[1])});
             glBindBuffer(GL_ARRAY_BUFFER, mVertexBufferId[i]);
             glBufferData(GL_ARRAY_BUFFER, obj->getVertexCount() * 3 * sizeof(GLfloat), obj->getVertexArray(), GL_STATIC_DRAW);
 
-            LogUtil::logI(TAG, {"initBuffer: texture 1 = ", std::to_string(obj->getTextureArray()[1])});
             glBindBuffer(GL_ARRAY_BUFFER, mTextureCoordBufferId[i]);
             glBufferData(GL_ARRAY_BUFFER, obj->getTextureCoordCount() * 2 * sizeof(GLfloat), obj->getTextureArray(), GL_STATIC_DRAW);
 
-            LogUtil::logI(TAG, {"initBuffer: normal 1 = ", std::to_string(obj->getVertexNormalArray()[1])});
             glBindBuffer(GL_ARRAY_BUFFER, mVertexNormalBufferId[i]);
             glBufferData(GL_ARRAY_BUFFER, obj->getVertexNormalCount() * 3 * sizeof(GLfloat), obj->getVertexNormalArray(), GL_STATIC_DRAW);
         }
@@ -65,27 +97,6 @@ void ModelFilter::initHandler() {
     mDiffuseHandler = glGetUniformLocation(mProgram, "uDiffuse");
 }
 
-void ModelFilter::initFrameBuffer() {
-    if (mFrameBufferId != 0) { glDeleteFramebuffers(1, &mFrameBufferId); }
-    if (mTextureId != 0) { glDeleteTextures(1, &mTextureId); }
-
-    glGenFramebuffers(1, &mFrameBufferId);
-    glGenTextures(1, &mTextureId);
-    glBindTexture(GL_TEXTURE_2D, mTextureId);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, mWidth, mHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE,nullptr);
-
-    glBindFramebuffer(GL_FRAMEBUFFER, mFrameBufferId);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mTextureId, 0);
-
-    glBindTexture(GL_TEXTURE_2D, 0);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 void ModelFilter::initTexture() {
     BaseFilter::initTexture();
     int objSize = mObjGroup->getObjSize();
@@ -98,6 +109,9 @@ void ModelFilter::initTexture() {
             if ((lib = obj->getMtlLib()) != nullptr) {
                 std::string textureName("texture/");
                 textureName += lib->getTextureName();
+                /*char input[textureName.length() + 1];
+                for (int m = 0; m < textureName.length(); ++m) input[m] = textureName[m];
+                input[textureName.length()] = '\0';*/
                 mModelTexture[i] = GlUtil::self()->generateTextureFromAssets(textureName.c_str());
             }
         }
@@ -115,14 +129,17 @@ void ModelFilter::loadShader() {
 GLint ModelFilter::onDraw(GLint inputTextureId) {
     glUseProgram(mProgram);
 
-    MatrixUtil::multiplyMM(mMvpMatrix, mProjectionMatrix, mModelMatrix);
+    MatrixUtil::setIdentityM(mMvpMatrix, 0);
+
+    MatrixUtil::multiplyMM(mMvpMatrix, mProjectionMatrix, mViewMatrix);
+    MatrixUtil::multiplyMM(mMvpMatrix, mMvpMatrix, mModelMatrix);
+
     glUniformMatrix4fv(mMVPMatrixHandler, 1, false, mMvpMatrix);
     glUniformMatrix4fv(mMMatrixHandler, 1, false, mModelMatrix);
     glUniform3f(mLightLocationHandler, 3, 0 ,3);
 
     int size = mObjGroup->getObjSize();
     Obj3D* obj{nullptr};
-    LogUtil::logI(TAG, {"onDraw: size = ", std::to_string(size)});
     for (int i = 0; i < size; ++i) {
         obj = mObjGroup->getObj(i);
 
@@ -145,20 +162,48 @@ GLint ModelFilter::onDraw(GLint inputTextureId) {
         glBindTexture(GL_TEXTURE_2D, mModelTexture[i]);
         glUniform1i(mTextureSamplerHandler, 2 + i);
 
-        LogUtil::logI(TAG, {"onDraw: vertex count = ", std::to_string(obj->getVertexCount())});
         glDrawArrays(GL_TRIANGLES, 0, obj->getVertexCount());
     }
 
-    MatrixUtil::setIdentityM(mMvpMatrix, 0);
-    MatrixUtil::setIdentityM(mModelMatrix, 0);
     glDisableVertexAttribArray(mVertexPosHandler);
     glDisableVertexAttribArray(mTextureCoordinateHandler);
     glDisableVertexAttribArray(mVertexNormalHandler);
+
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    return mTextureId;
+    return inputTextureId;
 }
+
+void ModelFilter::onPause() {
+    BaseFilter::onPause();
+    int count = 0;
+    if (mObjGroup == nullptr || (count = mObjGroup->getObjSize()) == 0) {
+        LogUtil::logI(TAG, {"onPause: no obj"});
+    } else {
+        if (mVertexBufferId != nullptr) { glDeleteBuffers(count, mVertexBufferId); }
+        if (mTextureCoordBufferId != nullptr) { glDeleteBuffers(count, mTextureCoordBufferId); }
+        if (mVertexNormalBufferId != nullptr) { glDeleteBuffers(count, mVertexNormalBufferId); }
+
+        delete mVertexBufferId;
+        delete mTextureCoordBufferId;
+        delete mVertexNormalBufferId;
+
+        mVertexBufferId = nullptr;
+        mTextureCoordBufferId = nullptr;
+        mVertexNormalBufferId = nullptr;
+
+        if (mModelTexture != nullptr) { glDeleteTextures(count, mModelTexture); }
+        delete mModelTexture;
+        mModelTexture = nullptr;
+    }
+}
+
+void ModelFilter::onResume() {
+    BaseFilter::onResume();
+    init();
+}
+
 
 void ModelFilter::postInit() {
     BaseFilter::postInit();
@@ -190,5 +235,22 @@ void ModelFilter::postInit() {
 void ModelFilter::setObjGroup(ObjGroup *group) {
     mObjGroup = group;
 }
+
+void ModelFilter::setOutputSize(GLint width, GLint height) {
+    BaseFilter::setOutputSize(width, height);
+    float ratio = width >= height ? (float)width / height : (float)height / width;
+    LogUtil::logI(TAG, {"setOutputSize: width = ", std::to_string(width), ", height = ", std::to_string(height),
+                        ", ratio = ", std::to_string(ratio)});
+    if (width >= height) {
+        MatrixUtil::orthogonal(mProjectionMatrix, 0, -ratio, ratio, -1, 1, 0, 5);
+    } else {
+        MatrixUtil::orthogonal(mProjectionMatrix, 0, -1, 1, -ratio, ratio, 0, 5);
+    }
+    MatrixUtil::setLookAt(mViewMatrix, 0, 0, 0, 5, 0, 0, 0, 0, 1, 0);
+
+    MatrixUtil::scaleM(mModelMatrix, 0, 0.2, 0.2, 0.2);
+    MatrixUtil::translateM(mModelMatrix, 0, 0, -0.3, 0.2);
+}
+
 
 

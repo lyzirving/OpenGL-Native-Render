@@ -11,6 +11,7 @@ public:
     ObjGroup();
     ~ObjGroup();
 
+    void clearObj();
     Obj3D* getObj(int index);
     int getObjSize();
     void pushBackObj(Obj3D* obj);

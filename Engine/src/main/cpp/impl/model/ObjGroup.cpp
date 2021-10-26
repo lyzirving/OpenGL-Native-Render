@@ -16,6 +16,14 @@ ObjGroup::~ObjGroup() {
     delete mObjs;
 }
 
+void ObjGroup::clearObj() {
+    while(mObjs != nullptr && !mObjs->empty()) {
+        auto iterator = mObjs->end();
+        mObjs->erase(--iterator);
+        delete *iterator;
+    }
+}
+
 Obj3D* ObjGroup::getObj(int index) { return mObjs->at(index); }
 
 int ObjGroup::getObjSize() {

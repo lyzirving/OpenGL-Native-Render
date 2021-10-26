@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fstream>
+#include <cmath>
 
 #include "ModelLoader.h"
 #include "GlUtil.h"
@@ -85,6 +86,7 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
         MtlObj* mtlObj{nullptr};
         //remember the MtlObj should be explicitly deconstructed
         std::vector<MtlObj*> mtlGroup;
+        float maxVertexVal{1};
 
         while(getline(input, line)) {
             if (line.empty() || line[0] == '#') { continue; }
@@ -107,9 +109,12 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
                 vertex.push_back(transToFloat(subStr[1]));
                 vertex.push_back(transToFloat(subStr[2]));
                 vertex.push_back(transToFloat(subStr[3]));
+
+                maxVertexVal = max(std::fabs(transToFloat(subStr[1])), std::fabs(transToFloat(subStr[2])));
+                maxVertexVal = max(maxVertexVal, std::fabs(transToFloat(subStr[3])));
             } else if ("vt" == type) {
                 textureCoordinate.push_back(transToFloat(subStr[1]));
-                textureCoordinate.push_back(transToFloat(subStr[2]));
+                textureCoordinate.push_back(1 - transToFloat(subStr[2]));
             } else if ("vn" == type) {
                 vertexNormal.push_back(transToFloat(subStr[1]));
                 vertexNormal.push_back(transToFloat(subStr[2]));
@@ -164,9 +169,9 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
 
             for (int j = 0; j < vertexIndCount; ++j) {
                 index = mtlObj->getVertexIndex(j);
-                obj->setVertexArray(3 * j, vertex.at(3 * index));
-                obj->setVertexArray(3 * j + 1, vertex.at(3 * index + 1));
-                obj->setVertexArray(3 * j + 2, vertex.at(3 * index + 2));
+                obj->setVertexArray(3 * j, vertex.at(3 * index) / maxVertexVal);
+                obj->setVertexArray(3 * j + 1, vertex.at(3 * index + 1) / maxVertexVal);
+                obj->setVertexArray(3 * j + 2, vertex.at(3 * index + 2) / maxVertexVal);
             }
             for (int j = 0; j < textureIndCount; ++j) {
                 index = mtlObj->getTextureIndex(j);
@@ -193,6 +198,13 @@ ObjGroup* ModelLoader::buildModel(const char *modelName) {
     input.clear();
     input.close();
     return objGroup;
+}
+
+float ModelLoader::max(float lhs, float rhs) {
+    if (lhs >= rhs)
+        return lhs;
+    else
+        return rhs;
 }
 
 MtlLib* ModelLoader::parseMtlLib(const std::string &name) {

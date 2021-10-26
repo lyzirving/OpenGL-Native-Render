@@ -7,5 +7,6 @@ varying vec4 vDiffuse;
 
 void main() {
     vec4 finalColor = texture2D(sTextureSampler, vTextureCoordinate);
-    gl_FragColor = finalColor * (vDiffuse + vAmbient);
+    //gl_FragColor = finalColor * (vDiffuse + vAmbient);
+    gl_FragColor = finalColor;
 }

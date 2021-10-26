@@ -118,6 +118,7 @@ void ImageRender::drawFrame() {
         LogUtil::logI(TAG, {"drawFrame: draw screen, draw count = ", std::to_string(drawCount)});
         mScreenFilter->flip(false, isOdd);
         mScreenFilter->onDraw(lastTexture);
+        if (mModelFilter != nullptr) mModelFilter->onDraw(-1);
     } else {
         LogUtil::logI(TAG, {"drawFrame: background filter is nullptr"});
     }
@@ -139,14 +140,6 @@ void ImageRender::handleEnvPrepare(JNIEnv *env) {
         mImageFaceDetector->setFaceListener(this);
     }
     mImageFaceDetector->prepare(env);
-
-    ModelLoader loader;
-    mModelFilter = new ModelFilter;
-    mModelFilter->setObjGroup(loader.buildModel("tiger_nose"));
-
-    std::shared_ptr<WorkTask> task = std::make_shared<FilterInitTask>();
-    task->setObj(mModelFilter);
-    mWorkQueue->enqueue(task);
 }
 
 void ImageRender::handleFaceLiftLandMarkTrack(Point *lhsDst, Point *lhsCtrl, Point *rhsDst, Point *rhsCtrl) {
@@ -188,6 +181,14 @@ void ImageRender::handleOtherMessage(JNIEnv *env, const EventMessage& msg) {
 }
 
 void ImageRender::handlePreDraw(JNIEnv *env) {
+    if (mModelFilter == nullptr) {
+        /*ModelLoader loader;
+        mModelFilter = new ModelFilter;
+        mModelFilter->setObjGroup(loader.buildModel("tiger_nose"));
+        mModelFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
+        mModelFilter->init();*/
+    }
+
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 }
@@ -203,6 +204,7 @@ void ImageRender::handleRenderEnvPause(JNIEnv *env) {
     if (mMaskFilter != nullptr) { mMaskFilter->onPause(); }
     if (mFaceLiftFilter != nullptr) { mFaceLiftFilter->onPause(); }
     if (mPlaceHolderFilter != nullptr) { mPlaceHolderFilter->onPause(); }
+    if (mModelFilter != nullptr) { mModelFilter->onPause(); }
     if (mImageFaceDetector != nullptr) { mImageFaceDetector->execute(false); }
     if (mDownloadBuffer != 0) {
         glDeleteBuffers(1, &mDownloadBuffer);
@@ -216,6 +218,7 @@ void ImageRender::handleRenderEnvResume(JNIEnv *env) {
         mPlaceHolderFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mPlaceHolderFilter->init();
     }
+    if (mModelFilter != nullptr && mModelFilter->needResume()) { mModelFilter->onResume(); }
     if (mFaceLiftFilter != nullptr && !mFaceLiftFilter->initialized()) {
         mFaceLiftFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mFaceLiftFilter->init();

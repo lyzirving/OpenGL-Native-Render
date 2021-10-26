@@ -31,6 +31,10 @@ void MatrixUtil::logM(GLfloat *src) {
                              std::to_string(src[12]), " ", std::to_string(src[13]), " ", std::to_string(src[14]), " ", std::to_string(src[15]), "\n"});
 }
 
+GLfloat MatrixUtil::length(GLfloat x, GLfloat y, GLfloat z) {
+    return std::sqrt(x * x + y * y +  z * z);
+}
+
 void MatrixUtil::move(GLfloat *src, GLfloat *dst, int size) {
     for (int i = 0; i < size; ++i) { dst[i] = src[i]; }
 }
@@ -115,6 +119,61 @@ void MatrixUtil::scaleM(GLfloat *matrix, int offset, float x, float y, float z) 
     }
 }
 
+void MatrixUtil::setLookAt(GLfloat *rm, int rmOffset, GLfloat eyeX, GLfloat eyeY, GLfloat eyeZ,
+                           GLfloat centerX, GLfloat centerY, GLfloat centerZ,
+                           GLfloat upX, GLfloat upY, GLfloat upZ) {
+    // See the OpenGL GLUT documentation for gluLookAt for a description
+    // of the algorithm. We implement it in a straightforward way:
+
+    float fx = centerX - eyeX;
+    float fy = centerY - eyeY;
+    float fz = centerZ - eyeZ;
+
+    // Normalize f
+    float rlf = 1.0f / length(fx, fy, fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+
+    // compute s = f x up (x means "cross product")
+    float sx = fy * upZ - fz * upY;
+    float sy = fz * upX - fx * upZ;
+    float sz = fx * upY - fy * upX;
+
+    // and normalize s
+    float rls = 1.0f / length(sx, sy, sz);
+    sx *= rls;
+    sy *= rls;
+    sz *= rls;
+
+    // compute u = s x f
+    float ux = sy * fz - sz * fy;
+    float uy = sz * fx - sx * fz;
+    float uz = sx * fy - sy * fx;
+
+    rm[rmOffset + 0] = sx;
+    rm[rmOffset + 1] = ux;
+    rm[rmOffset + 2] = -fx;
+    rm[rmOffset + 3] = 0.0f;
+
+    rm[rmOffset + 4] = sy;
+    rm[rmOffset + 5] = uy;
+    rm[rmOffset + 6] = -fy;
+    rm[rmOffset + 7] = 0.0f;
+
+    rm[rmOffset + 8] = sz;
+    rm[rmOffset + 9] = uz;
+    rm[rmOffset + 10] = -fz;
+    rm[rmOffset + 11] = 0.0f;
+
+    rm[rmOffset + 12] = 0.0f;
+    rm[rmOffset + 13] = 0.0f;
+    rm[rmOffset + 14] = 0.0f;
+    rm[rmOffset + 15] = 1.0f;
+
+    translateM(rm, rmOffset, -eyeX, -eyeY, -eyeZ);
+}
+
 void MatrixUtil::setIdentityM(GLfloat *matrix, int offset) {
     for (int i = 0; i < 16; i++) {
         matrix[offset + i] = 0;
@@ -177,6 +236,13 @@ void MatrixUtil::setRotate(GLfloat *rm, GLfloat degree, GLfloat x, GLfloat y, GL
         rm[2] =  zx*nc - ys;
         rm[6] =  yz*nc + xs;
         rm[10] = z*z*nc +  c;
+    }
+}
+
+void MatrixUtil::translateM(GLfloat *matrix, int offset, float x, float y, float z) {
+    for (int i = 0; i < 4; ++i) {
+        int mi = offset + i;
+        matrix[12 + mi] += matrix[mi] * x + matrix[4 + mi] * y + matrix[8 + mi] * z;
     }
 }
 

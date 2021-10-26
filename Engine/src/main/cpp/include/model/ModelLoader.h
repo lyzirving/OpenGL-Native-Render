@@ -20,6 +20,8 @@ public:
 
 private:
 
+    float max(float lhs, float rhs);
+
     MtlLib *parseMtlLib(const std::string &name);
 
     void split(const std::string &src, std::string &pattern, std::vector<std::string> &result);
