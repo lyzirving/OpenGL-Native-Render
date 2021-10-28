@@ -3,8 +3,10 @@ package com.render.engine.filter;
 import androidx.annotation.NonNull;
 
 import com.render.engine.core.BaseRenderEngine;
+import com.render.engine.util.LogUtil;
 
 public class BaseFilter {
+    private static final String TAG = "BaseFilter";
     protected BaseRenderEngine mRenderEngine;
     @FilterConst.FilterType
     protected String mType;
@@ -14,14 +16,26 @@ public class BaseFilter {
     }
 
     public final void adjust(int progress) {
-        if (mRenderEngine == null) { throw new RuntimeException("adjust: render engine is null"); }
-        if (!mRenderEngine.isInitialized()) { throw new RuntimeException("adjust: render env is not initialized, filter type = " + mType); }
+        if (mRenderEngine == null) {
+            LogUtil.e(TAG, "adjust: engine is null");
+            return;
+        }
+        if (!mRenderEngine.isInitialized()) {
+            LogUtil.e(TAG, "adjust: render env is not initialized, filter type = " + mType);
+            return;
+        }
         mRenderEngine.adjust(mType, progress);
     }
 
     public final void adjustProperty(@NonNull String property, int progress) {
-        if (mRenderEngine == null) { throw new RuntimeException("adjustProperty: render engine is null"); }
-        if (!mRenderEngine.isInitialized()) { throw new RuntimeException("adjustProperty: render env is not initialized, filter type = " + mType); }
+        if (mRenderEngine == null) {
+            LogUtil.e(TAG, "adjustProperty: engine is null");
+            return;
+        }
+        if (!mRenderEngine.isInitialized()) {
+            LogUtil.e(TAG, "adjustProperty: render env is not initialized, filter type = " + mType);
+            return;
+        }
         mRenderEngine.adjustProperty(mType, property, progress);
     }
 

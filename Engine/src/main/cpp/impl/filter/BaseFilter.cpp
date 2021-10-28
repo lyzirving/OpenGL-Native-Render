@@ -52,6 +52,8 @@ const char * BaseFilter::getType() {
 
 GLuint BaseFilter::getFrameBuffer() { return 0; }
 
+GLuint BaseFilter::getContentTexture() { return mTextureId; }
+
 void BaseFilter::init() {
     if (!mInitialized) {
         loadShader();

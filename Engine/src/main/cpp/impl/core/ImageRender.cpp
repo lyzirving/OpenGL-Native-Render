@@ -184,7 +184,7 @@ void ImageRender::handlePreDraw(JNIEnv *env) {
     if (mModelFilter == nullptr) {
         /*ModelLoader loader;
         mModelFilter = new ModelFilter;
-        mModelFilter->setObjGroup(loader.buildModel("tiger_nose"));
+        mModelFilter->setObjGroup(loader.buildModel("iron_man"));
         mModelFilter->setOutputSize(mSurfaceWidth, mSurfaceHeight);
         mModelFilter->init();*/
     }

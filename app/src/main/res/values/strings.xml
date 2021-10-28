@@ -2,6 +2,7 @@
     <string name="app_name">RenderDemo</string>
     <string name="tip_still_image">渲染静止图像</string>
     <string name="tip_camera_preview">相机预览</string>
+    <string name="tip_share_render_ctx">共享渲染环境</string>
 
     <string name="tip_beauty">美化</string>
     <string name="tip_contrast">对比度</string>
@@ -26,4 +27,9 @@
     <string name="tip_switch_camera">切换</string>
     <string name="tip_detect_face">检测人脸</string>
     <string name="tip_beautify_face">人脸美白</string>
+
+    <string name="tip_main_env">主环境</string>
+    <string name="tip_share_env_one">共享环境一</string>
+    <string name="tip_share_env_two">共享环境二</string>
+    <string name="tip_share_env_two_sub">共享环境二子环境</string>
 </resources>

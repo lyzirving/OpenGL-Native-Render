@@ -54,10 +54,11 @@ namespace render {
     enum class Status : uint8_t {
         STATUS_IDLE = 0,
         STATUS_PREPARING = 1,
-        STATUS_PREPARED = 2,
-        STATUS_RUN = 3,
-        STATUS_PAUSE = 4,
-        STATUS_DESTROY = 5
+        STATUS_WAIT_CONTEXT = 2,
+        STATUS_PREPARED = 3,
+        STATUS_RUN = 4,
+        STATUS_PAUSE = 5,
+        STATUS_DESTROY = 6
     };
 
     enum class DownloadMode : uint8_t {

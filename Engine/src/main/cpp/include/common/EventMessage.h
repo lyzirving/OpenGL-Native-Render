@@ -18,7 +18,9 @@ enum class EventType : int8_t {
     EVENT_FACE_TRACK_START = 8,
     EVENT_FACE_TRACK_STOP = 9,
     EVENT_CHANGE_STATUS = 10,
-    EVENT_QUIT = 11
+    EVENT_ADD_SHARE_CONTEXT = 11,
+    EVENT_DRAW_SHARE_ENV = 12,
+    EVENT_QUIT = 13
 };
 
 class EventMessage {

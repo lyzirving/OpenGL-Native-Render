@@ -384,6 +384,12 @@ public class CameraActivity extends BaseActivity implements SurfaceHolder.Callba
                 }
 
                 @Override
+                public void onRenderEnvResume() {
+                    super.onRenderEnvResume();
+                    LogUtil.i(TAG, "onRenderEnvResume");
+                }
+
+                @Override
                 public void onRenderOesTextureCreate(int oesTexture) {
                     super.onRenderOesTextureCreate(oesTexture);
                     LogUtil.i(TAG, "onRenderOesTextureCreate: " + oesTexture);

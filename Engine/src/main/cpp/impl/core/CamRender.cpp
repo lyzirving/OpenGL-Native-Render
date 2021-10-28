@@ -147,6 +147,7 @@ void CamRender::drawFrame() {
         int drawCount = 0;
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
+        notifyShareEnvDraw();
         handleDownloadPixel(reinterpret_cast<GLuint *>(&lastTexture), drawCount);
         if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
             lastTexture = mBeautifyFaceFilter->onDraw(lastTexture);
@@ -199,6 +200,15 @@ void CamRender::downloadPreview(GLuint frameBuffer) {
     glBindFramebuffer(GL_FRAMEBUFFER, GL_NONE);
 
     mDownloadFreeIndex = mDownloadFreeIndex == 0 ? 1 : 0;
+}
+
+GLuint CamRender::getContentTexture() {
+    if (mOesFilter != nullptr && mOesFilter->initialized()) {
+        return mOesFilter->getContentTexture();
+    } else {
+        LogUtil::logI(TAG, {"getContentTexture: oes filter is not valid"});
+        return 0;
+    }
 }
 
 void CamRender::handleEnvPrepare(JNIEnv *env) {
@@ -290,7 +300,7 @@ void CamRender::handlePreDraw(JNIEnv *env) {
 
 void CamRender::handlePostDraw(JNIEnv *env) {
     if (!mEglCore->swapBuffer()) {
-        LogUtil::logI(TAG, {"drawFrame: failed to swap buffer"});
+        LogUtil::logI(TAG, {"handlePostDraw: failed to swap buffer"});
     }
 }
 
@@ -465,5 +475,7 @@ void CamRender::updateTexImg(JNIEnv *env) {
         }
     }
 }
+
+
 
 

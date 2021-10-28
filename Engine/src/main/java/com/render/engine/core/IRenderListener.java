@@ -32,6 +32,11 @@ public interface IRenderListener {
     void onRenderEnvPrepare();
 
     /**
+     * called when the render env is resumed
+     */
+    void onRenderEnvResume();
+
+    /**
      * called when the render env is released
      */
     void onRenderEnvRelease();

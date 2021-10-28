@@ -14,11 +14,15 @@ public:
     RenderEglBase();
     ~RenderEglBase();
 
-    bool initEglEnv();
+    long getEglContext();
+    int getWindowWidth();
+    int getWindowHeight();
+    bool initEglEnv(EGLContext sharedContext);
     bool makeCurrent();
     void release();
     void setNativeWindow(ANativeWindow* window);
     bool swapBuffer();
+    bool surfacePrepare();
     bool valid();
 
 private:

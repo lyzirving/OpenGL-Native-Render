@@ -38,6 +38,12 @@ void *envInitTask(void *args) {
     bool modelExist = loader.buildLocalSource(ResourceType::OBJ, modelName.c_str());
     bool mtlExist = loader.buildLocalSource(ResourceType::MTL, modelName.c_str());
     LogUtil::logI(TAG, {"envInitTask: load model, name = ", modelName, ", model = ", std::to_string(modelExist), ", mtl = ", std::to_string(mtlExist)});
+
+    modelName = "iron_man";
+    modelExist = loader.buildLocalSource(ResourceType::OBJ, modelName.c_str());
+    mtlExist = loader.buildLocalSource(ResourceType::MTL, modelName.c_str());
+    LogUtil::logI(TAG, {"envInitTask: load model, name = ", modelName, ", model = ", std::to_string(modelExist), ", mtl = ", std::to_string(mtlExist)});
+
     JniUtil::self()->detachThread();
     return nullptr;
 }

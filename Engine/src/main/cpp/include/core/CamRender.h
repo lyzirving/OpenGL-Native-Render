@@ -18,6 +18,7 @@ public:
 
     void adjustProperty(const char *filterType, const char *property, int progress) override;
     void drawFrame() override;
+    GLuint getContentTexture() override;
     void trackFace(bool start) override;
 
     void handleLandMarkTrack(Point* lhsDst, Point* lhsCtrl, Point* rhsDst, Point* rhsCtrl);
@@ -38,7 +39,6 @@ protected:
     void handleRenderEnvResume(JNIEnv *env) override;
     void handleRenderEnvDestroy(JNIEnv *env) override;
     void handleSurfaceChange(JNIEnv *env) override;
-
     void buildOesTexture();
     void downloadPreview(GLuint frameBuffer);
     void notifyEnvOesTextureCreate(JNIEnv* env, jobject listener, int oesTexture);

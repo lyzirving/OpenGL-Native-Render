@@ -20,6 +20,11 @@ public class BaseRenderEngine implements IRenderEngine, IFace, SurfaceTexture.On
     protected LinkedHashMap<String, BaseFilter> mBeautyFilter = new LinkedHashMap<>();
     protected int mSurfaceWidth, mSurfaceHeight;
 
+    public void abandon() {
+        mBeautyFilter.clear();
+        mNativePtr = INVALID_PTR;
+    }
+
     @Override
     public void addBeautyFilter(BaseFilter filter, boolean commit) {
         if (!isInitialized()) { throw new RuntimeException("addBeautyFilter: env is not initialized, filter = " + filter.getType()); }
@@ -56,6 +61,14 @@ public class BaseRenderEngine implements IRenderEngine, IFace, SurfaceTexture.On
         }
     }
 
+    public void bindShareEnv(long ptr) {
+        if (!isInitialized()) {
+            LogUtil.e(TAG, "bindShareEnv: invalid state");
+        } else {
+            nBindShareEnv(mNativePtr, ptr);
+        }
+    }
+
     @Override
     public void clearBeautyFilter() {
         if (!isInitialized()) {
@@ -71,8 +84,14 @@ public class BaseRenderEngine implements IRenderEngine, IFace, SurfaceTexture.On
         nClearBeautyFilter(mNativePtr);
     }
 
-    @Override
-    public void onFrameAvailable(SurfaceTexture surfaceTexture) { requestRender(); }
+    public boolean surfacePrepare() {
+        if (!isInitialized()) {
+            LogUtil.i(TAG, "surfacePrepare: env is not valid");
+            return false;
+        } else {
+            return nSurfacePrepare(mNativePtr);
+        }
+    }
 
     @Override
     public boolean isInitialized() {
@@ -82,6 +101,16 @@ public class BaseRenderEngine implements IRenderEngine, IFace, SurfaceTexture.On
         }
         return nInitialized(mNativePtr);
     }
+
+    public long getNativePtr() {
+        if (mNativePtr == INVALID_PTR) {
+            LogUtil.i(TAG, "getNativePtr: invalid ptr");
+        }
+        return mNativePtr;
+    }
+
+    @Override
+    public void onFrameAvailable(SurfaceTexture surfaceTexture) { requestRender(); }
 
     @Override
     public void onPause() {
@@ -164,8 +193,10 @@ public class BaseRenderEngine implements IRenderEngine, IFace, SurfaceTexture.On
     private static native boolean nAddBeautyFilter(long ptr, String filterType, boolean commit);
     private static native void nAdjust(long ptr, String filterType, int progress);
     private static native void nAdjustProperty(long ptr, String filterType, String property, int progress);
+    private static native void nBindShareEnv(long ptr, long sharePtr);
     private static native void nBeautifyFace(long ptr, boolean start);
     private static native void nClearBeautyFilter(long ptr);
+    private static native boolean nSurfacePrepare(long ptr);
     private static native boolean nInitialized(long ptr);
     private static native void nOnPause(long ptr);
     private static native void nOnResume(long ptr, Surface surface);

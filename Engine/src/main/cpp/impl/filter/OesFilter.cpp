@@ -58,6 +58,10 @@ void OesFilter::destroy() {
     delete[] mMatrix;
 }
 
+GLuint OesFilter::getContentTexture() {
+    return mTextureId;
+}
+
 void OesFilter::init() {
     if (!mInitialized) { LogUtil::logI(TAG, {"init: begin to initialized filter"}); }
     BaseFilter::init();

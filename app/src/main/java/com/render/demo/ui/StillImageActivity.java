@@ -324,6 +324,12 @@ public class StillImageActivity extends BaseActivity implements View.OnClickList
                 }
 
                 @Override
+                public void onRenderEnvResume() {
+                    super.onRenderEnvResume();
+                    LogUtil.i(TAG, "onRenderEnvResume");
+                }
+
+                @Override
                 public void onRenderEnvRelease() {
                     super.onRenderEnvRelease();
                     LogUtil.i(TAG, "onRenderEnvRelease");

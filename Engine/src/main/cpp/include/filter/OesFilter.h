@@ -11,21 +11,33 @@ class OesFilter : public BaseFilter {
 public:
 
     void calculateMatrix();
+
     void destroy() override;
+
+    GLuint getContentTexture() override;
+
     void init() override;
+
     void initFrameBuffer() override;
+
     void initHandler() override;
+
     void initTexture() override;
+
     void loadShader() override;
+
     GLint onDraw(GLint inputTextureId) override;
+
     void onPause() override;
+
     void setCameraFaceFront(int faceFront);
+
     void setPreviewSize(GLint width, GLint height);
 
 private:
     int mTransHandler{0};
     int mOesSamplerHandler{0};
-    GLuint* mOesFrameBuffer{nullptr};
+    GLuint *mOesFrameBuffer{nullptr};
     int mCameraFace{render::CameraMetaData::LENS_FACING_BACK};
     GLint mPreviewWidth{0};
     GLint mPreviewHeight{0};

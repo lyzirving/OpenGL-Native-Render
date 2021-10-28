@@ -13,6 +13,7 @@ BaseRender::BaseRender() {
     mEglCore = new RenderEglBase;
     mEventQueue = new ObjectQueue<EventMessage>;
     mWorkQueue = new PointerQueue<WorkTask>;
+    mShareEnv = new std::vector<BaseRender*>;
 }
 
 BaseRender::~BaseRender() = default;
@@ -112,6 +113,16 @@ static void nEnvTrackFace(JNIEnv *env, jclass clazz, jlong ptr, jboolean start) 
     pRender->trackFace(start);
 }
 
+static void nEnvBindShareEnv(JNIEnv *env, jclass clazz, jlong ptr, jlong shareEnv) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    pRender->bindShareEnv(shareEnv);
+}
+
+static jboolean nEnvSurfacePrepare(JNIEnv *env, jclass clazz, jlong ptr) {
+    auto *pRender = reinterpret_cast<BaseRender *>(ptr);
+    return pRender->surfacePrepare();
+}
+
 static JNINativeMethod sJniMethods[] = {
         {
                 "nAddBeautyFilter", "(JLjava/lang/String;Z)Z",
@@ -164,6 +175,14 @@ static JNINativeMethod sJniMethods[] = {
         {
                 "nTrackFace", "(JZ)V",
                 (void *) nEnvTrackFace
+        },
+        {
+                "nBindShareEnv", "(JJ)V",
+                (void *) nEnvBindShareEnv
+        },
+        {
+                "nSurfacePrepare", "(J)Z",
+                (void *) nEnvSurfacePrepare
         }
 };
 
@@ -225,7 +244,7 @@ void BaseRender::adjustProperty(const char *filterType, const char *property, in
             std::shared_ptr<BaseFilter> tmp = mBeautyFilterGroup->getFilter(filterType);
             tmp->adjustProperty(property, progress);
         }
-    } if (std::strcmp(render::FILTER_BEAUTIFY_FACE, filterType) == 0) {
+    } else if (std::strcmp(render::FILTER_BEAUTIFY_FACE, filterType) == 0) {
         if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
             mBeautifyFaceFilter->adjustProperty(property, progress);
         } else {
@@ -267,6 +286,17 @@ bool BaseRender::addBeautyFilter(const char *filterType, bool commit) {
     return false;
 }
 
+void BaseRender::bindShareEnv(long sharePtr) {
+    if (sharePtr > 0) {
+        auto* ptr = reinterpret_cast<BaseRender *>(sharePtr);
+        mShareEnv->push_back(ptr);
+        ptr->setShareEglContext(getEglContext());
+        ptr->enqueueMessage(EventType::EVENT_ADD_SHARE_CONTEXT);
+    } else {
+        LogUtil::logI(TAG, {"bindShareEnv: invalid input share ptr"});
+    }
+}
+
 void BaseRender::clearBeautyFilter() {
     if (mBeautyFilterGroup != nullptr) {
         std::shared_ptr<WorkTask> task = std::make_shared<FilterDestroyTask>();
@@ -275,14 +305,35 @@ void BaseRender::clearBeautyFilter() {
     }
 }
 
+void BaseRender::drawShare(GLuint inputShareTexture) {}
+
+long BaseRender::getEglContext() {
+    if (mEglCore == nullptr || !mEglCore->valid()) {
+        LogUtil::logI(TAG, {"getEglContext: egl env is not valid"});
+        return 0;
+    } else {
+        return mEglCore->getEglContext();
+    }
+}
+
+GLuint BaseRender::getContentTexture() { return 0; }
+
 bool BaseRender::initialized() {
-    return mStatus >= render::Status::STATUS_PREPARED && mStatus <= render::Status::STATUS_PAUSE;
+    return mStatus >= render::Status::STATUS_WAIT_CONTEXT && mStatus <= render::Status::STATUS_PAUSE;
 }
 
 void BaseRender::notifyEnvPrepare(JNIEnv *env, jobject listener) {
     if (listener != nullptr) {
         jclass listenerClass = env->GetObjectClass(listener);
         jmethodID methodId = env->GetMethodID(listenerClass, "onRenderEnvPrepare", "()V");
+        env->CallVoidMethod(listener, methodId);
+    }
+}
+
+void BaseRender::notifyEnvResume(JNIEnv *env, jobject listener) {
+    if (listener != nullptr) {
+        jclass listenerClass = env->GetObjectClass(listener);
+        jmethodID methodId = env->GetMethodID(listenerClass, "onRenderEnvResume", "()V");
         env->CallVoidMethod(listener, methodId);
     }
 }
@@ -295,9 +346,19 @@ void BaseRender::notifyEnvRelease(JNIEnv *env, jobject listener) {
     }
 }
 
+void BaseRender::notifyShareEnvDraw() {
+    GLuint texture = getContentTexture();
+    if (mShareEnv != nullptr && !mShareEnv->empty() && texture != 0) {
+        for (auto iterator = mShareEnv->begin(); iterator != mShareEnv->end() ; ++iterator) {
+            BaseRender* tmp = *iterator;
+            tmp->enqueueMessage(EventMessage(EventType::EVENT_DRAW_SHARE_ENV, texture));
+        }
+    }
+}
+
 void BaseRender::render(JNIEnv *env) {
     mStatus = render::Status::STATUS_PREPARING;
-    if (!mEglCore->initEglEnv()) { goto quit; }
+    if (!mEglCore->initEglEnv(mShareContext)) { goto quit; }
     mStatus = render::Status::STATUS_PREPARED;
     handleEnvPrepare(env);
     notifyEnvPrepare(env, GET_LISTENER);
@@ -323,7 +384,7 @@ void BaseRender::render(JNIEnv *env) {
                 mStatus = render::Status::STATUS_RUN;
                 bool success = renderEnvResume();
                 if (success) {
-                    notifyEnvPrepare(env, GET_LISTENER);
+                    notifyEnvResume(env, GET_LISTENER);
                     handleRenderEnvResume(env);
                 } else {
                     goto quit;
@@ -383,6 +444,8 @@ void BaseRender::renderEnvPause() {
     if (mBeautifyFaceFilter != nullptr) { mBeautifyFaceFilter->onPause(); }
     if (mScreenFilter != nullptr) { mScreenFilter->onPause(); }
     if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->onPause(); }
+    if (mShareEnv != nullptr) { mShareEnv->clear(); }
+    mShareContext = EGL_NO_CONTEXT;
 
     mWorkQueue->clear();
     mEventQueue->clear();
@@ -390,7 +453,7 @@ void BaseRender::renderEnvPause() {
 }
 
 bool BaseRender::renderEnvResume() {
-    bool res = mEglCore->initEglEnv();
+    bool res = mEglCore->initEglEnv(mShareContext);
     if (res) {
         if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->needResume()) {
             mBeautifyFaceFilter->onResume();
@@ -412,6 +475,8 @@ void BaseRender::renderEnvDestroy() {
     if (mBeautyFilterGroup != nullptr) { mBeautyFilterGroup->destroy(); }
     delete mBeautyFilterGroup;
     mBeautyFilterGroup = nullptr;
+    if (mShareEnv != nullptr) { mShareEnv->clear(); }
+    mShareContext = EGL_NO_CONTEXT;
 
     mWorkQueue->clear();
     mEventQueue->clear();
@@ -423,6 +488,10 @@ void BaseRender::runTaskPreDraw() {
         std::shared_ptr<WorkTask> task = mWorkQueue->dequeueNotWait();
         if (task != nullptr) task->run();
     }
+}
+
+bool BaseRender::surfacePrepare() {
+    return mEglCore != nullptr && mEglCore->surfacePrepare();
 }
 
 void BaseRender::setJavaListener(JNIEnv *env, jobject listener) {
@@ -443,6 +512,10 @@ void BaseRender::setNativeWindow(ANativeWindow *window) {
 void BaseRender::setSurfaceSize(GLint surfaceWidth, GLint surfaceHeight) {
     mSurfaceWidth = surfaceWidth;
     mSurfaceHeight = surfaceHeight;
+}
+
+void BaseRender::setShareEglContext(long context) {
+    mShareContext = reinterpret_cast<EGLContext>(context);
 }
 
 void BaseRender::surfaceChange() {

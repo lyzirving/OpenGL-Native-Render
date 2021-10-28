@@ -10,13 +10,41 @@ RenderEglBase::RenderEglBase() = default;
 
 RenderEglBase::~RenderEglBase() = default;
 
-bool RenderEglBase::initEglEnv() {
+long RenderEglBase::getEglContext() {
+    if (valid()) {
+        return reinterpret_cast<long>(eglGetCurrentContext());
+    } else {
+        LogUtil::logI(TAG, {"getEglContext: egl env is not valid"});
+        return 0;
+    }
+}
+
+int RenderEglBase::getWindowWidth() {
+    if (mNativeWindow == nullptr) {
+        LogUtil::logI(TAG, {"getWindowWidth: native window is invalid"});
+        return 0;
+    } else {
+        return ANativeWindow_getWidth(mNativeWindow);
+    }
+}
+
+int RenderEglBase::getWindowHeight() {
+    if (mNativeWindow == nullptr) {
+        LogUtil::logI(TAG, {"getWindowHeight: native window is invalid"});
+        return 0;
+    } else {
+        return ANativeWindow_getHeight(mNativeWindow);
+    }
+}
+
+bool RenderEglBase::initEglEnv(EGLContext sharedContext) {
     LogUtil::logI(TAG, {"initEglEnv"});
     auto *version = new EGLint[2];
     EGLint numConfig;
     EGLConfig *supportConfigs = nullptr;
     EGLint eglFormat;
     int i = 0;
+    if (sharedContext == nullptr) { sharedContext = EGL_NO_CONTEXT; }
     const EGLint glAttributes[] = {
             EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
             EGL_BLUE_SIZE, 8,
@@ -73,7 +101,7 @@ bool RenderEglBase::initEglEnv() {
         LogUtil::logI(TAG, {"initRenderEnv: failed to create window surface"});
         goto fail;
     }
-    mEglContext = eglCreateContext(mEglDisplay, mEglConfig, nullptr, glContextAttribute);
+    mEglContext = eglCreateContext(mEglDisplay, mEglConfig, sharedContext, glContextAttribute);
     if (mEglContext == EGL_NO_CONTEXT) {
         LogUtil::logI(TAG, {"initRenderEnv: failed to create egl context"});
         goto fail;
@@ -117,6 +145,10 @@ void RenderEglBase::setNativeWindow(ANativeWindow* window) {
 
 bool RenderEglBase::swapBuffer() {
     return eglSwapBuffers(mEglDisplay, mEglSurface) != EGL_FALSE;
+}
+
+bool RenderEglBase::surfacePrepare() {
+    return mNativeWindow != nullptr;
 }
 
 bool RenderEglBase::valid() {

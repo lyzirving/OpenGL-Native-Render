@@ -18,6 +18,7 @@ public:
     virtual void destroy();
     virtual const char* getType();
     virtual GLuint getFrameBuffer();
+    virtual GLuint getContentTexture();
     virtual void init();
     virtual void initHandler();
     virtual void initBuffer();
