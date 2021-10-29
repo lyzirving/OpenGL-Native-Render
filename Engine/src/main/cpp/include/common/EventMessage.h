@@ -28,10 +28,12 @@ public:
     EventMessage();
     EventMessage(EventType msg);
     EventMessage(EventType msg, int inputArg0);
+    EventMessage(EventType msg, int inputArg0, int inputArg1);
     EventMessage(const EventMessage& eventMessage) noexcept;
     EventMessage(EventMessage&& eventMessage) noexcept;
     EventType what;
     int arg0{-1};
+    int arg1{-1};
 private:
 };
 

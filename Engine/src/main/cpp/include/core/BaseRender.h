@@ -28,7 +28,7 @@ public:
 
     virtual void adjustProperty(const char *filterType, const char *property, int progress);
     virtual void drawFrame() = 0;
-    virtual void drawShare(GLuint inputShareTexture);
+    virtual void drawShare(GLuint inputShareTexture, int curDrawCount);
     virtual GLuint getContentTexture();
     virtual void trackFace(bool start) = 0;
     virtual void release(JNIEnv* env);
@@ -66,7 +66,7 @@ protected:
     virtual void handleRenderEnvResume(JNIEnv* env) = 0;
     virtual void handleRenderEnvDestroy(JNIEnv* env) = 0;
     virtual void handleSurfaceChange(JNIEnv* env) = 0;
-    virtual void notifyShareEnvDraw();
+    virtual void notifyShareEnvDraw(GLuint textureId, int curDrawCount);
 
     void renderEnvPause();
     bool renderEnvResume();

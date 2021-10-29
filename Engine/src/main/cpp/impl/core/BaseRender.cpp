@@ -305,7 +305,7 @@ void BaseRender::clearBeautyFilter() {
     }
 }
 
-void BaseRender::drawShare(GLuint inputShareTexture) {}
+void BaseRender::drawShare(GLuint inputShareTexture, int curDrawCount) {}
 
 long BaseRender::getEglContext() {
     if (mEglCore == nullptr || !mEglCore->valid()) {
@@ -346,12 +346,11 @@ void BaseRender::notifyEnvRelease(JNIEnv *env, jobject listener) {
     }
 }
 
-void BaseRender::notifyShareEnvDraw() {
-    GLuint texture = getContentTexture();
-    if (mShareEnv != nullptr && !mShareEnv->empty() && texture != 0) {
+void BaseRender::notifyShareEnvDraw(GLuint textureId, int curDrawCount) {
+    if (mShareEnv != nullptr && !mShareEnv->empty() && textureId != 0) {
         for (auto iterator = mShareEnv->begin(); iterator != mShareEnv->end() ; ++iterator) {
             BaseRender* tmp = *iterator;
-            tmp->enqueueMessage(EventMessage(EventType::EVENT_DRAW_SHARE_ENV, texture));
+            tmp->enqueueMessage(EventMessage(EventType::EVENT_DRAW_SHARE_ENV, textureId, curDrawCount));
         }
     }
 }

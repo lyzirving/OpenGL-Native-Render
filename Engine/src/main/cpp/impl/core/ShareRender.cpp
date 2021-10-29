@@ -35,16 +35,16 @@ bool ShareRender::registerSelf(JNIEnv *env) {
 
 void ShareRender::drawFrame() {}
 
-void ShareRender::drawShare(GLuint inputShareTexture) {
+void ShareRender::drawShare(GLuint inputShareTexture, int curDrawCount) {
     if (mScreenFilter != nullptr && mScreenFilter->initialized()) {
         //the input texture has been drawn once, so drawCount should be initialized as 1;
-        int drawCount = 1;
         GLuint lastTexture = inputShareTexture;
         if (mBeautyFilterGroup != nullptr && mBeautyFilterGroup->initialized()) {
             lastTexture = mBeautyFilterGroup->onDraw(lastTexture);
-            drawCount += mBeautyFilterGroup->filterSize();
+            curDrawCount += mBeautyFilterGroup->filterSize();
         }
-        bool isOdd = (drawCount % 2) != 0;
+        notifyShareEnvDraw(lastTexture, curDrawCount);
+        bool isOdd = (curDrawCount % 2) != 0;
         mScreenFilter->flip(false, isOdd);
         mScreenFilter->onDraw(lastTexture);
     } else {
@@ -104,7 +104,7 @@ void ShareRender::render(JNIEnv *env) {
                     mStatus = render::Status::STATUS_RUN;
                     runTaskPreDraw();
                     handlePreDraw(env);
-                    drawShare(message.arg0);
+                    drawShare(message.arg0, message.arg1 < 0 ? 0 : message.arg1);
                     handlePostDraw(env);
                 } else {
                     LogUtil::logI(TAG, {"render: handle draw share env, env is not valid"});

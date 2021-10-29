@@ -147,7 +147,7 @@ void CamRender::drawFrame() {
         int drawCount = 0;
         int lastTexture = mOesFilter->onDraw(mOesTexture);
         drawCount++;
-        notifyShareEnvDraw();
+        notifyShareEnvDraw(getContentTexture(), drawCount);
         handleDownloadPixel(reinterpret_cast<GLuint *>(&lastTexture), drawCount);
         if (mBeautifyFaceFilter != nullptr && mBeautifyFaceFilter->initialized()) {
             lastTexture = mBeautifyFaceFilter->onDraw(lastTexture);

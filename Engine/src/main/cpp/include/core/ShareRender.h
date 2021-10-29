@@ -12,7 +12,7 @@ public:
 
     void drawFrame() override;
 
-    void drawShare(GLuint inputShareTexture) override;
+    void drawShare(GLuint inputShareTexture, int curDrawCount) override;
 
     void render(JNIEnv *env) override;
 

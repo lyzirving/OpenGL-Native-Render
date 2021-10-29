@@ -26,18 +26,23 @@ public class MultiSurfaceActivity extends BaseActivity {
     private static final String TAG = "MultiSurfaceActivity";
 
     private SurfaceHolder.Callback mMainCallback;
-    private SurfaceHolder.Callback mShareOneCallback, mShareTwoCallback;
-
     private CamRenderEngine mCameraRender;
     private RenderAdapter mCamRenderAdapter;
 
     private final Object mShareOneLock = new Object();
     private ShareRenderEngine mShareOneRender;
+    private SurfaceHolder.Callback mShareOneCallback;
     private RenderAdapter mShareOneRenderAdapter;
 
     private final Object mShareTwoLock = new Object();
     private ShareRenderEngine mShareTwoRender;
+    private SurfaceHolder.Callback mShareTwoCallback;
     private RenderAdapter mShareTwoRenderAdapter;
+
+    private final Object mShareTwoSubLock = new Object();
+    private ShareRenderEngine mShareTwoSubRender;
+    private SurfaceHolder.Callback mShareTwoSubCallback;
+    private RenderAdapter mShareTwoSubRenderAdapter;
 
     private static final int MSG_RENDER_OES_TEXTURE_CREATE = 1;
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
@@ -77,6 +82,11 @@ public class MultiSurfaceActivity extends BaseActivity {
         surfaceView.setZOrderOnTop(false);
         surfaceView.getHolder().setFormat(PixelFormat.TRANSPARENT);
         surfaceView.getHolder().addCallback(getShareTwoCallback());
+
+        surfaceView = findViewById(R.id.surface_share_two_sub);
+        surfaceView.setZOrderOnTop(false);
+        surfaceView.getHolder().setFormat(PixelFormat.TRANSPARENT);
+        surfaceView.getHolder().addCallback(getShareTwoSubCallback());
     }
 
     @Override
@@ -90,6 +100,9 @@ public class MultiSurfaceActivity extends BaseActivity {
         if (mShareTwoRender != null) { mShareTwoRender.release(); }
         mShareTwoRender = null;
 
+        if (mShareTwoSubRender != null) { mShareTwoSubRender.release(); }
+        mShareTwoSubRender = null;
+
         if (mCameraRender != null) { mCameraRender.release(); }
         mCameraRender = null;
     }
@@ -102,6 +115,7 @@ public class MultiSurfaceActivity extends BaseActivity {
         if (mCameraRender != null) { mCameraRender.onPause(); }
         if (mShareOneRender != null) { mShareOneRender.onPause(); }
         if (mShareTwoRender != null) { mShareTwoRender.onPause(); }
+        if (mShareTwoSubRender != null) { mShareTwoSubRender.onPause(); }
     }
 
     private SurfaceHolder.Callback getMainCallback() {
@@ -208,6 +222,38 @@ public class MultiSurfaceActivity extends BaseActivity {
         return mShareTwoCallback;
     }
 
+    private SurfaceHolder.Callback getShareTwoSubCallback() {
+        if (mShareTwoSubCallback == null) {
+            mShareTwoSubCallback = new SurfaceHolder.Callback() {
+                @Override
+                public void surfaceCreated(@NonNull SurfaceHolder holder) {
+                    LogUtil.i(TAG, "surfaceCreated: share two sub");
+                    synchronized (mShareTwoSubLock) {
+                        if (mShareTwoSubRender == null || !mShareTwoSubRender.isInitialized()) {
+                            mShareTwoSubRender = new ShareRenderEngine();
+                            mShareTwoSubRender.onSurfaceCreate(holder.getSurface(), getShareTwoSubRenderAdapter());
+                        } else {
+                            mShareTwoSubRender.onResume(holder.getSurface());
+                        }
+                        mShareTwoSubLock.notify();
+                    }
+                }
+
+                @Override
+                public void surfaceChanged(@NonNull SurfaceHolder holder, int format, int width, int height) {
+                    LogUtil.i(TAG, "surfaceChanged: share two sub, width = " + width + ", height = " + height);
+                    if (mShareTwoSubRender != null) { mShareTwoSubRender.onSurfaceChange(width, height); }
+                }
+
+                @Override
+                public void surfaceDestroyed(@NonNull SurfaceHolder holder) {
+                    LogUtil.i(TAG, "surfaceDestroyed: share two sub");
+                }
+            };
+        }
+        return mShareTwoSubCallback;
+    }
+
     private RenderAdapter getCamRenderAdapter() {
         if (mCamRenderAdapter == null) {
             mCamRenderAdapter = new RenderAdapter() {
@@ -279,6 +325,7 @@ public class MultiSurfaceActivity extends BaseActivity {
                     ColorAdjustFilter filter = new ColorAdjustFilter();
                     mShareTwoRender.addBeautyFilter(filter, true);
                     filter.adjustProperty(FilterConst.PROP_SATURATION, 15);
+                    handleShareTwoEnvPrepare();
                 }
 
                 @Override
@@ -291,6 +338,27 @@ public class MultiSurfaceActivity extends BaseActivity {
             };
         }
         return mShareTwoRenderAdapter;
+    }
+
+    private RenderAdapter getShareTwoSubRenderAdapter() {
+        if (mShareTwoSubRenderAdapter == null) {
+            mShareTwoSubRenderAdapter = new RenderAdapter() {
+                @Override
+                public void onRenderEnvPrepare() {
+                    super.onRenderEnvPrepare();
+                    LogUtil.i(TAG, "onRenderEnvPrepare: share two sub");
+                }
+
+                @Override
+                public void onRenderEnvRelease() {
+                    super.onRenderEnvRelease();
+                    LogUtil.i(TAG, "onRenderEnvRelease: share two sub");
+                    if (mShareTwoSubRender != null) { mShareTwoSubRender.abandon(); }
+                    mShareTwoSubRender = null;
+                }
+            };
+        }
+        return mShareTwoSubRenderAdapter;
     }
 
     private void handleOesTextureCreate(int oesTexture) {
@@ -352,6 +420,23 @@ public class MultiSurfaceActivity extends BaseActivity {
             }
         } catch (Exception e) {
             LogUtil.i(TAG, "handleCameraRenderResume: exception = " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void handleShareTwoEnvPrepare() {
+        try {
+            LogUtil.i(TAG, "handleShareTwoEnvPrepare");
+            synchronized (mShareTwoSubLock) {
+                if (mShareTwoSubRender == null || !mShareTwoSubRender.isInitialized()) {
+                    LogUtil.i(TAG, "handleShareTwoEnvPrepare: share two sub wait");
+                    mShareTwoSubLock.wait();
+                    LogUtil.i(TAG, "handleShareTwoEnvPrepare: share two sub resume");
+                }
+                mShareTwoRender.bindShareEnv(mShareTwoSubRender.getNativePtr());
+            }
+        } catch (Exception e) {
+            LogUtil.i(TAG, "handleShareTwoEnvPrepare: exception = " + e.getMessage());
             e.printStackTrace();
         }
     }
