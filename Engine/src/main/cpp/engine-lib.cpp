@@ -6,6 +6,7 @@
 #include "CamRender.h"
 #include "ImageRender.h"
 #include "ShareRender.h"
+#include "OffScreenRender.h"
 #include "LogUtil.h"
 
 #define TAG "Engine-lib"
@@ -23,5 +24,6 @@ JNIEXPORT int JNICALL JNI_OnLoad(JavaVM *vm,void *reserved) {
     if (!CamRender::registerSelf(env)) { return JNI_ERR; }
     if (!ImageRender::registerSelf(env)) { return JNI_ERR; }
     if (!ShareRender::registerSelf(env)) { return JNI_ERR; }
+    if (!OffScreenRender::registerSelf(env)) { return JNI_ERR; }
     return JNI_VERSION_1_6;
 }

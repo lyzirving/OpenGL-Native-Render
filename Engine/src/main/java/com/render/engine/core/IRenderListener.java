@@ -32,6 +32,12 @@ public interface IRenderListener {
     void onRenderEnvPrepare();
 
     /**
+     * called when the render env is prepared
+     * @param oesTexture oes texture that is used for camera
+     */
+    void onRenderEnvPrepare(int oesTexture);
+
+    /**
      * called when the render env is resumed
      */
     void onRenderEnvResume();

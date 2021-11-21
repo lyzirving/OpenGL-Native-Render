@@ -6,7 +6,7 @@ android {
 
     defaultConfig {
         applicationId "com.render.demo"
-        minSdkVersion 27
+        minSdkVersion 28
         targetSdkVersion 30
         versionCode 1
         versionName "1.0"

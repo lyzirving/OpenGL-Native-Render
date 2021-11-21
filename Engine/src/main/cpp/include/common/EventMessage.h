@@ -20,7 +20,8 @@ enum class EventType : int8_t {
     EVENT_CHANGE_STATUS = 10,
     EVENT_ADD_SHARE_CONTEXT = 11,
     EVENT_DRAW_SHARE_ENV = 12,
-    EVENT_QUIT = 13
+    EVENT_SET_CLIENT = 13,
+    EVENT_QUIT = 14
 };
 
 class EventMessage {

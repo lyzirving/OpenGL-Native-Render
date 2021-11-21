@@ -14,6 +14,7 @@ import android.widget.Toast;
 import com.render.demo.ui.BaseActivity;
 import com.render.demo.ui.CameraActivity;
 import com.render.demo.ui.MultiSurfaceActivity;
+import com.render.demo.ui.OffScreenRenderActivity;
 import com.render.demo.ui.StillImageActivity;
 import com.render.engine.core.EngineEnv;
 import com.render.engine.util.LogUtil;
@@ -39,6 +40,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             }
             case R.id.btn_multi_surface: {
                 gotoPage(MultiSurfaceActivity.class);
+                break;
+            }
+            case R.id.btn_off_screen_render: {
+                gotoPage(OffScreenRenderActivity.class);
                 break;
             }
             default: {
@@ -89,6 +94,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         findViewById(R.id.btn_start_still_image).setOnClickListener(this);
         findViewById(R.id.btn_camera).setOnClickListener(this);
         findViewById(R.id.btn_multi_surface).setOnClickListener(this);
+        findViewById(R.id.btn_off_screen_render).setOnClickListener(this);
     }
 
     @Override

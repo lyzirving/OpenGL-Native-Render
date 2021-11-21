@@ -269,7 +269,6 @@ void CamRender::handleOtherMessage(JNIEnv* env, const EventMessage& msg) {
 }
 
 void CamRender::handlePreDraw(JNIEnv *env) {
-    updateTexImg(env);
     if (mPlaceHolderFilter == nullptr) {
         LogUtil::logI(TAG, {"handlePreDraw: place holder filter init"});
         mPlaceHolderFilter = new PlaceHolderFilter;

@@ -22,6 +22,9 @@ class RenderListener implements IRenderListener {
     public void onRenderEnvPrepare() {}
 
     @Override
+    public void onRenderEnvPrepare(int oesTexture) {}
+
+    @Override
     public void onRenderEnvRelease() {}
 
     @Override
