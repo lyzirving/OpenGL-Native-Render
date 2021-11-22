@@ -1,10 +1,7 @@
 package com.render.engine.core;
 
 import android.annotation.SuppressLint;
-import android.graphics.ImageFormat;
-import android.graphics.PixelFormat;
 import android.graphics.SurfaceTexture;
-import android.media.ImageReader;
 import android.view.Surface;
 
 import com.render.engine.util.LogUtil;
@@ -17,7 +14,6 @@ public class OffScreenRender implements SurfaceTexture.OnFrameAvailableListener 
     private static final long INVALID_PTR = -1;
 
     protected long mNativePtr = INVALID_PTR;
-    private ImageReader mImgReader;
 
     public OffScreenRender() {
         mNativePtr = nCreate();
@@ -31,8 +27,6 @@ public class OffScreenRender implements SurfaceTexture.OnFrameAvailableListener 
     }
 
     public void onQuit() {
-        if (mImgReader != null) { mImgReader.close(); }
-        mImgReader = null;
         mNativePtr = INVALID_PTR;
     }
 
@@ -43,9 +37,7 @@ public class OffScreenRender implements SurfaceTexture.OnFrameAvailableListener 
             return;
         }
         if (checkPtr()) {
-            if (mImgReader != null) { mImgReader.close(); }
-            mImgReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 1);
-            nPrepare(mNativePtr, mImgReader.getSurface(), adapter);
+            nPrepare(mNativePtr, adapter);
         } else {
             LogUtil.e(TAG, "prepare: invalid pointer");
         }
@@ -93,7 +85,7 @@ public class OffScreenRender implements SurfaceTexture.OnFrameAvailableListener 
 
     private static native long nCreate();
     private static native void nPause(long ptr);
-    private static native void nPrepare(long ptr, Surface surface, RenderAdapter adapter);
+    private static native void nPrepare(long ptr, RenderAdapter adapter);
     private static native void nRequestRender(long ptr);
     private static native void nRelease(long ptr);
     private static native void nSetClient(long ptr, Surface surface);

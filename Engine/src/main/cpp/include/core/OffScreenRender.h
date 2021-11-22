@@ -32,7 +32,6 @@ private:
     GLuint mOffScreenTexture{0};
     GLuint mOesTexture{0};
 
-    ANativeWindow* mOffScreenWindow{nullptr};
     WindowSurface *mOffScreenWindowSurface{nullptr};
 
     ANativeWindow *mClientWindow{nullptr};
@@ -92,8 +91,6 @@ public:
     void setSurfaceTexture(JNIEnv *env, jobject texture);
 
     void setClientWindow(ANativeWindow *window);
-
-    void setOffScreenWindow(ANativeWindow *window);
 
     void workBeforeKill(JNIEnv *env);
 

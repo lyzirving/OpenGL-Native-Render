@@ -28,11 +28,9 @@ static jlong nativeCreate(JNIEnv *env, jclass clazz) {
     return reinterpret_cast<jlong>(render);
 }
 
-static void nativePrepare(JNIEnv *env, jclass clazz, jlong ptr, jobject surface, jobject adapter) {
+static void nativePrepare(JNIEnv *env, jclass clazz, jlong ptr, jobject adapter) {
     auto *render = reinterpret_cast<OffScreenRender *>(ptr);
     LOG_I("%s_nativePrepare", TAG);
-    ANativeWindow *offScreenWindow = ANativeWindow_fromSurface(env, surface);
-    render->setOffScreenWindow(offScreenWindow);
     render->setJavaListener(env, adapter);
     if (render->checkLoopThread()) {
         render->enqueueMessage(EventType::EVENT_RESUME);
@@ -77,7 +75,7 @@ static JNINativeMethod sJniMethods[] = {
                 (void *) nativeCreate
         },
         {
-                "nPrepare",           "(JLandroid/view/Surface;Lcom/render/engine/core/RenderAdapter;)V",
+                "nPrepare", "(JLcom/render/engine/core/RenderAdapter;)V",
                 (void *) nativePrepare
         },
         {
@@ -145,9 +143,6 @@ void OffScreenRender::envDestroy() {
     delete (mOffScreenWindowSurface);
     mOffScreenWindowSurface = nullptr;
 
-    if (mOffScreenWindow != nullptr) { ANativeWindow_release(mOffScreenWindow); }
-    mOffScreenWindow = nullptr;
-
     if (mOesTexture != 0) {
         glDeleteTextures(1, &mOesTexture);
         mOesTexture = 0;
@@ -191,9 +186,6 @@ void OffScreenRender::envPause() {
     delete (mOffScreenWindowSurface);
     mOffScreenWindowSurface = nullptr;
 
-    if (mOffScreenWindow != nullptr) { ANativeWindow_release(mOffScreenWindow); }
-    mOffScreenWindow = nullptr;
-
     if (mOesTexture != 0) {
         glDeleteTextures(1, &mOesTexture);
         mOesTexture = 0;
@@ -213,13 +205,9 @@ bool OffScreenRender::envResume(JNIEnv *env) {
     LOG_I("%s_envResume", TAG);
     mStatus = render::Status::STATUS_PREPARING;
     if (!prepareEgl()) { return false; }
-    if (mOffScreenWindow == nullptr) {
-        LOG_E("%s_envResume: off screen window is null", TAG);
-        return false;
-    }
-    mOffScreenWindowSurface = new WindowSurface(mEglDisplay, mEglConfig, mOffScreenWindow);
+    mOffScreenWindowSurface = new WindowSurface(mEglDisplay, 1080, 1440);
     if (!mOffScreenWindowSurface->checkValid()) {
-        LOG_E("%s_envResume: failed to create off screen window surface", TAG);
+        LOG_E("%s_loop: failed to create off screen window surface", TAG);
         return false;
     }
     mOffScreenWindowSurface->makeCurrent(mEglDisplay, mEglContext);
@@ -247,7 +235,7 @@ void OffScreenRender::handleDraw(JNIEnv *env) {
         //now data is filled in off screen texture
         mOesTexFilter->setTexMatrix(mTextureMatrix);
         mOesTexFilter->onDraw(mOesTexture);
-        mOffScreenWindowSurface->swapBuffer(mEglDisplay);
+        mOffScreenWindowSurface->swapBuffer();
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         mClientSurface->makeCurrent(mEglDisplay, mEglContext);
@@ -265,11 +253,7 @@ void OffScreenRender::loop(JNIEnv *env) {
     mLoopThreadCreate = true;
     mStatus = render::Status::STATUS_PREPARING;
     if (!prepareEgl()) { goto quit; }
-    if (mOffScreenWindow == nullptr) {
-        LOG_E("%s_loop: off screen window is null", TAG);
-        goto quit;
-    }
-    mOffScreenWindowSurface = new WindowSurface(mEglDisplay, mEglConfig, mOffScreenWindow);
+    mOffScreenWindowSurface = new WindowSurface(mEglDisplay, 1080, 1440);
     if (!mOffScreenWindowSurface->checkValid()) {
         LOG_E("%s_loop: failed to create off screen window surface", TAG);
         goto quit;
@@ -410,7 +394,7 @@ bool OffScreenRender::prepareEgl() {
         LOG_E("%s_prepareEgl: failed to egl context", TAG);
         goto fail;
     }
-    eglQueryContext(mEglDisplay, mEglContext, GL_VERSION, &version);
+    eglQueryContext(mEglDisplay, mEglContext, EGL_CONTEXT_CLIENT_VERSION, &version);
     LOG_I("%s_prepareEgl: succeed to create context, version = %d", TAG, version);
 
     return true;
@@ -438,7 +422,6 @@ void OffScreenRender::prepareOffScreenFrameBuffer() {
 
     glBindFramebuffer(GL_FRAMEBUFFER, mOffScreenFrameBuffer);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mOffScreenTexture,0);
-    LOG_I("%s_prepareOffScreenFrameBuffer: check error = %d", TAG, glCheckFramebufferStatus(GL_FRAMEBUFFER));
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -481,10 +464,6 @@ bool OffScreenRender::registerSelf(JNIEnv *env) {
 
 void OffScreenRender::setClientWindow(ANativeWindow *window) {
     mClientWindow = window;
-}
-
-void OffScreenRender::setOffScreenWindow(ANativeWindow *window) {
-    mOffScreenWindow = window;
 }
 
 void OffScreenRender::setJavaListener(JNIEnv *env, jobject listener) {
